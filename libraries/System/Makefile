@@ -1,21 +1,8 @@
-#Pull in the LPCduino libraries. We are not ashamed to pull in stuff that is 
-#not needed, the linker will smart link it out.
-
 MEDIA=/mnt/Loginator
-
-#Functions for SD interaction
-#SRC += $(LIBPATH)rootdir.c 
-#SRC += $(LIBPATH)sd_raw.c 
-#SRC += $(LIBPATH)fat16.c 
-#SRC += $(LIBPATH)partition.c 
-#SRC += $(LIBPATH)itoa.c
-
-# List C source files here which must be compiled in ARM-Mode.
-# use file-extension c for "c-only"-files
 
 # List C++ source files here.
 # use file-extension cpp for C++-files (use extension .cpp)
-# Every LPCduino sketch uses its own main.cpp, so we reference it here.
+# Every Loginator sketch uses its own main.cpp, so we reference it here.
 CPPSRC += main.cpp
 CPPSRC += ../libraries/System/Startup.cpp
 CPPSRC += ../libraries/System/Time.cpp
@@ -75,7 +62,7 @@ THUMB_IW = -mthumb-interwork
 # Optimization level, can be [0, 1, 2, 3, s]. 
 # 0 = turn off optimization. s = optimize for size.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = 3 -fomit-frame-pointer
+OPT = -O3 -fomit-frame-pointer
 
 ## Using the Atmel AT91_lib produces warning with
 ## the default warning-levels. 
@@ -104,9 +91,6 @@ EXTRA_LIBDIRS =
 # gnu99 - c99 plus GCC extensions
 CSTANDARD = -std=gnu99
 
-# Place -I options here
-CINCS = -I $(LIBPATH)
-
 # Place -D or -U options for ASM here
 ADEFS =  -D$(RUN_MODE)
 
@@ -121,7 +105,7 @@ ADEFS =  -D$(RUN_MODE)
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
 CFLAGS = $(DEBUG)
 CFLAGS += $(CDEFS) $(CINCS)
-CFLAGS += -O$(OPT)
+CFLAGS += $(OPT)
 CFLAGS += -Wall -Wcast-align
 CFLAGS += -Wpointer-arith -Wswitch
 CFLAGS += -Wredundant-decls -Wreturn-type -Wshadow -Wunused
