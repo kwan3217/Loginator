@@ -87,6 +87,9 @@ SECTIONS
     }
     >ROM
 
+    . = ALIGN(16);
+    /* mthomas - end */
+
     .xz :
     {
         PROVIDE(__xz_start__ = .);
@@ -96,9 +99,6 @@ SECTIONS
     }
     >ROM
 
-    . = ALIGN(16);
-    /* mthomas - end */
-
     _etext = . ;
     PROVIDE (etext = .);
 
@@ -106,8 +106,6 @@ SECTIONS
     .data : AT (_etext)
     {
         _data = .;
-        KEEP(*(.vectmapped)) /* mthomas: when code in ROM and vectors remapped */
-        . = ALIGN(4);
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d*)

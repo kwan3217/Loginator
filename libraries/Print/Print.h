@@ -20,8 +20,7 @@
 #ifndef Print_h
 #define Print_h
 
-#include <inttypes.h>
-#include <stdio.h> // for size_t
+typedef unsigned int size_t; //#include <stdio.h> // for size_t
 #include "float.h"
 //#include "WString.h"
 
@@ -35,43 +34,43 @@
 
 class Print {
   private:
-    void printNumber(unsigned int, uint8_t);
+    void printNumber(unsigned int, int,int);
 #ifdef U64
-    void printNumber(unsigned long long, uint8_t);
+    void printNumber(unsigned long long, int,int);
 #endif
-    void printFloat(fp, uint8_t);
+    void printFloat(fp, unsigned char);
   public:
-    virtual void write(uint8_t) = 0;
+    virtual void write(unsigned char) = 0;
     virtual void write(const char *str);
-    virtual void write(const uint8_t *buffer, size_t size);
+    virtual void write(const char *buffer, size_t size);
     
-    void print(const char[]);
-    void print(char, int = BYTE);
-    void print(unsigned char, int = BYTE);
-    void print(short,  int = DEC);
-    void print(unsigned short, int = DEC);
-    void print(int,  int = DEC);
-    void print(unsigned int, int = DEC);
+    void print(const char *str){write(str);};
+    void print(char c, int base=BYTE, int digits=0){print((int) c, base,digits);};
+    void print(unsigned char b, int base=BYTE,int digits=0){print((unsigned int) b, base,digits);};
+    void print(int,  int = DEC, int=0);
+    void print(unsigned int, int = DEC,int=0);
 #ifdef U64
-    void print(long long,  int = DEC);
-    void print(unsigned long long, int = DEC);
+    void print(long long int,  int = DEC,int=0);
+    void print(unsigned long long int, int = DEC,int=0);
 #endif
-    void print(fp, int = 2);
+    void print(fp n, int digits=2) {printFloat(n, digits);};
 
-    void println(const char[]);
-    void println(char, int = BYTE);
-    void println(unsigned char, int = BYTE);
-    void println(short,  int = DEC);
-    void println(unsigned short, int = DEC);
-    void println(int,  int = DEC);
-    void println(unsigned int, int = DEC);
+    void println(const char *c){print(c);println();};
+    void println(char c, int base=BYTE, int digits=0){print((char)c, base,digits);println();}
+    void println(unsigned char b, int base=BYTE, int digits=0){print((unsigned char)b, base,digits);println();}
+    void println(int n, int base=DEC, int digits=0){print(n, base,digits);println();}
+    void println(unsigned int n, int base=DEC, int digits=0){print(n, base, digits);println();}
 #ifdef U64
-    void println(long long,  int = DEC);
-    void println(unsigned long long, int = DEC);
+    void Print::println(long long int n, int base=DEC, int digits=0){print(n, base,digits); println();}
+    void Print::println(unsigned long long n, int base=DEC,int digits=0){print(n, base,digits);println();}
 #endif
-    void println(fp, int = 2);
-    void println(void);
+    void println(fp n, int digits) {print(n, digits);println();}
+    void println(void) {print('\r');print('\n');};
     void printf(char const *format, ... );
 };
 
 #endif
+
+
+
+

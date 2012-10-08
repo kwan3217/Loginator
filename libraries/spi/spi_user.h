@@ -1,7 +1,7 @@
 #ifndef SPI_USER_H
 #define SPI_USER_H
 
-#include "spi.h"
+#include "HardSPI.h"
 
 class spi_user {
 protected:

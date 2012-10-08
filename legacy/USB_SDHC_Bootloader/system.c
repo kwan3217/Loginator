@@ -64,7 +64,7 @@ void boot_up(void)
 
     //Init rprintf
     rprintf_devopen(putc_serial0);
-    rprintf("USB Bootloader SDHC/Fat32 v0.1\n");
+    rprintf("USB Bootloader v1.2");
 
 	//IOSET0 |= (1 << 31); //Turn off USB LED
 }

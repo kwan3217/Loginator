@@ -58,37 +58,11 @@ void Print::write(const char *str) {
 }
 
 /* default implementation: may be overridden */
-void Print::write(const uint8_t *buffer, size_t size) {
+void Print::write(const char *buffer, size_t size) {
   while (size--) write(*buffer++);
 }
 
-void Print::print(const char str[])
-{
-  write(str);
-}
-
-void Print::print(char c, int base)
-{
-  print((int) c, base);
-}
-
-void Print::print(unsigned char b, int base)
-{
-  print((unsigned int) b, base);
-}
-
-void Print::print(short n, int base)
-{
-  print((int) n, base);
-}
-
-void Print::print(unsigned short n, int base)
-{
-  print((unsigned int) n, base);
-}
-
-void Print::print(int n, int base)
-{
+void Print::print(int n, int base, int digits) {
   if (base == 0) {
     write(n);
   } else if (base == 10) {
@@ -96,16 +70,15 @@ void Print::print(int n, int base)
       print('-');
       n = -n;
     }
-    printNumber((unsigned int)n, 10);
+    printNumber((unsigned int)n, 10, digits);
   } else {
-    printNumber((unsigned int)n, base);
+    printNumber((unsigned int)n, base,digits);
   }
 }
 
-void Print::print(unsigned int n, int base)
-{
+void Print::print(unsigned int n, int base, int digits) {
   if (base == 0) write(n);
-  else printNumber(n, base);
+  else printNumber(n, base, digits);
 }
 
 #ifdef U64
@@ -124,131 +97,56 @@ void Print::print(long long n, int base)
   }
 }
 
-void Print::print(unsigned long long n, int base)
-{
+void Print::print(unsigned long long n, int base){
   if (base == 0) write(n);
   else printNumber(n, base);
 }
 #endif
 
-void Print::print(fp n, int digits) {
-  printFloat(n, digits);
-}
-
-void Print::println(void)
-{
-  print('\r');
-  print('\n');  
-}
-
-void Print::println(const char c[])
-{
-  print(c);
-  println();
-}
-
-void Print::println(char c, int base)
-{
-  print(c, base);
-  println();
-}
-
-void Print::println(unsigned char b, int base)
-{
-  print(b, base);
-  println();
-}
-
-void Print::println(short n, int base)
-{
-  print(n, base);
-  println();
-}
-
-void Print::println(unsigned short n, int base)
-{
-  print(n, base);
-  println();
-}
-
-void Print::println(int n, int base)
-{
-  print(n, base);
-  println();
-}
-
-void Print::println(unsigned int n, int base)
-{
-  print(n, base);
-  println();
-}
-
-#ifdef U64
-void Print::println(long long n, int base)
-{
-  print(n, base);
-  println();
-}
-
-void Print::println(unsigned long long n, int base)
-{
-  print(n, base);
-  println();
-}
-#endif
-
-void Print::println(fp n, int digits)
-{
-  print(n, digits);
-  println();
-}
-
 // Private Methods /////////////////////////////////////////////////////////////
 
-void Print::printNumber(unsigned int n, uint8_t base)
-{
-  unsigned char buf[8 * sizeof(unsigned int)]; // Assumes 8-bit chars. 
-  unsigned long i = 0;
+void Print::printNumber(unsigned int n, int base, int digits) {
+  unsigned char buf[8 * sizeof(unsigned int)]; 
+  unsigned int i = 0;
 
   if (n == 0) {
-    print('0');
+    for(i=0;i<(digits>0?digits:1);i++) print('0');
     return;
   } 
 
-  while (n > 0) {
-    buf[i++] = n % base;
+  while (n > 0||digits>0) {
+    buf[i] = n % base;
+    i++;
+    digits--;
     n /= base;
   }
 
-  for (; i > 0; i--)
-    print((char) (buf[i - 1] < 10 ?
-      '0' + buf[i - 1] :
-      'A' + buf[i - 1] - 10));
+  for (; i > 0; i--) print((char) (buf[i - 1] < 10 ?'0' + buf[i - 1]:'A' + buf[i - 1] - 10));
 }
 
 #ifdef U64
-void Print::printNumber(unsigned long long n, uint8_t base) {
-  unsigned char buf[8 * sizeof(unsigned long long)]; // Assumes 8-bit chars. 
-  unsigned long i = 0;
+void Print::printNumber(unsigned long long n, int base, int digits) {
+  unsigned char buf[8 * sizeof(unsigned long long)]; 
+  unsigned int i = 0;
 
   if (n == 0) {
-    print('0');
+    for(i=0;i<(digits>0?digits:1);i++) print('0');
     return;
   } 
 
-  while (n > 0) {
-    buf[i++] = n % base;
+  while (n > 0||digits>0) {
+    buf[i] = n % base;
+    i++;
+    digits--;
     n /= base;
   }
 
-  for (; i > 0; i--)
-    print((char) (buf[i - 1] < 10 ?
-      '0' + buf[i - 1] :
-      'A' + buf[i - 1] - 10));
+  for (; i > 0; i--) print((char) (buf[i - 1] < 10 ?'0' + buf[i - 1]:'A' + buf[i - 1] - 10));
 }
+
 #endif
 
-void Print::printFloat(fp number, uint8_t digits) 
+void Print::printFloat(fp number, unsigned char digits) 
 { 
   // Handle negative numbers
   if (number < 0.0)
@@ -259,7 +157,7 @@ void Print::printFloat(fp number, uint8_t digits)
 
   // Round correctly so that print(1.999, 2) prints as "2.00"
   fp rounding = 0.5;
-  for (uint8_t i=0; i<digits; ++i)
+  for (unsigned char i=0; i<digits; ++i)
     rounding /= 10.0;
   
   number += rounding;
@@ -276,7 +174,7 @@ void Print::printFloat(fp number, uint8_t digits)
   // Extract digits from the remainder one at a time
   while (digits-- > 0) {
     remainder *= 10.0;
-    int toPrint = int(remainder);
+    unsigned int toPrint = (unsigned int)(remainder);
     print(toPrint);
     remainder -= toPrint; 
   } 

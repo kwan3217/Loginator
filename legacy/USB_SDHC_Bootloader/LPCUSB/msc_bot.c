@@ -21,6 +21,7 @@
 
 #include "type.h"
 #include <stdio.h>
+#include "rprintf.h"
 
 #include "usbapi.h"
 #include "usbdebug.h"
@@ -181,7 +182,7 @@ static void BOTStall(void)
         Handles data from device-to-host
 
 **************************************************************************/
-static void HandleDataIn()
+static void HandleDataIn(void)
 {
     int iChunk;
 
@@ -223,7 +224,7 @@ static void HandleDataIn()
         Handles data from host-to-device
 
 **************************************************************************/
-static void HandleDataOut()
+static void HandleDataOut(void)
 {
     int iChunk;
 

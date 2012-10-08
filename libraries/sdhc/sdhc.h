@@ -9,7 +9,6 @@
 
 #include "spi_user.h"
 #include "Print.h"
-#include "sdhc_config.h"
 
 /**
  * \addtogroup sdhc
@@ -20,116 +19,47 @@
  * \file
  * MMC/SD raw access header.
  *
- * \author Roland Riegel
+ * \author Roland Riegel and Chris Jeppesen
  */
 
 /**
  * This struct is used by sdhc_get_info() to return
  * manufacturing and status information of the card.
  */
-struct SDHC_info {
-    /**
-     * A manufacturer code globally assigned by the SD card organization.
-     */
-    unsigned char manufacturer;
-    /**
-     * A string describing the card's OEM or content, globally assigned by the SD card organization.
-     */
-    unsigned char oem[3+1];
-    /**
-     * A product name.
-     */
-    unsigned char product[6+1];
-    /**
-     * The card's revision, coded in packed BCD.
-     *
-     * For example, the revision value \c 0x32 means "3.2".
-     */
-    unsigned char revision;
-    /**
-     * A serial number assigned by the manufacturer.
-     */
-    unsigned int serial;
-    /**
-     * The year of manufacturing.
-     *
-     * A value of zero means year 2000.
-     */
-    unsigned char manufacturing_year;
-    /**
-     * The month of manufacturing.
-     */
-    unsigned char manufacturing_month;
-    /**
-     * The card's total capacity in bytes.
-     */
-    offset_t capacity;
-    /**
-     * Defines wether the card's content is original or copied.
-     *
-     * A value of \c 0 means original, \c 1 means copied.
-     */
-    unsigned char flag_copy;
-    /**
-     * Defines wether the card's content is write-protected.
-     *
-     * \note This is an internal flag and does not represent the
-     *       state of the card's mechanical write-protect switch.
-     */
-    unsigned char flag_write_protect;
-    /**
-     * Defines wether the card's content is temporarily write-protected.
-     *
-     * \note This is an internal flag and does not represent the
-     *       state of the card's mechanical write-protect switch.
-     */
-    unsigned char flag_write_protect_temp;
-    /**
-     * The card's data layout.
-     *
-     * See the \c SDHC_FORMAT_* constants for details.
-     *
-     * \note This value is not guaranteed to match reality.
-     */
-/**
- * The card's layout is harddisk-like, which means it contains
- * a master boot record with a partition table.
- */
-static const int SDHC_FORMAT_HARDDISK    = 0;
-/**
- * The card contains a single filesystem and no partition table.
- */
-static const int SDHC_FORMAT_SUPERFLOPPY = 1;
-/**
- * The card's layout follows the Universal File Format.
- */
-static const int SDHC_FORMAT_UNIVERSAL   = 2;
-/**
- * The card's layout is unknown.
- */
-static const int SDHC_FORMAT_UNKNOWN     = 3;
+class SDHC_info {
+public:
+  static const int SDHC_FORMAT_HARDDISK    = 0; ///< The card's layout is harddisk-like, which means it contains a master boot record with a partition table.
+  static const int SDHC_FORMAT_SUPERFLOPPY = 1; ///< The card contains a single filesystem and no partition table. 
+  static const int SDHC_FORMAT_UNIVERSAL   = 2; ///< The card's layout follows the Universal File Format.
+  static const int SDHC_FORMAT_UNKNOWN     = 3; ///< The card's layout is unknown.
 
-    unsigned char format;
+  unsigned char manufacturer;            ///< A manufacturer code globally assigned by the SD card organization.
+  unsigned char oem[3+1];                ///< A string describing the card's OEM or content, globally assigned by the SD card organization.
+  unsigned char product[6+1];            ///< A product name.
+  unsigned char revision;                ///< The card's revision, coded in packed BCD. For example, the revision value \c 0x32 means "3.2".
+  unsigned int serial;                   ///< A serial number assigned by the manufacturer.
+  unsigned char manufacturing_year;      ///< The year of manufacturing. A value of zero means year 2000.
+  unsigned char manufacturing_month;     ///< The month of manufacturing.
+  uint64_t capacity;                     ///< The card's total capacity in bytes.
+  unsigned char flag_copy;               ///<  Defines wether the card's content is original or copied. A value of \c 0 means original, \c 1 means copied.
+  unsigned char flag_write_protect;      ///<  Defines wether the card's content is write-protected.
+                                         ///  \note This is an internal flag and does not represent the
+                                         ///   state of the card's mechanical write-protect switch.
+  unsigned char flag_write_protect_temp; ///< Defines wether the card's content is temporarily write-protected.
+                                         /// \note This is an internal flag and does not represent the
+                                         ///  state of the card's mechanical write-protect switch.
+  unsigned char format;                  ///< The card's data layout. See the \c SDHC_FORMAT_* constants for details. \note This value is not guaranteed to match reality.
   void print(Print &out);
 };
 
-typedef unsigned char (*sdhc_interval_handler)(unsigned char* buffer, unsigned int offset, void* p);
-
 class SDHC:spi_user {
-/* commands available in SPI mode */
-
-/* CMD0: response R1 */
-static const int CMD_GO_IDLE_STATE         = 0x00;
-/* CMD1: response R1 */
-static const int CMD_SEND_OP_COND          = 0x01;
-/* CMD8: response R7 */
-static const int CMD_SEND_IF_COND          = 0x08;
-/* CMD9: response R1 */
-static const int CMD_SEND_CSD              = 0x09;
-/* CMD10: response R1 */
-static const int CMD_SEND_CID              = 0x0a;
-/* CMD12: response R1 */
-static const int CMD_STOP_TRANSMISSION     = 0x0c;
+private:
+  static const int CMD_GO_IDLE_STATE         =  0; ///< response R1 
+  static const int CMD_SEND_OP_COND          =  1; ///< response R1 
+  static const int CMD_SEND_IF_COND          =  8; ///< response R7 
+  static const int CMD_SEND_CSD              =  9; ///< response R1 
+  static const int CMD_SEND_CID              = 10; ///< response R1 
+static const int CMD_STOP_TRANSMISSION     = 0x0c; ///< response R1 
 /* CMD13: response R2 */
 static const int CMD_SEND_STATUS           = 0x0d;
 /* CMD16: arg0[31:0]: block length, response R1 */
@@ -206,7 +136,7 @@ public:
   bool read(uint32_t offset, char* buffer) {return read(offset,buffer,0,BLOCK_SIZE);}; 
   bool read(uint32_t offset, char* buffer, int start, int len);
   bool write(uint32_t offset, const char* buffer);
-  bool get_info(SDHC_info* info);
+  bool get_info(SDHC_info& info);
 };
 
 #endif

@@ -1,5 +1,5 @@
 LIBMAKE+=../libraries/spi/Makefile
-CPPSRC+=../libraries/spi/spi.cpp
+CPPSRC+=../libraries/spi/HardSPI.cpp
 EXTRAINCDIRS+=../libraries/spi/
 
 include ../libraries/gpio/Makefile

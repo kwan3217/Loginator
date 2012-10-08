@@ -29,10 +29,10 @@
 #undef DEBUG
 #include "usbdebug.h"
 #include <stdio.h>
+#include "rprintf.h"
 
 #include "msc_scsi.h"
-
-extern SDHC sd;
+#include "sd_raw.h"
 
 #undef MIN
 #define MIN(x,y)	((x)<(y)?(x):(y))	/**< MIN */
@@ -245,11 +245,12 @@ static void set_light(int statnum, int onoff) {
     Returns a pointer to the next data to be exchanged if successful,
     returns NULL otherwise.
 **************************************************************************/
-U8 * SCSIHandleData(U8 *pbCDB, int iCDBLen, U8 *pbData, U32 dwOffset) {
+U8 * SCSIHandleData(U8 *pbCDB, int iCDBLen, U8 *pbData, U32 dwOffset)
+{
     TCDB6   *pCDB;
     U32     dwLBA;
     U32     dwBufPos, dwBlockNr;
-    SDHC_info info;
+    struct sd_raw_info info;
     offset_t dwNumBlocks, dwMaxBlock;
 
 	//pCDB = (TCDB6 *)pbCDB;
@@ -288,7 +289,7 @@ U8 * SCSIHandleData(U8 *pbCDB, int iCDBLen, U8 *pbData, U32 dwOffset) {
         // read capacity
         case SCSI_CMD_READ_CAPACITY:
         // get size of drive (bytes)
-            sd.get_info(&info);
+            sd_raw_get_info(&info);
             dwNumBlocks=info.capacity;
 //            rprintf("sd_raw Device Size: %ld\n",dwNumBlocks);
 //            BlockDevGetSize(&dwNumBlocks);
@@ -318,7 +319,7 @@ U8 * SCSIHandleData(U8 *pbCDB, int iCDBLen, U8 *pbData, U32 dwOffset) {
                 // read new block
                 dwBlockNr = dwLBA + (dwOffset / BLOCKSIZE);
                 DBG("R\n");
-                if (sd.read(((offset_t)dwBlockNr), (char*)abBlockBuf) !=1)
+                if (sd_raw_read(((offset_t)dwBlockNr)*512, abBlockBuf, 512) !=1)
                 {
                     dwSense = READ_ERROR;
 //                    rprintf("BlockDevRead failed\n");
@@ -341,7 +342,7 @@ U8 * SCSIHandleData(U8 *pbCDB, int iCDBLen, U8 *pbData, U32 dwOffset) {
                 // write new block
                 dwBlockNr = dwLBA + (dwOffset / BLOCKSIZE);
                 DBG("W");
-                int sd_rw_status=sd.write(((offset_t)dwBlockNr), (char*)abBlockBuf);
+                int sd_rw_status=sd_raw_write(((offset_t)dwBlockNr)*512, abBlockBuf,512);
                 if (sd_rw_status !=1 )
                 {
                     dwSense = WRITE_ERROR;

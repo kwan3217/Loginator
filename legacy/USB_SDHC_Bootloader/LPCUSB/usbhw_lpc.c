@@ -35,7 +35,7 @@
 #include "usbhw_lpc.h"
 #include "usbapi.h"
 
-#include "Serial.h"
+#include "rprintf.h"
 
 
 #ifdef DEBUG

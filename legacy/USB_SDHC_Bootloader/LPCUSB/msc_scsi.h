@@ -1,5 +1,4 @@
 #include "type.h"
-#include "sdhc.h"
 
 void	SCSIReset(void);
 U8 *	SCSIHandleCmd(U8 *pbCDB, int iCDBLen, int *piRspLen, BOOL *pfDevIn);

@@ -22,14 +22,14 @@
 #include "type.h"
 
 #include <stdio.h>
-#include "Serial.h"
+#include "rprintf.h"
 
 #include "LPC214x.h"
 #include "usbapi.h"
 #include "usbdebug.h"
 
 #include "msc_bot.h"
-#include "sdhc.h"
+#include "sd_raw.h"
 
 #define BAUD_RATE   115200
 
@@ -165,8 +165,12 @@ static BOOL HandleClassRequest(TSetupPacket *pSetup, int *piLen, U8 **ppbData)
     msc_main
     ====
 **************************************************************************/
-int main_msc(void) {
-    Serial.printf("Initialising USB stack\n");
+int main_msc(void)
+{
+    // initialise the SD card
+    rprintf("BlockDevInit() result: %d\n",sd_raw_init());
+
+    rprintf("Initialising USB stack\n");
 
     // initialise stack
     USBInit();
@@ -185,7 +189,7 @@ int main_msc(void) {
     USBHwRegisterEPIntHandler(MSC_BULK_IN_EP, MSCBotBulkIn);
     USBHwRegisterEPIntHandler(MSC_BULK_OUT_EP, MSCBotBulkOut);
 
-    Serial.printf("Starting USB communication\n");
+    rprintf("Starting USB communication\n");
 	
     // connect to bus
     USBHwConnect(TRUE);

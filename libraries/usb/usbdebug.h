@@ -27,9 +27,9 @@
 
 
 //int printf(const char *format, ...);
-
+//#define DEBUG
 #ifdef DEBUG
-#define DBG	Serial.printf
+#define DBG	rprintf
 #define ASSERT(x)	if(!(x)){DBG("\nAssertion '%s' failed in %s:%s#%d!\n",#x,__FILE__,__FUNCTION__,__LINE__);while(1);}
 #else
 #define DBG(x ...)

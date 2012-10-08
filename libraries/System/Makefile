@@ -286,9 +286,9 @@ Doxyfile: ../libraries/System/Doxyfile.template
 	    -e 's%^[^P]*PROJECT_BRIEF[ \t]*=.*$$%PROJECT_BRIEF=$(PROJECT_BRIEF)%' \
 	    < $< > $@
 
-html: Doxyfile
+html: Doxyfile $(ALLTAR)
 	doxygen	   
-	
+
 # Display size of file.
 HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
 ELFSIZE = $(SIZE) -A -x $(TARGET).elf
@@ -357,7 +357,7 @@ FW.SFE: $(TARGET).bin
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.$(TAR_EXT).o --output $@ $(LDFLAGS)
-#	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) --output $(TARGET).uvision.elf $(LDFLAGS)
+	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) --output $(TARGET).uvision.elf $(LDFLAGS)
 
 # Compile: create object files from C source files. ARM/Thumb
 $(COBJ) : %.o : %.c

@@ -3,7 +3,7 @@
 #include "LPC214x.h"
 #include "gpio.h"
 #include "Time.h"
-#include "spi.h"
+#include "HardSPI.h"
 
 HardSPI0 SPI;
 HardSPI1 SPI1;

@@ -6,7 +6,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "spi.h"
 #include "sdhc.h"
 #include "gpio.h" //for delay(), and gpio_read() for sdhc::available()
 #include "Time.h" //for delay(), and gpio_read() for sdhc::available()
@@ -201,7 +200,7 @@ void SDHC::send_command(unsigned char command, unsigned int arg, unsigned int re
 
 //Read an SD card block, but only record part of it in LPC memory.
 bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
-  if(start+len>=BLOCK_SIZE) {
+  if(start+len>BLOCK_SIZE) {
     errno=1;
     return false;
   }
@@ -270,13 +269,13 @@ bool SDHC::write(uint32_t block, const char* buffer) {
   return true;
 }
 
-bool SDHC::get_info(struct SDHC_info* info) {
-  if(!info || !available()) {
+bool SDHC::get_info(struct SDHC_info& info) {
+  if(!available()) {
     errno=1;
     return false;
   }
 
-  memset(info, 0, sizeof(*info));
+  memset(&info, 0, sizeof(info));
 
   select_card();
 
@@ -293,39 +292,39 @@ bool SDHC::get_info(struct SDHC_info* info) {
     unsigned char b = rec_byte();
     switch(i) {
       case 0:
-        info->manufacturer = b;
+        info.manufacturer = b;
         break;
       case 1:
       case 2:
-        info->oem[i - 1] = b;
+        info.oem[i - 1] = b;
         break;
       case 3:
       case 4:
       case 5:
       case 6:
       case 7:
-        info->product[i - 3] = b;
+        info.product[i - 3] = b;
         break;
       case 8:
-        info->revision = b;
+        info.revision = b;
         break;
       case 9:
       case 10:
       case 11:
       case 12:
-        info->serial |= (unsigned int) b << ((12 - i) * 8);
+        info.serial |= (unsigned int) b << ((12 - i) * 8);
         break;
       case 13:
-        info->manufacturing_year = b << 4;
+        info.manufacturing_year = b << 4;
         break;
       case 14:
-        info->manufacturing_year |= b >> 4;
-        info->manufacturing_month = b & 0x0f;
+        info.manufacturing_year |= b >> 4;
+        info.manufacturing_month = b & 0x0f;
         break;
     }
   }
-  info->oem[3]=0;
-  info->product[6]=0;
+  info.oem[3]=0;
+  info.product[6]=0;
 
   // read csd register 
   unsigned char csd_read_bl_len = 0;
@@ -344,10 +343,10 @@ bool SDHC::get_info(struct SDHC_info* info) {
     if(i == 0) {
       csd_structure = b >> 6;
     } else if(i == 14) {
-      if(b & 0x40) info->flag_copy = 1;
-      if(b & 0x20) info->flag_write_protect = 1;
-      if(b & 0x10) info->flag_write_protect_temp = 1;
-      info->format = (b & 0x0c) >> 2;
+      if(b & 0x40) info.flag_copy = 1;
+      if(b & 0x20) info.flag_write_protect = 1;
+      if(b & 0x10) info.flag_write_protect_temp = 1;
+      info.format = (b & 0x0c) >> 2;
     } else {
       if(csd_structure == 0x01) {
         switch(i) {
@@ -361,7 +360,7 @@ bool SDHC::get_info(struct SDHC_info* info) {
         }
         if(i == 9) {
           ++csd_c_size;
-          info->capacity = (offset_t) csd_c_size * 512 * 1024;
+          info.capacity = (uint64_t) csd_c_size * 512 * 1024;
         }
       } else if(csd_structure == 0x00) {
         switch(i) {
@@ -386,7 +385,7 @@ bool SDHC::get_info(struct SDHC_info* info) {
             break;
           case 10:
             csd_c_size_mult |= b >> 7;
-            info->capacity = (uint32_t) csd_c_size << (csd_c_size_mult + csd_read_bl_len + 2);
+            info.capacity = (uint32_t) csd_c_size << (csd_c_size_mult + csd_read_bl_len + 2);
             break;
         }
       }
@@ -399,52 +398,22 @@ bool SDHC::get_info(struct SDHC_info* info) {
 }
 
 void SDHC_info::print(Print &out) {
-    /**
-     * A manufacturer code globally assigned by the SD card organization.
-     */
   out.print("Manufacturer: ");
   out.println(manufacturer,DEC);
-
-    /**
-     * A string describing the card's OEM or content, globally assigned by the SD card organization.
-     */
   out.print("OEM:          ");
   out.println((char*)oem);
-
-    /**
-     * A product name.
-     */
   out.print("Product:      ");
   out.println((char*)product);
-    /**
-     * The card's revision, coded in packed BCD.
-     *
-     * For example, the revision value \c 0x32 means "3.2".
-     */
   out.print("Revision:     ");
   out.print(revision>>4,DEC);
   out.print(".");
   out.println(revision & 0x0F,DEC);
-    /**
-     * A serial number assigned by the manufacturer.
-     */
   out.print("Serial:       ");
   out.println(serial,DEC);
-    /**
-     * The year of manufacturing.
-     *
-     * A value of zero means year 2000.
-     */
-    /**
-     * The month of manufacturing.
-     */
   out.print("Mfg Yr/Month: ");
   out.print(manufacturing_year+2000,DEC);
   out.print("/");
   out.println(manufacturing_month,DEC);
-    /**
-     * The card's total capacity in bytes.
-     */
   out.print("Capacity:     ");
 #ifdef U64
   out.print((unsigned long long)(capacity),DEC);
@@ -453,36 +422,12 @@ void SDHC_info::print(Print &out) {
   out.print("_");
   out.println((unsigned int)(capacity & 0xFFFFFFFF),HEX);
 #endif
-    /**
-     * Defines wether the card's content is original or copied.
-     *
-     * A value of \c 0 means original, \c 1 means copied.
-     */
   out.print("Copied:       ");
   out.println(flag_copy,DEC);
-    /**
-     * Defines wether the card's content is write-protected.
-     *
-     * \note This is an internal flag and does not represent the
-     *       state of the card's mechanical write-protect switch.
-     */
   out.print("Write prot:   ");
   out.println(flag_write_protect,DEC);
-    /**
-     * Defines wether the card's content is temporarily write-protected.
-     *
-     * \note This is an internal flag and does not represent the
-     *       state of the card's mechanical write-protect switch.
-     */
   out.print("Tmp write prot:");
   out.println(flag_write_protect_temp,DEC);
-    /**
-     * The card's data layout.
-     *
-     * See the \c SDHC_FORMAT_* constants for details.
-     *
-     * \note This value is not guaranteed to match reality.
-     */
   out.print("Format:        ");
   out.println(format,DEC);
 }

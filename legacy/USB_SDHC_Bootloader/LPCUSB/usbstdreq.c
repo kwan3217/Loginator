@@ -71,10 +71,10 @@
 /** Currently selected configuration */
 static U8				bConfiguration = 0;
 /** Installed custom request handler */
-static TFnHandleRequest	*pfnHandleCustomReq = 0;
+static TFnHandleRequest	*pfnHandleCustomReq = NULL;
 /** Pointer to registered descriptors */
 //static const U8			*pabDescrip = NULL;
-static U8			*pabDescrip = 0;
+static U8			*pabDescrip = NULL;
 
 
 /**

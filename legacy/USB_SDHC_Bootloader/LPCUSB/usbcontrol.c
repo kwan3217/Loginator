@@ -67,9 +67,9 @@ static int				iResidue;	/**< remaining bytes in buffer */
 static int				iLen;		/**< total length of control transfer */
 
 /** Array of installed request handler callbacks */
-static TFnHandleRequest *apfnReqHandlers[4] = {0,0,0,0};
+static TFnHandleRequest *apfnReqHandlers[4] = {NULL, NULL, NULL, NULL};
 /** Array of installed request data pointers */
-static U8		*apbDataStore[4] = {0,0,0,0};
+static U8				*apbDataStore[4] = {NULL, NULL, NULL, NULL};
 
 /**
 	Local function to handle a request by calling one of the installed
@@ -199,7 +199,7 @@ void USBHandleControlTransfer(U8 bEP, U8 bEPStat)
 			}
 			else {
 				// absorb zero-length status message
-				iChunk = USBHwEPRead(0x00, 0, 0);
+				iChunk = USBHwEPRead(0x00, NULL, 0);
 				DBG(iChunk > 0 ? "?" : "");
 			}
 		}
