@@ -5,6 +5,7 @@ MEDIA=/mnt/Loginator
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
 CPPSRC += main.cpp
 CPPSRC += ../libraries/System/Startup.cpp
+CPPSRC += ../libraries/System/hardware_stack.cpp
 CPPSRC += ../libraries/System/Time.cpp
 CPPSRC += ../libraries/System/irq.cpp
 

@@ -14,7 +14,8 @@ There are two reasons that Startup has to be in asm:
 
 Other complications: Setting up the stack before the stack is available (use naked)
                      IRQ wrapper proper return (use interrupt("IRQ"))
-                     Vector table must be called vectorg, and code must be compiled with --function-sections
+                     Vector table can have any name, but must be in section 
+		       called .vectors so that it will link to the right place
  */
 
 // Standard definitions of Mode bits and Interrupt (I & F) flags in PSRs
@@ -34,8 +35,6 @@ static const int F_Bit=0x40;    // when F bit is set, FIQ is disabled
 //FIQ runs in FIQ mode with irqs and fiqs disabled, if we ever need/write an FIQ handler
 //System starts in Supervisor mode but shifts to system mode before running main()
 
-typedef void (*fvoid)(void);
-
 //A symbol is simply a name for an address. So, all of these are addresses. But,
 //the best match in C or C++ is to define them as arrays, which are always usable
 //as named pointer constants. Frequently we want to treat them as arrays, anyway.
@@ -52,16 +51,14 @@ extern int _data[];
 extern int _edata[];
 //__ctors_start__ actually points to a proper array, so we can actually use 
 //the mechanism as intended. It is an array of pointers to void functions.
+typedef void (*fvoid)(void);
 extern fvoid __ctors_start__[];
 extern fvoid __ctors_end__[];
 
-__attribute__ ((section(".stack"))) int Stack_UND[UND_Stack_Size/sizeof(int)];
-__attribute__ ((section(".stack"))) int Stack_SVC[SVC_Stack_Size/sizeof(int)];
-__attribute__ ((section(".stack"))) int Stack_ABT[ABT_Stack_Size/sizeof(int)];
-__attribute__ ((section(".stack"))) int Stack_FIQ[FIQ_Stack_Size/sizeof(int)];
-__attribute__ ((section(".stack"))) int Stack_IRQ[IRQ_Stack_Size/sizeof(int)];
-__attribute__ ((section(".stack"))) int Stack_USR[USR_Stack_Size/sizeof(int)];
-
+//Handlers for various exceptions, defined as weak so that they may be replaced
+//by user code. These default handlers just go into infinite loops. Reset and
+//IRQ are handled by real (strong) functions, as they do the right thing and
+//it doesn't make sense for user code to replace them.  
 void __attribute__ ((weak)) __attribute__ ((noreturn)) Undef_Handler(void) {for(;;);}
 void __attribute__ ((weak)) __attribute__ ((noreturn)) SWI_Handler(void) {for(;;);}
 void __attribute__ ((weak)) __attribute__ ((noreturn)) PAbt_Handler(void) {for(;;);}
@@ -118,7 +115,7 @@ void setup_mam(void) {
 #define setModeStack(tag,iflags) \
   __set_cpsr_c(Mode_##tag | iflags); \
   __set_sp((int)(&(Stack_##tag[tag##_Stack_Size/sizeof(int)]))); \
-  for(unsigned int i=0;i<(tag##_Stack_Size/sizeof(int));i++) Stack_##tag[i]=0x6E61774B
+  for(unsigned int i=0;i<(tag##_Stack_Size/sizeof(int));i++) Stack_##tag[i]=stackPattern
 
 void Reset_Handler() {
   //Set up stacks...
@@ -157,8 +154,10 @@ void Reset_Handler() {
   for(;;) loop();
 }
 
+//Now we see why we like high-level languages for IRQ handling. It says treat
+//the number as a pointer to a function and call it.
 void __attribute__ ((interrupt("IRQ"))) IRQ_Wrapper() {
-  ((fvoid)(VICVectAddr))(); //Call the function pointed to by the VICVectAddr register
+  ((fvoid)(VICVectAddr))(); 
 }
 
 
