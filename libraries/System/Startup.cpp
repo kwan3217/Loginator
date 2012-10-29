@@ -1,6 +1,7 @@
 #include "LPC214x.h"
 #include "Time.h"
 #include "irq.h"
+#include "hardware_stack.h"
 
 /*
 There are two reasons that Startup has to be in asm:
@@ -32,14 +33,6 @@ static const int F_Bit=0x40;    // when F bit is set, FIQ is disabled
 //IRQs run in IRQ mode with irqs disabled
 //FIQ runs in FIQ mode with irqs and fiqs disabled, if we ever need/write an FIQ handler
 //System starts in Supervisor mode but shifts to system mode before running main()
-//Stack sizes are in bytes
-//
-static const unsigned int UND_Stack_Size=0;  //No stack for you! You are just an infinite loop
-static const unsigned int SVC_Stack_Size=0;  //Likewise
-static const unsigned int ABT_Stack_Size=0;  //Likewise
-static const unsigned int FIQ_Stack_Size=128;  
-static const unsigned int IRQ_Stack_Size=512;
-static const unsigned int USR_Stack_Size=2048;
 
 typedef void (*fvoid)(void);
 
@@ -113,9 +106,12 @@ void __attribute__ ((naked)) __attribute__ ((section(".vectors"))) vectorg(void)
       ".word _Z11FIQ_Handlerv"); //FIQ
 }
 
-static void feed(void);
-static void setup_pll(void);
-static void setup_mam(void);
+void setup_mam(void) {
+  // Enabling MAM and setting number of clocks used for Flash memory fetch (4 cclks in this case)
+  //MAMTIM=0x3; //VCOM?
+  MAMCR=0x2;
+  MAMTIM=0x4; //Original
+}
 
 #define __set_cpsr_c(val) asm volatile (" msr  cpsr_c, %0" : /* no outputs */ : "r" (val)  );	
 #define __set_sp(val) asm volatile (" mov  sp, %0" : : "r" (val))
@@ -135,13 +131,16 @@ void Reset_Handler() {
 
 //Now stay in system mode for good                
 
-//Fill stack space with known pattern such that stack usage can be measured
-
 // Relocate .data section (initialized variables)
   for(int i=0;i<_edata-_data;i++) _edata[i]=_etext[i];
 
 //Initialize .bss section 
   for(int i=0;i<__bss_end__-__bss_start__;i++) __bss_start__[i]=0;
+
+  //Set up system peripherals
+  setup_pll(0,5); //Set up CCLK PLL to 5x crystal rate
+  setup_mam();
+  setup_clock();
 
 // call C++ constructors of global objects
 //Each pointer is the pointer to a short block of code, and appears to be a static
@@ -150,11 +149,7 @@ void Reset_Handler() {
 //As a static function, the pointee code uses BX lr to return
   for(int i=0;i<__ctors_end__-__ctors_start__;i++) __ctors_start__[i]();
 
-  //Set up system peripherals
-  setup_pll();
-  setup_mam();
-  setup_clock();
-  IRQHandler::begin();
+  IRQHandler::begin(); //Can't call before ctors are run
 
 //We have finally broken the tyranny of main(). Directly call user's setup()
   setup();
@@ -164,39 +159,6 @@ void Reset_Handler() {
 
 void __attribute__ ((interrupt("IRQ"))) IRQ_Wrapper() {
   ((fvoid)(VICVectAddr))(); //Call the function pointed to by the VICVectAddr register
-}
-
-static void feed(void) {
-  PLLFEED=0xAA;
-  PLLFEED=0x55;
-}
-
-#define PLOCK 0x400
-
-static void setup_pll(void) {
-  // Setting Multiplier and Divider values
-  PLLCFG=0x24;
-  feed();
-
-  // Enabling the PLL */
-  PLLCON=0x1;
-  feed();
-
-  // Wait for the PLL to lock to set frequency
-  while(!(PLLSTAT & PLOCK)) ;
-
-  // Connect the PLL as the clock source
-  PLLCON=0x3;
-  feed();
-
-}
-
-static void setup_mam(void) {
-  // Enabling MAM and setting number of clocks used for Flash memory fetch (4 cclks in this case)
-  //MAMTIM=0x3; //VCOM?
-  MAMCR=0x2;
-  MAMTIM=0x4; //Original
-
 }
 
 

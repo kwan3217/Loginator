@@ -14,64 +14,58 @@ of that program.
 #include "Serial.h"
 #include "sdhc.h"
 #include "dump.h"
-extern "C" {
-#include "main_msc.h"
-  void __exidx_start(void) {}
-  void __exidx_end(void) {}
-  void _exit(void) {}
-  void _kill(void) {}
-  void _getpid(void) {}
-  void _sbrk(void) {}
-}
-
 #include "Partition.h"
 #include "cluster.h"
 #include "direntry.h"
 #include "file.h"
 #include <string.h>
 #include "LPC214x.h"
+#include "usb.h"
 
-Base85 xzDump(Serial);
+Base85 sourceDump(Serial);
 Hd sectorDump(Serial);
 SDHC sd(&SPI,7);
 Partition p(sd);
 Cluster fs(p);
 File f(fs);
+MSC msc(sd);
 
 char buf[SDHC::BLOCK_SIZE];
 
 void setup() {
   SDHC_info info;
   Serial.begin(115200);
-  xzDump.region(__xz_start__,0,__xz_end__-__xz_start__,64);
+  sourceDump.dumpSource();
   Serial.println("Starting up");
   bool sd_worked=sd.begin();
   Serial.printf("sd.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
-  if(!sd_worked) return;
+//  if(!sd_worked) return;
 
-  sd.get_info(info);
-  info.print(Serial);
+//  sd.get_info(info);
+//  info.print(Serial);
 
-  sd_worked=p.begin(1);
-  Serial.printf("p.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
-  if(!sd_worked) return;
-  p.print(Serial);  
+//  sd_worked=p.begin(1);
+//  Serial.printf("p.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
+//  if(!sd_worked) return;
+//  p.print(Serial);  
 
-  p.read(0,buf);
-  sectorDump.region(buf,0,sizeof(buf),16);
+//  p.read(0,buf);
+//  sectorDump.region(buf,0,sizeof(buf),16);
 
-  sd_worked=fs.begin();  
-  Serial.printf("fs.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
-  fs.print(Serial,sectorDump);
-  if(!sd_worked) return;
+//  sd_worked=fs.begin();  
+//  Serial.printf("fs.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
+//  fs.print(Serial,sectorDump);
+//  if(!sd_worked) return;
 
-  Serial.println(f.openr("vg1_v02.txt")?"Opened":"Couldn't open");
-  int ofs=0;
-  while(f.read(buf)) {
-    sectorDump.region(buf,ofs,sizeof(buf),32);
-    ofs+=sizeof(buf);
-  }
+//  Serial.println(f.openr("vg1_v02.txt")?"Opened":"Couldn't open");
+//  int ofs=0;
+//  while(f.read(buf)) {
+//    sectorDump.region(buf,ofs,sizeof(buf),32);
+//    ofs+=sizeof(buf);
+//  }
 
+  msc.begin();
+  msc.loop();
 /*
   if(IOPIN0 & (1<<23))	{		//Check to see if the USB cable is plugged in
     main_msc();					//If so, run the USB device driver.

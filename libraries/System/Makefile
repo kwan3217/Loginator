@@ -41,7 +41,7 @@ ASRCARM:=$(call uniq,$(ASRCARM))
 LIBMAKE:=$(call uniq,$(LIBMAKE))
 ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM)
 INCDEF = $(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq)
-ALLTAR = $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template
+ALLTAR = $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(EAGLE)
 #MYTAR = $(shell cat $(ALLTAR) | sed -n 's"\.\./lib/\S*\s//g"')
 
 FLASH_TOOL = LPC12
@@ -310,15 +310,65 @@ program: $(LPC21ISP_FLASHFILE)
 	@echo $(MSG_LPC21_RESETREMINDER)
 	$(LPC21ISP) $(LPC21ISP_OPTIONS) $(LPC21ISP_DEBUG) $(LPC21ISP_FLASHFILE) $(LPC21ISP_PORT) $(LPC21ISP_BAUD) $(LPC21ISP_XTAL)
 
-TAR_FORMAT = J
-TAR_EXT = xz
+TAR_EXT = max.zpaq
+ZPAQDIR=/usr/share/doc/zpaq/examples
 
-$(TARGET).tar.$(TAR_EXT): $(ALLTAR)
+TARBALL = $(TARGET).tar.$(TAR_EXT)
+
+$(TARGET).tar: $(ALLTAR)
 	$(CC) --version --verbose > /tmp/gccversion.txt 2>&1
-	tar $(TAR_FORMAT)cvf $(TARGET).tar.$(TAR_EXT) -C .. $(addprefix $(TARGETBASE)/, $(ALLTAR)) /tmp/gccversion.txt
+	tar cvf $(TARGET).tar -C .. $(addprefix $(TARGETBASE)/, $(ALLTAR)) /tmp/gccversion.txt
 
-$(TARGET).tar.$(TAR_EXT).o: $(TARGET).tar.$(TAR_EXT)
-	$(OBJCOPY) -I binary -O elf32-littlearm $(TARGET).tar.$(TAR_EXT) $(TARGET).tar.$(TAR_EXT).o --rename-section .data=.xz -B arm
+$(TARGET).tar.xz: $(TARGET).tar
+	xz -k $<
+
+$(TARGET).tar.bz2: $(TARGET).tar
+	bzip2 -k $< 
+
+$(TARGET).tar.Z: $(TARGET).tar
+	compress -c < $< > $@
+
+$(TARGET).tar.gz: $(TARGET).tar
+	gzip < $< > $@
+
+$(TARGET).tar.gz9: $(TARGET).tar
+	gzip -9 < $< > $@
+
+$(TARGET).tar.lzo: $(TARGET).tar
+	lzop $<
+
+$(TARGET).tar.lz: $(TARGET).tar
+	lzip -k $<
+
+$(TARGET).zip: $(ALLTAR)
+	cd .. & zip $(TARGET).zip $(addprefix $(TARGETBASE)/, $(ALLTAR)) /tmp/gccversion.txt
+	$(REMOVE) -rf $(TARGET).zip.tmpdir
+	mkdir $(TARGET).zip.tmpdir
+	cd $(TARGET).zip.tmpdir; \
+	tar xf ../$(TARGET).tar.gz; \
+	zip -r ../$(TARGET).zip *; 
+	$(REMOVE) -rf $(TARGET).zip.tmpdir
+
+$(TARGET).7z: $(ALLTAR)
+	$(REMOVE) -rf $(TARGET).7z.tmpdir
+	mkdir $(TARGET).7z.tmpdir
+	cd $(TARGET).7z.tmpdir; \
+	tar xf ../$(TARGET).tar.gz; \
+	7z a ../$(TARGET).7z *; 
+	$(REMOVE) -rf $(TARGET).7z.tmpdir
+
+$(TARGET).tar.mid.zpaq: $(TARGET).tar
+	zpaq nc$(ZPAQDIR)/mid.cfg $@ $<
+
+$(TARGET).tar.max.zpaq: $(TARGET).tar
+	zpaq nc$(ZPAQDIR)/max.cfg $@ $<
+
+TEST_ARCHIVE = $(TARGET).tar.xz $(TARGET).tar.bz2 $(TARGET).tar.Z $(TARGET).tar.gz $(TARGET).tar.gz9 $(TARGET).tar.lzo $(TARGET).tar.lz $(TARGET).zip $(TARGET).7z $(TARGET).tar.mid.zpaq $(TARGET).tar.max.zpaq
+
+test_archive: $(TEST_ARCHIVE)
+
+$(TARBALL).o: $(TARBALL)
+	$(OBJCOPY) -I binary -O elf32-littlearm $(TARBALL) $(TARBALL).o --rename-section .data=.source -B arm
 
 # Create final output file (.hex) from ELF output file.
 %.hex: FW.SFE
@@ -353,7 +403,7 @@ FW.SFE: $(TARGET).bin
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM)
-%.elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.$(TAR_EXT).o
+%.elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.max.zpaq.o
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.$(TAR_EXT).o --output $@ $(LDFLAGS)
@@ -429,8 +479,10 @@ clean_list :
 	$(REMOVE) $(TARGET).a90
 	$(REMOVE) $(TARGET).lnk
 	$(REMOVE) $(TARGET).lss
-	$(REMOVE) $(TARGET).tar.$(TAR_EXT)
-	$(REMOVE) $(TARGET).tar.$(TAR_EXT).o
+	$(REMOVE) $(TARGET).tar
+	$(REMOVE) $(TARBALL)
+	$(REMOVE) $(TARBALL).o
+	$(REMOVE) $(TEST_ARCHIVE)
 	$(REMOVE) $(COBJ)
 	$(REMOVE) $(CPPOBJ)
 	$(REMOVE) $(AOBJ)
@@ -457,7 +509,7 @@ clean_list :
 -include $(shell mkdir .dep 2>/dev/null) $(ALLDEP)
 
 PHONY_TGT += all begin finish end sizebefore sizeafter gccversion
-PHONY_TGT += build elf hex bin lss clean clean_list program
+PHONY_TGT += build elf hex bin lss clean clean_list program test_archive
 
 # Listing of phony targets.
 .PHONY : $(PHONY_TGT)

@@ -10,7 +10,9 @@ FW.SFE
 *.hex
 *.map
 *.sym
-*.tar.*
+*.tar*
+*.zip
+*.7z
 .dep
 *.csv
 .~lock*

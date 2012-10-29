@@ -74,14 +74,18 @@
 
 /* General Purpose Input/Output (GPIO) */
 #define GPIO_BASE_ADDR		0xE0028000
-#define IOPIN0         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x00))
-#define IOSET0         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x04))
-#define IODIR0         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x08))
-#define IOCLR0         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x0C))
-#define IOPIN1         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x10))
-#define IOSET1         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x14))
-#define IODIR1         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x18))
-#define IOCLR1         (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x1C))
+#define IOPIN(port)    (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x00+0x10*port))
+#define IOSET(port)    (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x04+0x10*port))
+#define IODIR(port)    (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x08+0x10*port))
+#define IOCLR(port)    (*(volatile unsigned long *)(GPIO_BASE_ADDR + 0x0C+0x10*port))
+#define IOPIN0         IOPIN(0)
+#define IOSET0         IOSET(0)
+#define IODIR0         IODIR(0)
+#define IOCLR0         IOCLR(0)
+#define IOPIN1         IOPIN(1)
+#define IOSET1         IOSET(1)
+#define IODIR1         IODIR(1)
+#define IOCLR1         IOCLR(1)
 
 /* Fast I/O setup */
 #define FIO_BASE_ADDR		0x3FFFC000
@@ -108,16 +112,18 @@ Reset, and Code Security/Debugging */
 #define MEMMAP         (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x040))
 
 /* Phase Locked Loop (PLL) */
-#define PLLCON         (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x080))
-#define PLLCFG         (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x084))
-#define PLLSTAT        (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x088))
-#define PLLFEED        (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x08C))
-
-/* PLL48 Registers */
-#define PLL48CON       (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x0A0))
-#define PLL48CFG       (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x0A4))
-#define PLL48STAT      (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x0A8))
-#define PLL48FEED      (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x0AC))
+#define PLLCON(port)   (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x080+0x20*port))
+#define PLLCFG(port)   (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x084+0x20*port))
+#define PLLSTAT(port)  (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x088+0x20*port))
+#define PLLFEED(port)  (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x08C+0x20*port))
+#define PLL0CON       PLLCON(0)
+#define PLL0CFG       PLLCFG(0)
+#define PLL0STAT      PLLSTAT(0)
+#define PLL0FEED      PLLFEED(0)
+#define PLL1CON       PLLCON(1)
+#define PLL1CFG       PLLCFG(1)
+#define PLL1STAT      PLLSTAT(1)
+#define PLL1FEED      PLLFEED(1)
 
 /* Power Control */
 #define PCON           (*(volatile unsigned long *)(SCB_BASE_ADDR + 0x0C0))
@@ -399,34 +405,34 @@ Reset, and Code Security/Debugging */
 /* USB Controller */
 #define USB_BASE_ADDR		0xE0090000			/* USB Base Address */
 /* Device Interrupt Registers */
-#define DEV_INT_STAT    (*(volatile unsigned long *)(USB_BASE_ADDR + 0x00))
-#define DEV_INT_EN      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x04))
-#define DEV_INT_CLR     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x08))
+#define USBDevIntSt     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x00))
+#define USBDevIntEn     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x04))
+#define USBDevIntClr    (*(volatile unsigned long *)(USB_BASE_ADDR + 0x08))
 #define DEV_INT_SET     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x0C))
-#define DEV_INT_PRIO    (*(volatile unsigned long *)(USB_BASE_ADDR + 0x2C))
+#define USBDevIntPri    (*(volatile unsigned long *)(USB_BASE_ADDR + 0x2C))
 
 /* Endpoint Interrupt Registers */
-#define EP_INT_STAT     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x30))
-#define EP_INT_EN       (*(volatile unsigned long *)(USB_BASE_ADDR + 0x34))
-#define EP_INT_CLR      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x38))
+#define USBEpIntSt      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x30))
+#define USBEpIntEn      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x34))
+#define USBEpIntClr     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x38))
 #define EP_INT_SET      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x3C))
-#define EP_INT_PRIO     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x40))
+#define USBEpIntPri     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x40))
 
 /* Endpoint Realization Registers */
-#define REALIZE_EP      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x44))
-#define EP_INDEX        (*(volatile unsigned long *)(USB_BASE_ADDR + 0x48))
-#define MAXPACKET_SIZE  (*(volatile unsigned long *)(USB_BASE_ADDR + 0x4C))
+#define USBReEp         (*(volatile unsigned long *)(USB_BASE_ADDR + 0x44))
+#define USBEpInd        (*(volatile unsigned long *)(USB_BASE_ADDR + 0x48))
+#define USBMaxPSize     (*(volatile unsigned long *)(USB_BASE_ADDR + 0x4C))
 
 /* Command Reagisters */
-#define CMD_CODE        (*(volatile unsigned long *)(USB_BASE_ADDR + 0x10))
-#define CMD_DATA        (*(volatile unsigned long *)(USB_BASE_ADDR + 0x14))
+#define USBCmdCode      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x10))
+#define USBCmdData      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x14))
 
 /* Data Transfer Registers */
-#define RX_DATA         (*(volatile unsigned long *)(USB_BASE_ADDR + 0x18))
-#define TX_DATA         (*(volatile unsigned long *)(USB_BASE_ADDR + 0x1C))
-#define RX_PLENGTH      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x20))
-#define TX_PLENGTH      (*(volatile unsigned long *)(USB_BASE_ADDR + 0x24))
-#define USB_CTRL        (*(volatile unsigned long *)(USB_BASE_ADDR + 0x28))
+#define USBRxData       (*(volatile unsigned long *)(USB_BASE_ADDR + 0x18))
+#define USBTxData       (*(volatile unsigned long *)(USB_BASE_ADDR + 0x1C))
+#define USBRxPLen       (*(volatile unsigned long *)(USB_BASE_ADDR + 0x20))
+#define USBTxPLen       (*(volatile unsigned long *)(USB_BASE_ADDR + 0x24))
+#define USBCtrl         (*(volatile unsigned long *)(USB_BASE_ADDR + 0x28))
 
 /* DMA Registers */
 #define DMA_REQ_STAT        (*((volatile unsigned long *)USB_BASE_ADDR + 0x50))

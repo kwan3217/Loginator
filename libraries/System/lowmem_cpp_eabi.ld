@@ -12,6 +12,7 @@
 MEMORY
 {
 /*  SFE_BOOT (RX)  : ORIGIN = 0x00000000, LENGTH = 64K */
+/*  ROM (RX)       : ORIGIN = 0x00000000, LENGTH = 64K */
   ROM      (RX)  : ORIGIN = 0x00000000, LENGTH = 512K-12K
   NXP_BOOT (RX)  : ORIGIN = 0x0007D000, LENGTH = 12K
   RAM_VECT (RWX) : ORIGIN = 0x40000000, LENGTH = 64
@@ -90,11 +91,11 @@ SECTIONS
     . = ALIGN(16);
     /* mthomas - end */
 
-    .xz :
+    .source :
     {
-        PROVIDE(__xz_start__ = .);
-        KEEP(*(.xz))
-        PROVIDE(__xz_end__ = .);
+        PROVIDE(__source_start__ = .);
+        KEEP(*(.source))
+        PROVIDE(__source_end__ = .);
         . = ALIGN(16);
     }
     >ROM
