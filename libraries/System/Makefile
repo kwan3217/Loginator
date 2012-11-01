@@ -264,7 +264,7 @@ all: begin gccversion sizebefore build sizeafter finished end
 #ifeq ($(FORMAT),binary)
 build: elf bin lss hex FW.SFE html
 
-bin: $(TARGET).bin
+bin: $(TARGET).bin $(TARGET).nosource.bin
 hex: $(TARGET).hex
 elf: $(TARGET).elf
 lss: $(TARGET).lss 
@@ -318,50 +318,49 @@ TARBALL = $(TARGET).tar.$(TAR_EXT)
 
 $(TARGET).tar: $(ALLTAR)
 	$(CC) --version --verbose > /tmp/gccversion.txt 2>&1
-	tar cvf $(TARGET).tar -C .. $(addprefix $(TARGETBASE)/, $(ALLTAR)) /tmp/gccversion.txt
+	tar chvf $(TARGET).tar -C .. $(addprefix $(TARGETBASE)/, $(ALLTAR)) /tmp/gccversion.txt
 
-$(TARGET).tar.xz: $(TARGET).tar
-	xz -k $<
+%.tar.xz: %.tar
+	xz -kf $<
 
-$(TARGET).tar.bz2: $(TARGET).tar
-	bzip2 -k $< 
+%.tar.bz2: %.tar
+	bzip2 -kf $< 
 
-$(TARGET).tar.Z: $(TARGET).tar
+%.tar.Z: %.tar
 	compress -c < $< > $@
 
-$(TARGET).tar.gz: $(TARGET).tar
+%.tar.gz: %.tar
 	gzip < $< > $@
 
-$(TARGET).tar.gz9: $(TARGET).tar
+%.tar.gz9: %.tar
 	gzip -9 < $< > $@
 
-$(TARGET).tar.lzo: $(TARGET).tar
-	lzop $<
+%.tar.lzo: %.tar
+	lzop -f $<
 
-$(TARGET).tar.lz: $(TARGET).tar
-	lzip -k $<
+%.tar.lz: %.tar
+	lzip -kf $<
 
-$(TARGET).zip: $(ALLTAR)
-	cd .. & zip $(TARGET).zip $(addprefix $(TARGETBASE)/, $(ALLTAR)) /tmp/gccversion.txt
-	$(REMOVE) -rf $(TARGET).zip.tmpdir
-	mkdir $(TARGET).zip.tmpdir
-	cd $(TARGET).zip.tmpdir; \
-	tar xf ../$(TARGET).tar.gz; \
-	zip -r ../$(TARGET).zip *; 
-	$(REMOVE) -rf $(TARGET).zip.tmpdir
+%.zip: %.tar
+	$(REMOVE) -rf $(@).tmpdir
+	mkdir $(@).tmpdir
+	cd $(@).tmpdir; \
+	tar xf ../$(<); \
+	zip -r ../$(@) *; 
+	$(REMOVE) -rf $(@).tmpdir
 
-$(TARGET).7z: $(ALLTAR)
-	$(REMOVE) -rf $(TARGET).7z.tmpdir
-	mkdir $(TARGET).7z.tmpdir
-	cd $(TARGET).7z.tmpdir; \
-	tar xf ../$(TARGET).tar.gz; \
+$(TARGET).7z: $(TARGET).tar
+	$(REMOVE) -rf $(@).tmpdir
+	mkdir $(@).tmpdir
+	cd $(@).tmpdir; \
+	tar xf ../$(<); \
 	7z a ../$(TARGET).7z *; 
-	$(REMOVE) -rf $(TARGET).7z.tmpdir
+	$(REMOVE) -rf $(@).tmpdir
 
-$(TARGET).tar.mid.zpaq: $(TARGET).tar
+%.tar.mid.zpaq: %.tar
 	zpaq nc$(ZPAQDIR)/mid.cfg $@ $<
 
-$(TARGET).tar.max.zpaq: $(TARGET).tar
+%.tar.max.zpaq: %.tar
 	zpaq nc$(ZPAQDIR)/max.cfg $@ $<
 
 TEST_ARCHIVE = $(TARGET).tar.xz $(TARGET).tar.bz2 $(TARGET).tar.Z $(TARGET).tar.gz $(TARGET).tar.gz9 $(TARGET).tar.lzo $(TARGET).tar.lz $(TARGET).zip $(TARGET).7z $(TARGET).tar.mid.zpaq $(TARGET).tar.max.zpaq
@@ -378,7 +377,13 @@ $(TARBALL).o: $(TARBALL)
 	srec_cat -O $@ -I $< -bin
 
 # Create final output file (.bin) from ELF output file.
-%.bin: %.elf 
+$(TARGET).bin: $(TARGET).elf 
+	@echo
+	@echo $(MSG_FLASH) $@
+	$(OBJCOPY) -O binary $< $@
+
+# Create final output file (.bin) from ELF output file.
+$(TARGET).nosource.bin: $(TARGET).nosource.elf 
 	@echo
 	@echo $(MSG_FLASH) $@
 	$(OBJCOPY) -O binary $< $@
@@ -404,11 +409,17 @@ FW.SFE: $(TARGET).bin
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM)
-%.elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.max.zpaq.o
+
+$(TARGET).elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.max.zpaq.o
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.$(TAR_EXT).o --output $@ $(LDFLAGS)
-	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) --output $(TARGET).uvision.elf $(LDFLAGS)
+
+$(TARGET).nosource.elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) 
+	@echo
+	@echo $(MSG_LINKING) $@
+	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) --output $(TARGET).nosource.elf $(LDFLAGS)
+
 
 # Compile: create object files from C source files. ARM/Thumb
 $(COBJ) : %.o : %.c
@@ -471,10 +482,9 @@ clean_list :
 	$(REMOVE) -r html
 	$(REMOVE) -r latex
 	$(REMOVE) $(TARGET).hex
-	$(REMOVE) $(TARGET).bin
+	$(REMOVE) $(TARGET).bin $(TARGET).nosource.bin
 	$(REMOVE) $(TARGET).obj
-	$(REMOVE) $(TARGET).elf
-	$(REMOVE) $(TARGET).uvision.elf
+	$(REMOVE) $(TARGET).elf $(TARGET).nosource.elf
 	$(REMOVE) $(TARGET).map
 	$(REMOVE) $(TARGET).obj
 	$(REMOVE) $(TARGET).a90

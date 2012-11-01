@@ -1,5 +1,5 @@
 #include "HardTwoWire.h"
-#include "spi.h"
+#include "HardSPI.h"
 #include "Serial.h"
 #include "bmp180.h"
 #include "hmc5883.h"
@@ -24,22 +24,22 @@ void testTask(void* stuff) {
   static int lightState=0;
   set_light(0,(lightState & 1)>0);
   lightState=(lightState+1)%8;
-  taskManager.reschedule(500,0,testTask,NULL);
+  taskManager.reschedule(500,0,testTask,0);
 }
 
-int tc0;
-int seconds=0;
+unsigned int tc0;
+unsigned int seconds=0x17321732;
 
 void setup() {
   taskManager.begin();
-//  taskManager.schedule(500,0,testTask,NULL);
+//  taskManager.schedule(500,0,testTask,0);
   Serial.begin(9600);
   Wire1.begin();
   SPI1.begin(1000000,1,1);
 
   bmp180.begin();
   bmp180.printCalibration(&Serial);
-  bmp180.ouf=NULL;
+  bmp180.ouf=0;
 
   hmc5883.begin();
   char HMCid[4];

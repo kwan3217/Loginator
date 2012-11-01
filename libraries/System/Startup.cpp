@@ -16,6 +16,9 @@ Other complications: Setting up the stack before the stack is available (use nak
                      IRQ wrapper proper return (use interrupt("IRQ"))
                      Vector table can have any name, but must be in section 
 		       called .vectors so that it will link to the right place
+
+This is tightly integrated with the linker script [lo|hi]mem_arm_eabi_cpp.ld and
+depends on certain symbols there with the correct name and correct location.
  */
 
 // Standard definitions of Mode bits and Interrupt (I & F) flags in PSRs
@@ -44,16 +47,16 @@ static const int F_Bit=0x40;    // when F bit is set, FIQ is disabled
 //the start symbol so that their pointers are compatible.
 //All of these symbols are created by the linker, and their names are controlled
 //by the linker script.
-extern int __bss_start__[];
-extern int __bss_end__[];
-extern int _etext[];
-extern int _data[];
-extern int _edata[];
-//__ctors_start__ actually points to a proper array, so we can actually use 
+extern int bss_start[];
+extern int bss_end[];
+extern int etext[];
+extern int data[];
+extern int edata[];
+//ctors_start actually points to a proper array, so we can actually use 
 //the mechanism as intended. It is an array of pointers to void functions.
 typedef void (*fvoid)(void);
-extern fvoid __ctors_start__[];
-extern fvoid __ctors_end__[];
+extern fvoid ctors_start[];
+extern fvoid ctors_end[];
 
 //Handlers for various exceptions, defined as weak so that they may be replaced
 //by user code. These default handlers just go into infinite loops. Reset and
@@ -129,10 +132,10 @@ void Reset_Handler() {
 //Now stay in system mode for good                
 
 // Relocate .data section (initialized variables)
-  for(int i=0;i<_edata-_data;i++) _edata[i]=_etext[i];
+  for(int i=0;i<(edata-data);i++) data[i]=etext[i];
 
 //Initialize .bss section 
-  for(int i=0;i<__bss_end__-__bss_start__;i++) __bss_start__[i]=0;
+  for(int i=0;i<(bss_end-bss_start);i++) bss_start[i]=0;
 
   //Set up system peripherals
   setup_pll(0,5); //Set up CCLK PLL to 5x crystal rate
@@ -144,7 +147,7 @@ void Reset_Handler() {
 //function which which constructs all the global objects in the same compilation unit.
 //This code is free to call constructors and/or perform inline constructors directly.
 //As a static function, the pointee code uses BX lr to return
-  for(int i=0;i<__ctors_end__-__ctors_start__;i++) __ctors_start__[i]();
+  for(int i=0;i<ctors_end-ctors_start;i++) ctors_start[i]();
 
   IRQHandler::begin(); //Can't call before ctors are run
 

@@ -1,4 +1,5 @@
 MEDIA="/media/MICROSD 8GB"
+#EAGLE=Rocketometer.brd Rocketometer.sch
 
 include ../libraries/Serial/Makefile
 include ../libraries/Task/Makefile

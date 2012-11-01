@@ -1,13 +1,3 @@
-/***********************************************************************/
-/*  ROM.ld:  Linker Script File                                        */
-/***********************************************************************/
-
-/*
-   Based on scripts found in the LPC yahoo-group and the Keil examples
-   modified by Martin Thomas, Kaiserslautern, Germany
-   http://www.siwawi.arubi.uni-kl.de/avr_projects
-*/
-
 /* Memory Definitions */
 MEMORY
 {
@@ -21,15 +11,20 @@ MEMORY
   RAM_USB  (RWX) : ORIGIN = 0x7FD00000, LENGTH = 8K
 }
 
+/* After consultation with the Internet, I have discovered that _[A-Z].* and __.* 
+are reserved identifiers to the implementation, meaning the compiler/linker/system library.
+I have therefore concluded that my code is not part of the implementation, and
+since there is very little system, all symbols created in this linker script are
+normal, not reserved. Further, symbols which are not used should not be created,
+including "customary" but unused symbols such as etext. */
+
 /* Section Definitions */
 SECTIONS
 {
     /* first section is .text which is used for code */
     .text :
     {
-        _btext = . ;
-        PROVIDE (btext = .);
-        KEEP(*(.vectors))
+        KEEP(*(.vectors))          /* required, keep the 
 	*Startup.o(.text .text.*)  /* Just customary, put startup code close to front of section */
         *(.text .text.*)           /* remaining code */
         *(.gnu.linkonce.t.*)
@@ -67,84 +62,77 @@ SECTIONS
     > ROM
 
     /* .ctors .dtors are used for c++ constructors/destructors */
-    /* added by Martin Thomas 4/2005 based on Anglia Design example */
     .ctors :
     {
-        PROVIDE(__ctors_start__ = .);
+        ctors_start = .;
         KEEP(*(.init_array))  /*This is valid for arm-none-eabi*/
         KEEP(*(.ctors))       /*This is valid for arm-elf */
-        PROVIDE(__ctors_end__ = .);
+        ctors_end = .;
         . = ALIGN(16);
     }
     >ROM
 
+/*The program never returns control to an external system, therefore
+global destructors are never called. */
+/*
     .dtors :
     {
-        PROVIDE(__dtors_start__ = .);
+        dtors_start = .;
         KEEP(*(SORT(.dtors.*)))
         KEEP(*(.dtors))
-        PROVIDE(__dtors_end__ = .);
+        dtors_end = .;
         . = ALIGN(16);
     }
     >ROM
+*/
 
-    . = ALIGN(16);
-    /* mthomas - end */
-
-    .source :
+    .source : 
     {
-        PROVIDE(__source_start__ = .);
+        source_start = .;
         KEEP(*(.source))
-        PROVIDE(__source_end__ = .);
+        source_end = .;
         . = ALIGN(16);
     }
     >ROM
 
-    _etext = . ;
-    PROVIDE (etext = .);
+/* All code and read-only data which is supposed to be in rom must be
+before this point. Next section is initialized data, which is loaded 
+in rom but relocated to ram. Unfortunately this means that the source
+is in between read-only data and initialized data. */
+    etext = . ;
 
     /* .data section which is used for initialized data */
-    .data : AT (_etext)
+    .data : AT (etext)
     {
-        _data = .;
+        data = .;
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d*)
-        . = ALIGN(4);
+        edata = . ;
+        . = ALIGN(16);
     }
     > RAM
-
-    . = ALIGN(4);
-    _edata = . ;
-    PROVIDE (edata = .);
 
     /* .bss section which is used for uninitialized (zeroed) data */
     .bss (NOLOAD) :
     {
-        __bss_start = . ;
-        __bss_start__ = . ;
+        bss_start = . ;
         *(.bss .bss.*)           /* all zeroed sections */
         *(.gnu.linkonce.b*)
         *(COMMON)
+        . = ALIGN(16);
+        bss_end = . ;
     }
     > RAM
 
-    . = ALIGN(4);
-    __bss_end__ = . ;
-    PROVIDE (__bss_end = .);
-
-    .stack ALIGN(256) (NOLOAD):
+    .stack (NOLOAD):
     {
-        PROVIDE (__stack_start__ = .);
         *(.stack)
-        PROVIDE (_stack = .);
-        PROVIDE (__stack_end__ = .);
-        . = ALIGN(4);
+        . = ALIGN(16);
     }
     > RAM
 
-    _end = . ;
-    PROVIDE (end = .);
+    end = . ;
 
     /* Stabs debugging sections.  */
     .stab          0 : { *(.stab) }
