@@ -26,7 +26,7 @@ class BMP180 {
     // b5 is calculated in getTemperature(...), this variable is also used in getPressure(...)
     // so ...Temperature(...) must be called before ...Pressure(...).
     int32_t  b5; 
-    TwoWire *port;
+    TwoWire &port;
     void print(char* tag, int arg) {
       if(!ouf) return;
       ouf->print(tag);
@@ -47,11 +47,13 @@ class BMP180 {
     void startMeasurementCore();
   public:
     Stream *ouf;
-    BMP180(TwoWire *Lport);
+    BMP180(TwoWire &Lport);
     volatile bool ready;
     void begin();
-    void printCalibration(Stream *ouf);
+    void printCalibration(Stream *Louf);
     void startMeasurement();
+    int getTemperatureRaw() {return UT;};
+    int getPressureRaw() {return UP;};
     int16_t getTemperature() {return getTemperature(UT);};
     int32_t getPressure() {return getPressure(UP);};
     int readMeasurement(int& t, int& p);

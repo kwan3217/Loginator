@@ -13,13 +13,15 @@ uint8_t L3G4200D::begin() {
   return 1;
 }
 
-void L3G4200D::read(int16_t& x, int16_t& y, int16_t& z) {
-  char buf[7];
+void L3G4200D::read(int16_t& x, int16_t& y, int16_t& z, uint8_t& t, uint8_t& status) {
+  char buf[9];
 
-  s->rx_block(p0,0xC0|0x28,buf,7);
-  x=((int16_t)buf[2])<<8 | ((int16_t)buf[1]);
-  y=((int16_t)buf[4])<<8 | ((int16_t)buf[3]);
-  z=((int16_t)buf[6])<<8 | ((int16_t)buf[5]);
+  s->rx_block(p0,0xC0|0x26,buf,9);
+  t=buf[1];
+  status=buf[2];
+  x=((int16_t)buf[4])<<8 | ((int16_t)buf[3]);
+  y=((int16_t)buf[6])<<8 | ((int16_t)buf[5]);
+  z=((int16_t)buf[8])<<8 | ((int16_t)buf[7]);
 }
 
 

@@ -49,7 +49,7 @@ static const int F_Bit=0x40;    // when F bit is set, FIQ is disabled
 //by the linker script.
 extern int bss_start[];
 extern int bss_end[];
-extern int etext[];
+extern int bdata[];
 extern int data[];
 extern int edata[];
 //ctors_start actually points to a proper array, so we can actually use 
@@ -132,7 +132,7 @@ void Reset_Handler() {
 //Now stay in system mode for good                
 
 // Relocate .data section (initialized variables)
-  for(int i=0;i<(edata-data);i++) data[i]=etext[i];
+  for(int i=0;i<(edata-data);i++) data[i]=bdata[i];
 
 //Initialize .bss section 
   for(int i=0;i<(bss_end-bss_start);i++) bss_start[i]=0;

@@ -24,7 +24,8 @@ SECTIONS
     /* first section is .text which is used for code */
     .text :
     {
-        KEEP(*(.vectors))          /* required, keep the 
+        btext = .;
+        KEEP(*(.vectors))          /* required, keep the vectors where they belong */ 
 	*Startup.o(.text .text.*)  /* Just customary, put startup code close to front of section */
         *(.text .text.*)           /* remaining code */
         *(.gnu.linkonce.t.*)
@@ -86,6 +87,7 @@ global destructors are never called. */
     >ROM
 */
 
+
     .source : 
     {
         source_start = .;
@@ -99,17 +101,17 @@ global destructors are never called. */
 before this point. Next section is initialized data, which is loaded 
 in rom but relocated to ram. Unfortunately this means that the source
 is in between read-only data and initialized data. */
-    etext = . ;
+    bdata = . ;
 
     /* .data section which is used for initialized data */
-    .data : AT (etext)
+    .data : AT (bdata)
     {
         data = .;
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d*)
         edata = . ;
-        . = ALIGN(16);
+/*        . = ALIGN(16);*/
     }
     > RAM
 
@@ -132,7 +134,6 @@ is in between read-only data and initialized data. */
     }
     > RAM
 
-    end = . ;
 
     /* Stabs debugging sections.  */
     .stab          0 : { *(.stab) }

@@ -9,16 +9,20 @@
 #include "Time.h"
 #include "LPC214x.h"
 #include "gpio.h"
+#include "dump.h"
 
 int temperature, pressure;
+int temperatureRaw, pressureRaw;
 int16_t ax,ay,az; //acc
 int16_t bx,by,bz; //compass (bfld)
 int16_t gx,gy,gz; //gyro
+uint8_t gt,gs;     //gyro temp and status
 
-BMP180 bmp180(&Wire1);
+BMP180 bmp180(Wire1);
 HMC5883 hmc5883(&Wire1);
 ADXL345 adxl345(&SPI1,20);
 L3G4200D l3g4200d(&SPI1,25);
+Base85 d(Serial);
 
 void testTask(void* stuff) {
   static int lightState=0;
@@ -28,18 +32,20 @@ void testTask(void* stuff) {
 }
 
 unsigned int tc0;
-unsigned int seconds=0x17321732;
+unsigned int seconds=0;
 
 void setup() {
   taskManager.begin();
 //  taskManager.schedule(500,0,testTask,0);
   Serial.begin(9600);
   Wire1.begin();
-  SPI1.begin(1000000,1,1);
 
   bmp180.begin();
   bmp180.printCalibration(&Serial);
   bmp180.ouf=0;
+
+  SPI1.begin(1000000,1,1);
+  d.dumpSource();
 
   hmc5883.begin();
   char HMCid[4];
@@ -58,7 +64,7 @@ void setup() {
   Serial.print("L3G4200D identifier (should be 0xD3): 0x");
   Serial.println(L3Gid,HEX);
 
-  Serial.println("t,ax,ay,az,bx,by,bz,gx,gy,gz,T,P");
+  Serial.println("t,ax,ay,az,bx,by,bz,gx,gy,gz,gt,T,P,Traw,Praw");
 
   tc0=TTC(0);
 }
@@ -69,10 +75,12 @@ void loop() {
   bmp180.startMeasurement();
   adxl345.read(ax,ay,az);
   hmc5883.read(bx,by,bz);
-  l3g4200d.read(gx,gy,gz);
+  l3g4200d.read(gx,gy,gz,gt,gs);
   while(!bmp180.ready) ;
   temperature=bmp180.getTemperature();
   pressure=bmp180.getPressure();
+  temperatureRaw=bmp180.getTemperatureRaw();
+  pressureRaw=bmp180.getPressureRaw();
   Serial.print(seconds,DEC);
   Serial.print(",");
   Serial.print(ax, DEC);
@@ -93,11 +101,17 @@ void loop() {
   Serial.print(",");
   Serial.print(gz, DEC);
   Serial.print(",");
+  Serial.print(gt, DEC);
+  Serial.print(",");
   Serial.print(temperature/10, DEC);
   Serial.print(".");
   Serial.print(temperature%10, DEC);
   Serial.print(",");
   Serial.print(pressure, DEC);
+  Serial.print(",");
+  Serial.print(temperatureRaw, DEC);
+  Serial.print(",");
+  Serial.print(pressureRaw, DEC);
   Serial.println();
   seconds++;
 }

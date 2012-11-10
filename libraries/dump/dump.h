@@ -3,9 +3,9 @@
 
 #include "Print.h"
 
-extern char _btext[],_etext[];
-extern char __source_start__[];
-extern char __source_end__[];
+extern char btext[],etext[];
+extern char source_start[];
+extern char source_end[];
 
 class Dump {
 protected:
@@ -18,8 +18,8 @@ public:
   Dump(Print& Lout, int LpreferredLen):out(Lout),preferredLen(LpreferredLen) {};
   void region(const char* start, int base, int len, int rec_len);
   void region(const char* start, int len, int rec_len) {region(start,(int)start,len,rec_len);};
-  void dumpText() {region(_btext,_etext-_btext,preferredLen);};
-  void dumpSource() {region(__source_start__,0,__source_end__-__source_start__,preferredLen);}
+  void dumpText() {region(btext,etext-btext,preferredLen);};
+  void dumpSource() {region(source_start,0,source_end-source_start,preferredLen);}
 };
 
 class IntelHex: public Dump {
