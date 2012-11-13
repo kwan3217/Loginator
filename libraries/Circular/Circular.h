@@ -12,7 +12,8 @@
 //All circular buffers are 1024 characters.
 class Circular {
 private:
-  char buf[1024];
+  static const int N=1024;
+  char buf[N];
   //Location of the next slot to be written to
   int volatile head;
   //Location of the next slot not yet ready to be flushed
@@ -24,29 +25,23 @@ public:
   Circular():head(0),mid(0),tail(0) {}
 
   //Is there no space to write another char?
-  int isFull();
+  bool isFull();
   //Is there at least one char ready to be read?
-  int isEmpty();
+  bool isEmpty();
   //Add a char to the buffer, not ready to be flushed yet
-  int fill(char in);
+  bool fill(char in);
 
   void empty();
 
-  //Built upon fill
-  int fillString(const char* in);
-  int fillDec(int in);
-  int fill0Dec(int in, int len);
-  int fillHex(unsigned int in, int len);
-  int fillStringn(const char* in, int len);
-  int fillShort(short in);
-  int fillInt(int in);
+  bool fill(const char* in);
+  bool fill(const char* in, int len);
 
   //Mark all current unready data as ready
   void mark();
   //Get the next character ready to be flushed
   char get();
   //Get all ready data from one buffer and copy it to another (as ready also)
-  int drain(Circular* to);
+  bool drain(Circular& to);
   //Get the number of characters which aren't ready yet
   int unreadylen();
   //Get the number of characters which are ready
@@ -54,8 +49,6 @@ public:
 
   char peekTail(int ahead);
   char peekMid(int ahead);
-  short peekMidShort(int ahead);
-  int peekMidInt(int ahead);
   char peekHead(int ahead);
 
   void pokeTail(int ahead, char poke);
@@ -65,7 +58,6 @@ public:
   char* volatile headPtr() {return buf+head;}
   char* volatile tailPtr() {return buf+tail;}
   char* volatile midPtr()  {return buf+mid;}
-  void tailSwitch(int len) {tail=len-tail;}
 };
 
 #endif

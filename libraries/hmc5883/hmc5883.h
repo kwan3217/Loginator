@@ -6,7 +6,7 @@
 
 class HMC5883 {
   private:
-    static const int HMC5883_ADDRESS=0x1E;  // I2C address of HMC5883L
+    static const int ADDRESS=0x1E;  // I2C address of HMC5883L
 
     TwoWire *port;
     int8_t read(uint8_t address);

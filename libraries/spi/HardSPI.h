@@ -5,7 +5,8 @@
 
 class HardSPI {
   public:
-//Setup the SPI1 port, including claiming the pins
+//Setup the SPI1 port, including claiming the pins. May be called repeatedly, whenever
+//any of these input parameters change
 //input
 //  freq - Approximate bus frequency in Hz
 //  CPOL - Clock Polarity. 0 indicates clock is low when idle, 1 conversely

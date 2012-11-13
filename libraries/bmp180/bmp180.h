@@ -4,28 +4,25 @@
 #include <inttypes.h>
 #include "Wire.h"
 #include "Serial.h"
-
-#define BMP180_ADDRESS 0x77  // I2C address of BMP085
-
-const unsigned char OSS = 3;  // Oversampling Setting
+#include "packet.h"
 
 class BMP180 {
   private:
     // Calibration values
-    int16_t  ac1;
-    int16_t  ac2; 
-    int16_t  ac3; 
-    uint16_t ac4;
-    uint16_t ac5;
-    uint16_t ac6;
-    int16_t  b1; 
-    int16_t  b2;
-    int16_t  mb;
-    int16_t  mc;
-    int16_t  md;
+    short  ac1;
+    short  ac2; 
+    short  ac3; 
+    unsigned short ac4;
+    unsigned short ac5;
+    unsigned short ac6;
+    short  b1; 
+    short  b2;
+    short  mb;
+    short  mc;
+    short  md;
     // b5 is calculated in getTemperature(...), this variable is also used in getPressure(...)
     // so ...Temperature(...) must be called before ...Pressure(...).
-    int32_t  b5; 
+    int  b5; 
     TwoWire &port;
     void print(char* tag, int arg) {
       if(!ouf) return;
@@ -45,12 +42,17 @@ class BMP180 {
     void finishTempCore();
     void finishPresCore();
     void startMeasurementCore();
+    static const unsigned char ADDRESS=0x77;  // I2C address of BMP085
+    unsigned char OSS;  // Oversampling Setting
   public:
     Stream *ouf;
     BMP180(TwoWire &Lport);
     volatile bool ready;
     void begin();
     void printCalibration(Stream *Louf);
+    void fillCalibration(Packet& pkt);
+    unsigned char getOSS() {return OSS;};
+    bool setOSS(unsigned char Loss) {if(start) return false;OSS=Loss;return true;};
     void startMeasurement();
     int getTemperatureRaw() {return UT;};
     int getPressureRaw() {return UP;};

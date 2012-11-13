@@ -11,6 +11,7 @@
 #include "LPC214x.h"
 #include "gpio.h"
 #include "dump.h"
+#include "packet.h"
 
 int temperature, pressure;
 int temperatureRaw, pressureRaw;
@@ -28,6 +29,9 @@ MPU6050 mpu6050(Wire1,0);
 ADXL345 adxl345(&SPI1,20);
 L3G4200D l3g4200d(&SPI1,25);
 Base85 d(Serial);
+Circular pktStore;
+CCSDS ccsds(pktStore);
+unsigned short pktseq;
 
 void testTask(void* stuff) {
   static int lightState=0;
@@ -47,6 +51,9 @@ void setup() {
 
   bmp180.begin();
   bmp180.printCalibration(&Serial);
+  ccsds.start(0x02,0);
+  bmp180.fillCalibration(ccsds);
+  ccsds.finish();
   bmp180.ouf=0;
 
   SPI1.begin(1000000,1,1);
@@ -81,6 +88,7 @@ void setup() {
 void loop() {
   while(TTC(0)>tc0) ;
   while(TTC(0)<tc0) ;
+  unsigned int TC=TTC(0)+(seconds%60)*PCLK;
   bmp180.startMeasurement();
   adxl345.read(ax,ay,az);
   hmc5883.read(bx,by,bz);
@@ -93,6 +101,7 @@ void loop() {
   pressureRaw=bmp180.getPressureRaw();
   Serial.print(seconds,DEC);
   Serial.print(",");
+  Serial.println();
   Serial.print(ax, DEC);
   Serial.print(",");
   Serial.print(ay, DEC);
@@ -136,7 +145,27 @@ void loop() {
   Serial.print(mgz, DEC);
   Serial.print(",");
   Serial.print(mt, DEC);
-  Serial.println();
+  ccsds.start(0x01,&pktseq,TC);
+  ccsds.fill(ax);
+  ccsds.fill(ay);
+  ccsds.fill(az);
+  ccsds.fill(bx);
+  ccsds.fill(by);
+  ccsds.fill(bz);
+  ccsds.fill(gx);
+  ccsds.fill(gy);
+  ccsds.fill(gz);
+  ccsds.fill(gt);
+  ccsds.fill(temperatureRaw);
+  ccsds.fill(pressureRaw);
+  ccsds.fill(max);
+  ccsds.fill(may);
+  ccsds.fill(maz);
+  ccsds.fill(mgx);
+  ccsds.fill(mgy);
+  ccsds.fill(mgz);
+  ccsds.fill(mt);
+  ccsds.finish();
   seconds++;
 }
 
