@@ -10,7 +10,7 @@ private:
 protected:
   File& ouf;
 public:
-  FileCircular(File& Louf):Circular(),ouf(Louf) {};
+  FileCircular(char* Lbuf,File& Louf):Circular(1024,Lbuf),ouf(Louf) {};
   bool drain() {if(readylen()>=SDHC::BLOCK_SIZE) return drainCore();return true;};
 };
 

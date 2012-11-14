@@ -12,8 +12,8 @@
 //All circular buffers are 1024 characters.
 class Circular {
 protected:
-  static const int N=1024;
-  char buf[N];
+  int N;
+  char* buf;
   //Location of the next slot to be written to
   int volatile head;
   //Location of the next slot not yet ready to be flushed
@@ -22,7 +22,7 @@ protected:
   int volatile tail;
   
 public:
-  Circular():head(0),mid(0),tail(0) {}
+  Circular(int LN, char* Lbuf):N(LN),buf(Lbuf),head(0),mid(0),tail(0) {}
 
   //Is there no space to write another char?
   bool isFull();

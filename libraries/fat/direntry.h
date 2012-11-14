@@ -10,6 +10,7 @@ private:
   Cluster& f;  
 public:
   DirEntry(Cluster& Lf):f(Lf) {};
+  int errno;
   static const uint8_t ATTR_READONLY = (1<<0); 
   static const uint8_t ATTR_HIDDEN   = (1<<1); 
   static const uint8_t ATTR_SYSTEM   = (1<<2); 

@@ -72,15 +72,16 @@ private:
   };
   void calcTableCluster(uint32_t cluster, uint32_t& sectorsPerTable, uint32_t& entrySector, uint32_t& entryOffset);
 public:
+  int errno;
   Cluster(Partition &Lp):p(Lp) {};
   uint8_t sectorsPerCluster() {return sectorsPerCluster8;};
   uint16_t sectorSize() {return bytesPerSector;};
   uint32_t numRootEntries() {if(tableEntrySize==32) return bytesPerSector*sectorsPerCluster8/32; else return numRootEntries16;};
   uint32_t firstRootSector;   ///< Sector number of first sector of root directory, valid only for FAT12 and FAT16
   bool begin();
-  bool read(uint32_t cluster, uint8_t sector, char* buf, int start, int len) {return p.read(clusterFirstSector(cluster)+sector,buf,start,len);};
-  bool read(uint32_t cluster, uint8_t sector, char* buf) {return p.read(clusterFirstSector(cluster)+sector,buf);};
-  bool write(uint32_t cluster, uint8_t sector, char* buf) {return p.write(clusterFirstSector(cluster)+sector,buf);};
+  bool read(uint32_t cluster, uint8_t sector, char* buf, int start, int len) {ASSERT(p.read(clusterFirstSector(cluster)+sector,buf,start,len),p.errno*100+1);};
+  bool read(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.read(clusterFirstSector(cluster)+sector,buf),p.errno*100+2);};
+  bool write(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.write(clusterFirstSector(cluster)+sector,buf),p.errno*100+3);};
   void print(Print &out, Dump &d);
   uint32_t readTable(uint32_t cluster);
   bool writeTable(uint32_t cluster, char* buf, uint32_t entry);

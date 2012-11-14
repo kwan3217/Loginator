@@ -1,10 +1,10 @@
 #include "Partition.h"
 
 bool Partition::begin(int index) {
-  if(!sd.read(0,mbr,0x1fe,2)) return false;
-  if(mbr[0x0]!=0x55) return false;
-  if(mbr[0x1]!=0xAA) return false;
-  if(!sd.read(0,mbr,(index-1)*0x10+0x1be,16)) return false;
+  if(!sd.read(0,mbr,0x1fe,2)) FAIL(sd.errno*100+1);
+  if(mbr[0x0]!=0x55) FAIL(2);
+  if(mbr[0x1]!=0xAA) FAIL(3);
+  if(!sd.read(0,mbr,(index-1)*0x10+0x1be,16)) FAIL(sd.errno*100+4);
   return true;
 }
 
@@ -29,5 +29,4 @@ void Partition::print(Print &out) {
   out.println((int)lba_start,HEX);
   out.print("LBA length:     ");
   out.println((int)lba_length,HEX);
-
 }

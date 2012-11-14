@@ -23,11 +23,8 @@ bool SDHC::begin() {
   s->begin(400000,1,1);
 
   // initialization procedure 
-  if(!available()) {
-    //SD RAW NOT AVAILABLE
-    errno=1;
-    return false;
-  }
+  //SD RAW NOT AVAILABLE
+  if(!available()) FAIL(1);
 
   unselect_card();
 
@@ -48,9 +45,7 @@ bool SDHC::begin() {
     if(i == 0x1f) {
       //response not idle after 512 tries;
       unselect_card();
-      errno=2;
- //     return false;
-      break;
+      FAIL(2);
     }
   }
 
@@ -62,14 +57,12 @@ bool SDHC::begin() {
     if((response[3] & 0x01) == 0) { //15:12 reserved 11:8 voltage
       // card operation voltage range doesn't match 
       unselect_card();
-      errno=7; 
-      return false;
+      FAIL(3);
     } 
     if(response[4] != 0xaa) { //7:0 check pattern
       // wrong test pattern 
       unselect_card();
-      errno=8; 
-      return false;
+      FAIL(4);
     }
     // card conforms to SD 2 card specification 
     card_type |= SDHC_SPEC_2;
@@ -102,8 +95,7 @@ bool SDHC::begin() {
 
     if(i == 0x7fff) {
       unselect_card();
-      errno=3;
-      return 0;
+      FAIL(5);
     }
   }
 
@@ -112,8 +104,7 @@ bool SDHC::begin() {
     send_command(CMD_READ_OCR, 0,5);
     if(response[0]) {
       unselect_card();
-      errno=9;
-      return 0;
+      FAIL(6);
     }
     //CCS bit 30 in OCR - set if SDHC/SDXC
     if(response[1] & 0x40) card_type |= SDHC_SPEC_SDHC;
@@ -124,8 +115,7 @@ bool SDHC::begin() {
   if(response[0]) {
     unselect_card();
     //BLOCK SIZE SET ERR
-    errno=4;
-    return false;
+    FAIL(7);
   }
 
   // deaddress card 
@@ -200,10 +190,7 @@ void SDHC::send_command(unsigned char command, unsigned int arg, unsigned int re
 
 //Read an SD card block, but only record part of it in LPC memory.
 bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
-  if(start+len>BLOCK_SIZE) {
-    errno=1;
-    return false;
-  }
+  if(start+len>BLOCK_SIZE) FAIL(8);
 
   // address card 
   select_card();
@@ -212,8 +199,7 @@ bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
   send_command(CMD_READ_SINGLE_BLOCK, scale_block_address(block),1);
   if(response[0]) {
     unselect_card();
-    errno=2+100*response[0];
-    return false;
+    FAIL(100*response[0]+9);
   }
 
   // wait for data block (start byte 0xfe) 
@@ -245,8 +231,7 @@ bool SDHC::write(uint32_t block, const char* buffer) {
   send_command(CMD_WRITE_SINGLE_BLOCK, scale_block_address(block),1);
   if(response[0]) {
     unselect_card();
-    errno=1;
-    return false;
+    FAIL(100*response[0]+10);
   }
 
   // send start byte 
@@ -270,10 +255,7 @@ bool SDHC::write(uint32_t block, const char* buffer) {
 }
 
 bool SDHC::get_info(struct SDHC_info& info) {
-  if(!available()) {
-    errno=1;
-    return false;
-  }
+  if(!available()) FAIL(11);
 
   memset(&info, 0, sizeof(info));
 
@@ -283,8 +265,7 @@ bool SDHC::get_info(struct SDHC_info& info) {
   send_command(CMD_SEND_CID, 0,1);
   if(response[0]) {
     unselect_card();
-    errno=2;
-    return false;
+    FAIL(100*response[0]+12);
   }
   while(rec_byte() != 0xfe);
   unsigned char i;
@@ -334,8 +315,7 @@ bool SDHC::get_info(struct SDHC_info& info) {
   send_command(CMD_SEND_CSD, 0,1);
   if(response[0]) {
     unselect_card();
-    errno=3;
-    return false;
+    FAIL(100*response[0]+13);
   }
   while(rec_byte() != 0xfe);
   for(i = 0; i < 18; ++i) {

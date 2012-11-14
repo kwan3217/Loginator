@@ -57,13 +57,17 @@ private:
   pqnode<priority,T> pqueue[S+1];
 public:
   Heap(): pqsize(0) {}; //Takes place of create();
-  void push(T entry, priority py){
+  bool empty() {return pqsize==0;};
+  bool full()  {return pqsize==S;};
+  bool push(T entry, priority py){
+    if(full()) return false;
     pqsize++;
     pqueue[pqsize].elt=entry;
     pqueue[pqsize].pty=py;
     siftup(pqsize);
   };
-  void pop() {
+  bool pop() {
+    if(empty()) return false;
     pqueue[1]=pqueue[pqsize];
     pqsize--;                        
     siftdown(1,pqsize);
@@ -72,8 +76,6 @@ public:
     return pqueue[1];
   }
   void clear() {pqsize=0;};
-  bool empty() {return pqsize==0;};
-  bool full()  {return pqsize==S;};
 };
 
 #endif

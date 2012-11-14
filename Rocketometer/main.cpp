@@ -19,7 +19,6 @@
 #include "file.h"
 #include "FileCircular.h"
 
-
 int temperature, pressure;
 int temperatureRaw, pressureRaw;
 int16_t ax,ay,az;    //acc
@@ -29,18 +28,19 @@ uint8_t gt,gs;       //gyro temp and status
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
 int16_t mt;          //MPU60x0 temp
+char buf[2*SDHC::BLOCK_SIZE];
 
 SDHC sd(&SPI,7);
 Partition p(sd);
 Cluster fs(p);
 File f(fs);
 BMP180 bmp180(Wire1);
-HMC5883 hmc5883(&Wire1);
+HMC5883 hmc5883(Wire1);
 MPU6050 mpu6050(Wire1,0);
 ADXL345 adxl345(&SPI1,20);
 L3G4200D l3g4200d(&SPI1,25);
 Base85 d(Serial);
-FileCircular pktStore(f);
+FileCircular pktStore(buf,f);
 CCSDS ccsds(pktStore);
 unsigned short pktseq;
 
@@ -67,19 +67,19 @@ void setup() {
 
   bool worked=sd.begin();
   Serial.printf("%s.begin %s. Status code %d\n","sd",worked?"Worked":"didn't work",sd.errno);
-  if(!worked) return;
+//  if(!worked) return;
 
   worked=p.begin(1);
-  Serial.printf("%s.begin %s. Status code %d\n","p",worked?"Worked":"didn't work",sd.errno);
-  if(!worked) return;
+  Serial.printf("%s.begin %s. Status code %d\n","p",worked?"Worked":"didn't work",p.errno);
+//  if(!worked) return;
 
   worked=fs.begin();  
-  Serial.printf("%s.begin %s. Status code %d\n","fs",worked?"Worked":"didn't work",sd.errno);
-  if(!worked) return;
+  Serial.printf("%s.begin %s. Status code %d\n","fs",worked?"Worked":"didn't work",fs.errno);
+//  if(!worked) return;
 
   worked=f.openw("packet.sds",pktStore.headPtr());
   Serial.printf("%s.openw %s. Status code %d\n","f",worked?"Worked":"didn't work",f.errno);
-  if(!worked) return;
+//  if(!worked) return;
 
   //Dump code to serial port and packet file
   int len=source_end-source_start;
@@ -87,13 +87,15 @@ void setup() {
   unsigned short dumpSeq=0;
   d.begin();
   while(len>0) {
-    d.line(base,0,118);
+    d.line(base,0,116);
     ccsds.start(0x03,&dumpSeq);
     ccsds.fill32(base-source_start);
-    ccsds.fill(base,len>118?118:len);
+    ccsds.fill16(0);
+    ccsds.fill(base,len>116?116:len);
     ccsds.finish();
     pktStore.drain();
-    len-=(len>118?118:len);
+    base+=116;
+    len-=116;
   }
   d.end();
 

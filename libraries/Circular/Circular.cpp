@@ -1,6 +1,4 @@
-#include <stdlib.h>
 #include "Circular.h"
-#include "Stringex.h"
 
 bool Circular::isFull() {
   return (head+1)%N==tail;

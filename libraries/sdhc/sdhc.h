@@ -10,6 +10,9 @@
 #include "spi_user.h"
 #include "Print.h"
 
+#define FAIL(x) {errno=(x);return false;}
+#define ASSERT(x,y) {bool result=(x);if(!result) FAIL((y));return result;}
+
 /**
  * \addtogroup sdhc
  *

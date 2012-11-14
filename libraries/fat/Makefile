@@ -1,4 +1,3 @@
-CPPSRC+=../libraries/fat/fat.cpp
 CPPSRC+=../libraries/fat/cluster.cpp
 CPPSRC+=../libraries/fat/direntry.cpp
 CPPSRC+=../libraries/fat/file.cpp

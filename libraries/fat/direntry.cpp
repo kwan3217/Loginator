@@ -120,7 +120,7 @@ bool DirEntry::find(int dir_cluster, const char* fn) {
     entrySector=entryIndex*32;
     entryOffset=entrySector%512;
     entrySector=entrySector/512;
-    f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry));
+    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errno*100+1);
     if(entry[0]==0) return false;
     if(!isLFN()) {
       int i=0;
@@ -145,7 +145,7 @@ bool DirEntry::findEmpty(int dir_cluster) {
     entrySector=entryIndex*32;
     entryOffset=entrySector%512;
     entrySector=entrySector/512;
-    f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry));
+    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errno*100+2);
     if(entry[0]==0) return true;
   }
   //No unused entries, have to use a deleted entry
@@ -153,17 +153,16 @@ bool DirEntry::findEmpty(int dir_cluster) {
     entrySector=entryIndex*32;
     entryOffset=entrySector%512;
     entrySector=entrySector/512;
-    f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry));
+    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errno*100+3);
     if(entry[0]==0xE5) return true;
-    entryIndex++;
   }
   return false;
 }
 
 bool DirEntry::writeBack(char* buf) {
-  if(!f.read(entryCluster,entrySector,buf)) return false;
+  if(!f.read(entryCluster,entrySector,buf)) FAIL(f.errno*100+4);
   memcpy(buf+entryOffset,entry,sizeof(entry));
-  if(!f.write(entryCluster,entrySector,buf)) return false;
+  if(!f.write(entryCluster,entrySector,buf)) FAIL(f.errno*100+5);
 }
 
     
