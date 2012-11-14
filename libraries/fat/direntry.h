@@ -20,8 +20,13 @@ public:
   static const uint8_t ATTR_RESERVE7 = (1<<7);
   union {
     struct {
-      char shortName[8] __attribute__((packed));
-      char shortExt[3]  __attribute__((packed));
+      union {
+        struct {
+          char shortBase[8] __attribute__((packed));
+          char shortExt[3]  __attribute__((packed));
+        };
+        char shortName[11] __attribute__((packed));
+      };
       uint8_t attr      __attribute__((packed));
       uint8_t reserved1 __attribute__((packed));
       uint8_t ctenths   __attribute__((packed));

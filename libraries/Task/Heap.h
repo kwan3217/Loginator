@@ -12,10 +12,9 @@ struct pqnode {
 };
 
 typedef unsigned int position;
-template <typename priority, typename T>
+template <typename priority, typename T, int S>
 class Heap {
 private:
-  static const position pqmaxsize=7;
   position pqsize;
   void siftup(position pos) {
     position j=pos/2,k=pos;
@@ -55,7 +54,7 @@ private:
     if(a==b) return 0;
     /*if(a>b)*/ return 1; //Trichotomoy
   };
-  pqnode<priority,T> pqueue[pqmaxsize+1];
+  pqnode<priority,T> pqueue[S+1];
 public:
   Heap(): pqsize(0) {}; //Takes place of create();
   void push(T entry, priority py){
@@ -74,7 +73,7 @@ public:
   }
   void clear() {pqsize=0;};
   bool empty() {return pqsize==0;};
-  bool full()  {return pqsize==pqmaxsize;};
+  bool full()  {return pqsize==S;};
 };
 
 #endif

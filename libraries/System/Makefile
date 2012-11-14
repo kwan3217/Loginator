@@ -264,7 +264,7 @@ all: begin gccversion sizebefore build sizeafter finished end
 #ifeq ($(FORMAT),binary)
 build: elf bin lss hex FW.SFE html
 
-bin: $(TARGET).bin $(TARGET).nosource.bin
+bin: $(TARGET).nosource.bin $(TARGET).bin
 hex: $(TARGET).hex
 elf: $(TARGET).elf
 lss: $(TARGET).lss 
@@ -410,7 +410,7 @@ FW.SFE: $(TARGET).bin
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM)
 
-$(TARGET).elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.max.zpaq.o
+$(TARGET).elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.max.zpaq.o $(TARGET).nosource.elf
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $(THUMB) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(TARGET).tar.$(TAR_EXT).o --output $@ $(LDFLAGS)

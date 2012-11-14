@@ -11,7 +11,7 @@
 //moves the head ptr up.
 //All circular buffers are 1024 characters.
 class Circular {
-private:
+protected:
   static const int N=1024;
   char buf[N];
   //Location of the next slot to be written to

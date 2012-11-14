@@ -12,6 +12,13 @@
 #include "gpio.h"
 #include "dump.h"
 #include "packet.h"
+#include "sdhc.h"
+#include "Partition.h"
+#include "cluster.h"
+#include "direntry.h"
+#include "file.h"
+#include "FileCircular.h"
+
 
 int temperature, pressure;
 int temperatureRaw, pressureRaw;
@@ -23,13 +30,17 @@ int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
 int16_t mt;          //MPU60x0 temp
 
+SDHC sd(&SPI,7);
+Partition p(sd);
+Cluster fs(p);
+File f(fs);
 BMP180 bmp180(Wire1);
 HMC5883 hmc5883(&Wire1);
 MPU6050 mpu6050(Wire1,0);
 ADXL345 adxl345(&SPI1,20);
 L3G4200D l3g4200d(&SPI1,25);
 Base85 d(Serial);
-Circular pktStore;
+FileCircular pktStore(f);
 CCSDS ccsds(pktStore);
 unsigned short pktseq;
 
@@ -44,20 +55,53 @@ unsigned int tc0;
 unsigned int seconds=0;
 
 void setup() {
+  set_rtc(2012,11,12,13,14,15);
   taskManager.begin();
 //  taskManager.schedule(500,0,testTask,0);
   Serial.begin(115200);
   Wire1.begin();
 
   bmp180.begin();
+
+  SPI1.begin(1000000,1,1);
+
+  bool worked=sd.begin();
+  Serial.printf("%s.begin %s. Status code %d\n","sd",worked?"Worked":"didn't work",sd.errno);
+  if(!worked) return;
+
+  worked=p.begin(1);
+  Serial.printf("%s.begin %s. Status code %d\n","p",worked?"Worked":"didn't work",sd.errno);
+  if(!worked) return;
+
+  worked=fs.begin();  
+  Serial.printf("%s.begin %s. Status code %d\n","fs",worked?"Worked":"didn't work",sd.errno);
+  if(!worked) return;
+
+  worked=f.openw("packet.sds",pktStore.headPtr());
+  Serial.printf("%s.openw %s. Status code %d\n","f",worked?"Worked":"didn't work",f.errno);
+  if(!worked) return;
+
+  //Dump code to serial port and packet file
+  int len=source_end-source_start;
+  char* base=source_start;
+  unsigned short dumpSeq=0;
+  d.begin();
+  while(len>0) {
+    d.line(base,0,118);
+    ccsds.start(0x03,&dumpSeq);
+    ccsds.fill32(base-source_start);
+    ccsds.fill(base,len>118?118:len);
+    ccsds.finish();
+    pktStore.drain();
+    len-=(len>118?118:len);
+  }
+  d.end();
+
   bmp180.printCalibration(&Serial);
-  ccsds.start(0x02,0);
+  ccsds.start(0x02);
   bmp180.fillCalibration(ccsds);
   ccsds.finish();
   bmp180.ouf=0;
-
-  SPI1.begin(1000000,1,1);
-  d.dumpSource();
 
   hmc5883.begin();
   char HMCid[4];
@@ -88,7 +132,7 @@ void setup() {
 void loop() {
   while(TTC(0)>tc0) ;
   while(TTC(0)<tc0) ;
-  unsigned int TC=TTC(0)+(seconds%60)*PCLK;
+  unsigned int TC=TTC(0);
   bmp180.startMeasurement();
   adxl345.read(ax,ay,az);
   hmc5883.read(bx,by,bz);
@@ -145,7 +189,7 @@ void loop() {
   Serial.print(mgz, DEC);
   Serial.print(",");
   Serial.print(mt, DEC);
-  ccsds.start(0x01,&pktseq,TC);
+  ccsds.start(0x01,&pktseq,TC,seconds%60);
   ccsds.fill(ax);
   ccsds.fill(ay);
   ccsds.fill(az);
@@ -166,6 +210,7 @@ void loop() {
   ccsds.fill(mgz);
   ccsds.fill(mt);
   ccsds.finish();
+  pktStore.drain();
   seconds++;
 }
 

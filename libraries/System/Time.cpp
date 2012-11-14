@@ -19,6 +19,20 @@ static void measurePCLK(void) {
       break;
   }
 }
+                              //    J  F  M  A  M  J  J  A  S  O  N  D
+static const char monthTable[]={ 0,31,28,31,30,31,30,31,31,30,31,30};
+
+void set_rtc(int y, int m, int d, int h, int n, int s) {
+  RTCYEAR=y;
+  RTCMONTH=m;
+  RTCDOM=d;
+  RTCDOY=monthTable[m]+d+((m>2) & ((y-2000)%4==0))?1:0;
+  int DOC=RTCDOY-1+y/4+(y-2001)*365+1; //1 Jan 2001 was Monday
+  RTCDOW=y>2000?(DOC % 7):0; //0-Sunday -- 6-Saturday
+  RTCHOUR=h;
+  RTCMIN=n;
+  RTCSEC=s;
+}
 
 void setup_clock(void) {
   // Setting peripheral Clock (pclk) to System Clock (cclk)
@@ -33,8 +47,6 @@ void setup_clock(void) {
   TMCR(0) = (1 <<1);     // On MR0, reset but no int.
   TMR0(0) = PCLK;  //Reset when timer equals PCLK rate, effectively once per second
   TPR(0) = 0;  //No prescale, 1 timer tick equals 1 PCLK tick
-  TTCR(0) = (1 << 0); // start timer
-
 
   //Set up PWM timer to support analogWrite(). Ticks at 1MHz, resets every 1024 ticks. 
   PWMPR    = PCLK/1000000-1;      /* Load prescaler  */
@@ -44,6 +56,29 @@ void setup_clock(void) {
   PWMMR5 = 0x200;                 /* set edge of PWM5 to 512 ticks           */
   PWMLER = (1 <<  0) | (1 << 5);  /* enable shadow latch for match 0 and 5   */
   PWMTCR = 0x00000002;            /* Reset counter and prescaler             */
+
+  //Turn off the real-time clock
+  CCR=0;
+  //Set the PCLK prescaler and set the real-time clock to use it, so as to run in sync with everything else.
+  PREINT=PCLK/32768-1;
+  PREFRAC=PCLK-((PREINT+1)*32768);
+  
+  //If the clock year is reasonable, it must have been set by 
+  //some process before, so we'll leave it running.
+  //If it is year 0, then it is runtime from last reset, 
+  //so we should reset it.
+  //If it is unreasonable, this is the first time around,
+  //and we set it to zero to count runtime from reset
+  if(RTCYEAR<2000 || RTCYEAR>2100) {
+    CCR|=(1<<1);
+    set_rtc(0,0,0,0,0,0);
+    //Pull the subsecond counter out of reset
+    CCR&=~(1<<1);
+  }
+  
+  //These are close together so that Timer0, RTC, and PWM are as near in-phase as possible
+  TTCR(0) = (1 << 0); // start timer
+  CCR|=(1<<0); //Turn the real-time clock on
   PWMTCR = 0x00000009;            /* enable counter and PWM, release counter from reset */
 }
 
@@ -86,7 +121,7 @@ static void feed(int channel) {
 
 /** Set up on-board phase-lock-loop clock multiplier.
 
-\param channel Channel 0 is the system PLL used to generate PCLK up to 60MHz.
+\param channel Channel 0 is the system PLL used to generate CCLK up to 60MHz.
                Channel 1 is the USB PLL used to generate its 48MHz.
 \param M Clock multiplier. Final clock rate will be crystal frequency times this
 number. May be between 1 and 32, but in practice must not exceed 5 with a 12MHz 

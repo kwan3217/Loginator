@@ -9,16 +9,14 @@ class File {
   DirEntry de;
   uint32_t cluster,sector;
 public:
+  int errno=0;
   File(Cluster& Lc):c(Lc),de(c) {};
-  bool create(uint32_t dir_cluster,const char* filename, char* buf);
-  bool openr(uint32_t dir_cluster, const char* name);
-  bool openr(const char* name) {return openr(0,name);};
-  bool openw(uint32_t dir_cluster, const char* name, char* buf);
-  bool openw(const char* name,char* buf) {return openw(0,name,buf);};
+  bool create(const char* filename, char* buf,uint32_t dir_cluster=0);
+  bool openr(const char* name, uint32_t dir_cluster=0);
+  bool openw(const char* name, char* buf,uint32_t dir_cluster=0);
   bool read(char* buf);
   bool append(char* buf);
-  bool remove(uint32_t dir_cluster,const char* filename, char* buf);
-  bool remove(const char* name, char* buf) {return remove(0,name,buf);};
+  bool remove(const char* filename, char* buf,uint32_t dir_cluster=0);
   bool wipeChain(char* buf);
 };
 

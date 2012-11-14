@@ -39,7 +39,7 @@ void DirEntry::print(Print& out) {
     out.println(type,DEC);
   } else {
     out.print("Name:       ");
-    out.write(shortName,sizeof(shortName));
+    out.write(shortBase,sizeof(shortBase));
     out.print('.');
     out.write(shortExt,sizeof(shortExt));
     out.println();

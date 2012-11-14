@@ -17,7 +17,7 @@ public:
   void* stuff;
 };
 
-class TaskManager: public Heap<unsigned int, Task> {
+class TaskManager: public Heap<unsigned int, Task, 7> {
 private:
   static const int timer=0;
   static void handleTimerISR();
