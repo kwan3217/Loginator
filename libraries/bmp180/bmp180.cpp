@@ -2,12 +2,23 @@
 #include "Task.h"
 #include "Time.h"
 
+#undef BMP180_DEBUG 
+
 BMP180::BMP180(TwoWire &Lport):port(Lport),OSS(3) {}
 
 // Stores all of the bmp085's calibration values into global variables
 // Calibration values are required to calculate temp and pressure
 // This function should be called at the beginning of the program
-void BMP180::begin() {
+bool BMP180::begin() {
+  port.beginTransmission(ADDRESS);
+  port.write(0xE0);
+  port.write(0x6B);
+  port.endTransmission();
+  delay(25);
+  return readCalibration();
+}
+
+bool BMP180::readCalibration() {
   ac1 = read_int16(0xAA);
   ac2 = read_int16(0xAC);
   ac3 = read_int16(0xAE);
@@ -19,6 +30,9 @@ void BMP180::begin() {
   mb = read_int16(0xBA);
   mc = read_int16(0xBC);
   md = read_int16(0xBE);
+  if (ac1==0 || ac1==0xFFF) return false;
+  if (ac2==0 || ac2==0xFFF || ac2==ac1) return false;
+  return true;
 }
 
 void BMP180::printCalibration(Stream *Louf) {
@@ -49,17 +63,17 @@ void BMP180::printCalibration(Stream *Louf) {
 }
 
 void BMP180::fillCalibration(Packet& pkt) {
-  ouf->println(ac1);
-  ouf->println(ac2);
-  ouf->println(ac3);
-  ouf->println(ac4);
-  ouf->println(ac5);
-  ouf->println(ac6);
-  ouf->println(b1);
-  ouf->println(b2);
-  ouf->println(mb);
-  ouf->println(mc);
-  ouf->println(md);
+  pkt.fill16(ac1);
+  pkt.fill16(ac2);
+  pkt.fill16(ac3);
+  pkt.fill16(ac4);
+  pkt.fill16(ac5);
+  pkt.fill16(ac6);
+  pkt.fill16(b1);
+  pkt.fill16(b2);
+  pkt.fill16(mb);
+  pkt.fill16(mc);
+  pkt.fill16(md);
 }  
  
 // Calculate temperature given ut.
@@ -114,11 +128,11 @@ int32_t BMP180::getPressure(uint32_t up) {
 // Read 1 byte from the BMP085 at 'address'
 int8_t BMP180::read(uint8_t address) {
   port.beginTransmission(ADDRESS);
-  port.send(address);
+  port.write(address);
   port.endTransmission();
   
   port.requestFrom(ADDRESS, 1);
-  return port.receive();
+  return (int8_t)port.read();
 }
 
 // Read 2 bytes from the BMP085
@@ -128,12 +142,12 @@ int16_t BMP180::read_int16(uint8_t address) {
   uint8_t msb, lsb;
   
   port.beginTransmission(ADDRESS);
-  port.send(address);
+  port.write(address);
   port.endTransmission();
   
   port.requestFrom(ADDRESS, 2);
-  msb = port.receive();
-  lsb = port.receive();
+  msb = port.read();
+  lsb = port.read();
   
   return (int16_t) msb<<8 | lsb;
 }
@@ -150,8 +164,8 @@ void BMP180::startMeasurementCore() {
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
   port.beginTransmission(ADDRESS);
-  port.send(0xF4);
-  port.send(0x2E);
+  port.write(0xF4);
+  port.write(0x2E);
   port.endTransmission();
 }
 
@@ -170,8 +184,8 @@ void BMP180::finishTempCore() {
   // Write 0x34+(OSS<<6) into register 0xF4
   // Request a pressure reading w/ oversampling setting
   port.beginTransmission(ADDRESS);
-  port.send(0xF4);
-  port.send(0x34 + (OSS<<6));
+  port.write(0xF4);
+  port.write(0x34 + (OSS<<6));
   port.endTransmission();
 }
 
@@ -186,13 +200,13 @@ void BMP180::finishPresCore() {
     
   // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
   port.beginTransmission(ADDRESS);
-  port.send(0xF6);
+  port.write(0xF6);
   port.endTransmission();
   port.requestFrom(ADDRESS, 3);
   
-  msb = port.receive();
-  lsb = port.receive();
-  xlsb = port.receive();
+  msb = port.read();
+  lsb = port.read();
+  xlsb = port.read();
   
   UP = (((uint32_t) msb << 16) | ((uint32_t) lsb << 8) | (uint32_t) xlsb) >> (8-OSS);
 }
@@ -204,15 +218,12 @@ void BMP180::finishPres() {
   start=false;
 }
 
-int BMP180::readMeasurement(int &t, int &p) {
+void BMP180::takeMeasurement() {
   startMeasurementCore();
   delay(5);
   finishTempCore();
   delay(2+(3<<OSS));
   finishPresCore();
-  t=getTemperature();
-  p=getPressure();
-  return 0;
 }
 
 

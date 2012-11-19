@@ -6,8 +6,8 @@
 class ADXL345: public spi_user {
 public:
   ADXL345(HardSPI *Ls, int Lp0):spi_user(Ls,Lp0){};
-  virtual uint8_t begin();
-  uint8_t read();
+  bool begin();
+  uint8_t whoami();
   void read(int16_t& x, int16_t& y, int16_t& z);
 };
 

@@ -2,7 +2,8 @@
 #define TIME_H
 
 #define FOSC 12000000
-extern unsigned int PCLK,CCLK;
+extern unsigned int PCLK,CCLK,timerInterval;
+static const unsigned int timerSec=60;
 
 void setup_clock(void);
 void delay(unsigned int ms);

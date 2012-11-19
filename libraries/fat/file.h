@@ -9,8 +9,9 @@ class File {
   DirEntry de;
   uint32_t cluster,sector;
 public:
-  int errno=0;
-  File(Cluster& Lc):c(Lc),de(c) {};
+  int errno;
+  File(Cluster& Lc):c(Lc),de(c),errno(0) {};
+  bool find(const char* fn, uint32_t dir_cluster=0) {return de.find(fn,dir_cluster);};
   bool create(const char* filename, char* buf,uint32_t dir_cluster=0);
   bool openr(const char* name, uint32_t dir_cluster=0);
   bool openw(const char* name, char* buf,uint32_t dir_cluster=0);

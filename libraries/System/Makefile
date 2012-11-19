@@ -109,7 +109,7 @@ CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += $(OPT)
 CFLAGS += -Wall -Wcast-align
 CFLAGS += -Wpointer-arith -Wswitch
-CFLAGS += -Wredundant-decls -Wreturn-type -Wshadow -Wunused
+CFLAGS += -Wredundant-decls -Wreturn-type -Wshadow -Wunused -Wno-attributes
 CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.lst,$<) 
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += -ffunction-sections -fdata-sections
@@ -358,10 +358,10 @@ $(TARGET).7z: $(TARGET).tar
 	$(REMOVE) -rf $(@).tmpdir
 
 %.tar.mid.zpaq: %.tar
-	zpaq nc$(ZPAQDIR)/mid.cfg $@ $<
+	zpaq tc$(ZPAQDIR)/mid.cfg $@ $<
 
 %.tar.max.zpaq: %.tar
-	zpaq nc$(ZPAQDIR)/max.cfg $@ $<
+	zpaq tc$(ZPAQDIR)/max.cfg $@ $<
 
 TEST_ARCHIVE = $(TARGET).tar.xz $(TARGET).tar.bz2 $(TARGET).tar.Z $(TARGET).tar.gz $(TARGET).tar.gz9 $(TARGET).tar.lzo $(TARGET).tar.lz $(TARGET).zip $(TARGET).7z $(TARGET).tar.mid.zpaq $(TARGET).tar.max.zpaq
 

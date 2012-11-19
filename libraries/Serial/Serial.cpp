@@ -103,15 +103,15 @@ void HardwareSerial::end() {
 }
 
 int HardwareSerial::available(void) {
-
+  return 0;
 }
 
 int HardwareSerial::peek(void) {
-
+  return -1;
 }
 
 int HardwareSerial::read(void) {
-
+  return -1;
 }
 
 void HardwareSerial::flush() {

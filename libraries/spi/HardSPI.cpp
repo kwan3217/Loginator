@@ -10,13 +10,13 @@ HardSPI1 SPI1;
 
 void HardSPI::claim_cs(int p0) {
   set_pin(p0,0); //Set this to GPIO, so that we control it
-  IODIR0 |= ((1<<p0)); //Set pin 20 to output
+  IODIR0 |= ((1<<p0)); //Set pin to output
   IOSET0 = (1<<p0); //Raise the pin (active low)
 }
 
 void HardSPI::release_cs(int p0) {
   set_pin(p0,0); //Set this to GPIO, so that we control it
-  IODIR0&=~((1<<p0)); //Set pin 20 to input
+  IODIR0&=~((1<<p0)); //Set pin to input
 }
 
 void HardSPI::select_cs(int p0) {

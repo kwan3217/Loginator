@@ -1,12 +1,12 @@
 #include "adxl345.h"
 
-uint8_t ADXL345::read() {
+uint8_t ADXL345::whoami() {
   char buf[2];
   s->rx_block(p0,0x80,buf,2);
   return buf[1];
 }
 
-uint8_t ADXL345::begin() {
+bool ADXL345::begin() {
   s->claim_cs(p0);
   s->tx_block(p0,"\x2D\x00",2);
   s->tx_block(p0,"\x2D\x10",2);
@@ -20,6 +20,7 @@ uint8_t ADXL345::begin() {
 //D2 - JUSTIFY    0=right justified (normal)
 //D1-D0 - RANGE   11=+-16g
   s->tx_block(p0,"\x31\x0B",2);
+  return true;
 }
 
 void ADXL345::read(int16_t& x, int16_t& y, int16_t& z) {

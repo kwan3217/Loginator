@@ -82,7 +82,8 @@ schedule is called
     -3: Task list is full
 */
 int TaskManager::schedule(unsigned int ticks, taskfunc f, void* stuff) {
-  if(ticks>PCLK) return -1;
+  if(ticks>timerInterval) return -1;
+  if(ticks+freeze_tc<freeze_tc) return -1;
   unsigned int old_freeze_tc=freeze_tc;
   freeze_tc=TTC(timer);
   int result=scheduleCore(TTC(timer)+ticks,f,stuff);
@@ -99,7 +100,8 @@ int TaskManager::schedule(unsigned int ms, unsigned int ticks, taskfunc f, void*
 //last task fired. Must be used inside of a task to accurately
 //reschedule itself.
 int TaskManager::reschedule(unsigned int ticks, taskfunc f, void* stuff) {
-  if(ticks>PCLK) return -1;
+  if(ticks>timerInterval) return -1;
+  if(ticks+freeze_tc<freeze_tc) return -1;
   unsigned int old_freeze_tc=freeze_tc;
   freeze_tc=TMR1(timer);
   int result=scheduleCore(TMR1(timer)+ticks,f,stuff);
@@ -114,7 +116,7 @@ int TaskManager::reschedule(unsigned int ms, unsigned int ticks, taskfunc f, voi
 
 int TaskManager::scheduleCore(unsigned int ticks, taskfunc f, void* stuff) {
   if(full()) return -3;
-  if(ticks>PCLK) ticks-=PCLK;
+  if(ticks>timerInterval) ticks-=timerInterval;
   push(Task(f,stuff),ticks);
   //First unsigned int is first, whether new or old. Use it to set the MR, doesn't
   //matter if it is the same MR as before.
@@ -124,8 +126,8 @@ int TaskManager::scheduleCore(unsigned int ticks, taskfunc f, void* stuff) {
 }
 
 int TaskManager::compare(unsigned int a, unsigned int b) {
-  if(a<freeze_tc) a+=PCLK;
-  if(b<freeze_tc) b+=PCLK;
+  if(a<freeze_tc) a+=timerInterval;
+  if(b<freeze_tc) b+=timerInterval;
   if(a<b) return -1;
   if(a==b) return 0;
   /*if(a>b)*/ return 1;

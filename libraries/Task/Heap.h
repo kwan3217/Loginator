@@ -65,12 +65,14 @@ public:
     pqueue[pqsize].elt=entry;
     pqueue[pqsize].pty=py;
     siftup(pqsize);
+    return true;
   };
   bool pop() {
     if(empty()) return false;
     pqueue[1]=pqueue[pqsize];
     pqsize--;                        
     siftdown(1,pqsize);
+    return true;
   };
   pqnode<priority,T>& peek() {
     return pqueue[1];

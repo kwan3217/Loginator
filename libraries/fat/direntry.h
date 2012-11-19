@@ -58,8 +58,8 @@ public:
   bool isLFN() {return (attr & (ATTR_HIDDEN|ATTR_VOLUME|ATTR_SYSTEM))==(ATTR_HIDDEN|ATTR_VOLUME|ATTR_SYSTEM);};
   void print(Print &out);
   static void canonFileName(const char* fn, char* canon);
-  bool find(int dir_cluster, const char* fn);
-  bool findEmpty(int dir_cluster);
+  bool find(const char* fn,uint32_t dir_cluster=0);
+  bool findEmpty(uint32_t dir_cluster=0);
   bool writeBack(char* buf);
 };
 

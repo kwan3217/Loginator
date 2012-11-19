@@ -13,7 +13,7 @@
 class MPU60x0 {
 public:
   virtual unsigned char read(unsigned char addr)=0;
-  virtual bool write(unsigned char addr, unsigned char data)=0;
+  virtual void write(unsigned char addr, unsigned char data)=0;
   virtual int16_t read16(unsigned char addr) {return ((int16_t)read(addr))<<8 | ((int16_t)read(addr+1));};
   unsigned char whoami() {return read(0x75);};
   virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
@@ -28,7 +28,7 @@ private:
   int A0;
 public:
   virtual unsigned char read(unsigned char addr);
-  virtual bool write(unsigned char addr, unsigned char data);
+  virtual void write(unsigned char addr, unsigned char data);
   virtual int16_t read16(unsigned char addr);
   MPU6050(TwoWire& Lport,int LA0):port(Lport),A0(LA0) {};
   virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);

@@ -23,12 +23,11 @@
 #include <inttypes.h>
 #include "Print.h"
 
-class Stream : public Print
-{
+class Stream : public Print {
   public:
-    virtual int available() = 0;
-    virtual int read() = 0;
-    virtual int peek() = 0;
+    virtual int available() = 0; ///<Gets the number of bytes available in the stream. This is only for bytes that have already arrived. 
+    virtual int read() = 0;      
+    virtual int peek() = 0;      ///<Read a byte from the file without advancing to the next one. That is, successive calls to peek() will return the same value, as will the next call to read(). 
     virtual void flush() = 0;
 };
 

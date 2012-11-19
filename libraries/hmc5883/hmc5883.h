@@ -10,11 +10,11 @@ class HMC5883 {
 
     TwoWire& port;
     int8_t read(uint8_t address);
-    int16_t read_int16(uint8_t address);
+    int16_t read16(uint8_t address);
   public:
     HMC5883(TwoWire& Lport):port(Lport) {};
     void begin();
-    void read(char* id);
+    void whoami(char* id);
     void read(int16_t& x, int16_t& y, int16_t& z);
 };
 

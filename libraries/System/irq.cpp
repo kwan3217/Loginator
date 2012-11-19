@@ -1,6 +1,13 @@
 #include "LPC214x.h" 
 #include "irq.h"
 
+//Now we see why we like high-level languages for IRQ handling. It says treat
+//the number as a pointer to a function and call it.
+typedef void (*fvoid)(void);
+void IRQHandler::IRQ_Wrapper() {
+  ((fvoid)(VICVectAddr))(); 
+}
+
 /** 
   Default interrupt handler, called if no handler is installed for a particular interrupt.
   If the IRQ is not installed into the VIC, and interrupt occurs, the

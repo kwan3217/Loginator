@@ -1,7 +1,7 @@
 #include "Time.h"
 #include "LPC214x.h"
 
-unsigned int PCLK,CCLK;
+unsigned int PCLK,CCLK,timerInterval;
 
 static void measurePCLK(void) {
   CCLK=FOSC*((PLLSTAT(0) & 0x1F)+1);
@@ -45,7 +45,8 @@ void setup_clock(void) {
   TTCR(0) = (1 << 1);       // Reset counter and prescaler and halt timer
   TCTCR(0) = 0; //Drive timer from PCLK, not external pin
   TMCR(0) = (1 <<1);     // On MR0, reset but no int.
-  TMR0(0) = PCLK;  //Reset when timer equals PCLK rate, effectively once per second
+  timerInterval=PCLK*timerSec;
+  TMR0(0) = timerInterval;  //Reset when timer equals PCLK rate, effectively once per second
   TPR(0) = 0;  //No prescale, 1 timer tick equals 1 PCLK tick
 
   //Set up PWM timer to support analogWrite(). Ticks at 1MHz, resets every 1024 ticks. 
@@ -83,22 +84,22 @@ void setup_clock(void) {
 }
 
 /**accurate delay. Relies on Timer0 running without pause at PCLK and resetting
- at 1 second, as by setup_clock(). Code only reads, never writes, Timer0 registers */
+ at timerSec seconds, as by setup_clock(). Code only reads, never writes, Timer0 registers */
 void delay(unsigned int count) {
-  int TC0=TTC(0);
+  unsigned int TC0=TTC(0);
   //count off whole seconds
-  while(count>=1000) {
+  while(count>=1000*timerSec) {
     //wait for the top of the second
     while(TTC(0)>TC0) ;
     //wait for the bottom of the second
     while(TTC(0)<TC0) ;
-    count-=1000;
+    count-=1000*timerSec;
   }
   if(count==0) return;
-  int TC1=TC0+count*(PCLK/1000);
-  if(TC1>PCLK) {
+  unsigned int TC1=TC0+count*(PCLK/1000);
+  if(TC1>timerInterval) {
     //Do this while we are waiting
-    TC1-=PCLK;
+    TC1-=timerInterval;
     //wait for the top of the second
     while(TTC(0)>TC0) ;
   }

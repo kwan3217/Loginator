@@ -77,15 +77,14 @@ extern "C" void __attribute__ ((weak)) __attribute__ ((noreturn)) __cxa_pure_vir
 
 //Sketch main routines. We actually put the symbol weakness to work here - we
 //expect to replace these functions.
-void __attribute__ ((weak)) setup(void) {}
-void __attribute__ ((weak)) loop(void) {}
+//void __attribute__ ((weak)) setup(void) {}
+//void __attribute__ ((weak)) loop(void) {}
+void setup();
+void loop();
 
 //No setup code because stack isn't available yet
 //No cleanup code because function won't return (what would it return to?)
 void __attribute__ ((naked))            Reset_Handler(void); 
-//IRQ wrapper handles proper return from IRQ so that the actual handlers
-//can be just void foo(void) without needing their own __attribute__
-void __attribute__ ((interrupt("IRQ"))) IRQ_Wrapper(void);
 
 void __attribute__ ((naked)) __attribute__ ((section(".vectors"))) vectorg(void) {
   asm("ldr pc,[pc,#24]\n\t"
@@ -102,7 +101,7 @@ void __attribute__ ((naked)) __attribute__ ((section(".vectors"))) vectorg(void)
       ".word _Z12PAbt_Handlerv\n\t"   //PAbt
       ".word _Z12DAbt_Handlerv\n\t"   //DAbt
       ".word 0\n\t"               //Reserved (hole in vector table above)
-      ".word _Z11IRQ_Wrapperv\n\t"     //IRQ (wrapper so that normal C functions can be installed in VIC)
+      ".word _ZN10IRQHandler11IRQ_WrapperEv\n\t"     //IRQ (wrapper so that normal C functions can be installed in VIC)
       ".word _Z11FIQ_Handlerv"); //FIQ
 }
 
@@ -155,12 +154,6 @@ void Reset_Handler() {
   setup();
 //Directly call user's loop();
   for(;;) loop();
-}
-
-//Now we see why we like high-level languages for IRQ handling. It says treat
-//the number as a pointer to a function and call it.
-void __attribute__ ((interrupt("IRQ"))) IRQ_Wrapper() {
-  ((fvoid)(VICVectAddr))(); 
 }
 
 

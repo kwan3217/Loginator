@@ -110,7 +110,7 @@ void DirEntry::canonFileName(const char* fn, char* canon) {
   }      
 }
 
-bool DirEntry::find(int dir_cluster, const char* fn) {
+bool DirEntry::find(const char* fn,uint32_t dir_cluster) {
   char canon[11];
   canonFileName(fn,canon);
   uint32_t entryIndex=0;
@@ -136,10 +136,8 @@ bool DirEntry::find(int dir_cluster, const char* fn) {
   return false;
 }
 
-bool DirEntry::findEmpty(int dir_cluster) {
-  uint32_t entryIndex=0;
+bool DirEntry::findEmpty(uint32_t dir_cluster) {
   entryCluster=dir_cluster;
-  bool match=false;
   //See if there is an unused entry first, preserve deleted entries
   for(uint32_t entryIndex=0;entryIndex<f.numRootEntries();entryIndex++) {
     entrySector=entryIndex*32;
@@ -163,6 +161,7 @@ bool DirEntry::writeBack(char* buf) {
   if(!f.read(entryCluster,entrySector,buf)) FAIL(f.errno*100+4);
   memcpy(buf+entryOffset,entry,sizeof(entry));
   if(!f.write(entryCluster,entrySector,buf)) FAIL(f.errno*100+5);
+  return true;
 }
 
     

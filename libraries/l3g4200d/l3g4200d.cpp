@@ -1,6 +1,6 @@
 #include "l3g4200d.h"
 
-uint8_t L3G4200D::read() {
+uint8_t L3G4200D::whoami() {
   char buf[2];
   s->rx_block(p0,0x8F,buf,2);
   return buf[1];
