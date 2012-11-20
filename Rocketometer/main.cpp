@@ -44,7 +44,7 @@ L3G4200D l3g4200d(&SPI1,25);
 Base85 d(Serial);
 FileCircular pktStore(buf,f);
 CCSDS ccsds(pktStore);
-unsigned short pktseq01,pktseq04,pktseq05,pktseq06,pktseq07;
+unsigned short pktseq[16];
 bool timeToRead;
 unsigned int lastTC,nextTC,interval;
 
@@ -90,11 +90,10 @@ void setup() {
   //Dump code to serial port and packet file
   int len=source_end-source_start;
   char* base=source_start;
-  unsigned short dumpSeq=0;
   d.begin();
   while(len>0) {
     d.line(base,0,len>120?120:len);
-    ccsds.start(0x03,&dumpSeq);
+    ccsds.start(0x03,pktseq+3);
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>120?120:len);
     ccsds.finish();
@@ -108,7 +107,7 @@ void setup() {
   Serial.print("ADXL345 identifier (should be 0o345): 0o");
   Serial.println(adxl345.whoami(),OCT);
 
-  l3g4200d.begin();
+  l3g4200d.begin(0);
   Serial.print("L3G4200D identifier (should be 0xD3): 0x");
   Serial.println(l3g4200d.whoami(),HEX);
 
@@ -169,7 +168,7 @@ void loop1() {
       Serial.print(",,,,,,,,,,,,,,,,,,");Serial.print(temperatureRaw, DEC);    
       Serial.print(",");Serial.print(pressureRaw, DEC); 
       Serial.println();
-      ccsds.start(0x07,&pktseq07,TC,0);
+      ccsds.start(0x07,pktseq+7,TC,0);
       ccsds.fill16(temperatureRaw);
       ccsds.fill32(pressureRaw);
       ccsds.finish();
@@ -202,16 +201,16 @@ void loop1() {
         Serial.print(",");Serial.print(mt, DEC);
         Serial.println();
       }
-      ccsds.start(0x01,&pktseq01,TC,0);
+      ccsds.start(0x01,pktseq+1,TC,0);
       ccsds.fill16(ax); ccsds.fill16(ay);  ccsds.fill16(az);  
       ccsds.finish();
-      ccsds.start(0x04,&pktseq04,TC,0);
+      ccsds.start(0x04,pktseq+4,TC,0);
       ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
       ccsds.finish();
-      ccsds.start(0x05,&pktseq05,TC,0);
+      ccsds.start(0x05,pktseq+5,TC,0);
       ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz);  ccsds.fill16(gt);
       ccsds.finish();
-      ccsds.start(0x06,&pktseq06,TC,0);
+      ccsds.start(0x06,pktseq+6,TC,0);
       ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
       ccsds.finish();
     }
@@ -222,25 +221,31 @@ void loop1() {
 void loop2() {
   unsigned int TC=TTC(0);
   adxl345.read(ax,ay,az);
-  ccsds.start(0x01,&pktseq01,TC,0);
+  ccsds.start(0x01,pktseq+1,TC,0);
   ccsds.fill16(ax); ccsds.fill16(ay);  ccsds.fill16(az);  
   ccsds.finish();
   TC=TTC(0);
   hmc5883.read(bx,by,bz);
-  ccsds.start(0x04,&pktseq04,TC,0);
+  ccsds.start(0x04,pktseq+4,TC,0);
   ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
   ccsds.finish();
   TC=TTC(0);
-  l3g4200d.read(gx,gy,gz,gt,gs);
-  ccsds.start(0x05,&pktseq05,TC,0);
-  ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz);  ccsds.fill16(gt);
-  ccsds.finish();
-  TC=TTC(0);
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
-  ccsds.start(0x06,&pktseq06,TC,0);
+  ccsds.start(0x06,pktseq+6,TC,0);
   ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
   ccsds.finish();
-  pktStore.drain();
+  TC=TTC(0);
+  l3g4200d.read(gx,gy,gz,gt,gs);
+  ccsds.start(0x05,pktseq+5,TC,0);
+  ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz);  ccsds.fill16(gt);
+  ccsds.finish();
+  TC=TTC(0);  
+  if(pktStore.drain()) {
+    unsigned int TC1=TTC(0);
+    ccsds.start(0x08,pktseq+8,TC,0);
+    ccsds.fill32(TC1);
+    ccsds.finish();
+  }
 }
 
 void loop() {loop2();}
