@@ -16,7 +16,7 @@ public:
   bool openr(const char* name, uint32_t dir_cluster=0);
   bool openw(const char* name, char* buf,uint32_t dir_cluster=0);
   bool read(char* buf);
-  bool append(char* buf);
+  bool append(char* buf, char* fastBuf=0);
   bool remove(const char* filename, char* buf,uint32_t dir_cluster=0);
   bool wipeChain(char* buf);
 };

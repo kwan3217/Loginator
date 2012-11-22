@@ -85,7 +85,8 @@ public:
   void print(Print &out, Dump &d);
   uint32_t readTable(uint32_t cluster);
   bool writeTable(uint32_t cluster, char* buf, uint32_t entry);
-  uint32_t findFreeCluster(uint32_t clusterToStart=1);
+  uint32_t findFreeCluster(char* buf=0, uint32_t clusterToStart=1);
+  uint32_t findFreeCluster(uint32_t clusterToStart) {return findFreeCluster(0,clusterToStart);};
   static const uint32_t BAD=0x0FFFFFF7;
   static const uint32_t EOF=0x0FFFFFFF;
 };

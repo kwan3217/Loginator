@@ -93,22 +93,19 @@ void Cluster::calcTableCluster(uint32_t cluster, uint32_t& sectorsPerTable, uint
   entryOffset=tableOffset % bytesPerSector;
 }
 
+#define FAIL_BAD(n) {errno=(n);return BAD;}
 uint32_t Cluster::readTable(uint32_t cluster) {
   if(tableEntrySize!=12) {
     uint32_t sectorsPerTable, entrySector, entryOffset;
     calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
     uint32_t result=0;
-    if(!p.read(entrySector,(char*)&result,entryOffset,tableEntrySize/8)) {
-      errno=p.errno*100+6;
-      return BAD;
-    }
+    if(!p.read(entrySector,(char*)&result,entryOffset,tableEntrySize/8)) FAIL_BAD(p.errno*100+6);
     if(tableEntrySize==16) result+=0x0FFF0000; //Homogenize 16-bit and 32-bit table entries
     result &= 0x0FFFFFFF;                      //chop off reserved bits
     if(result>=0x0FFFFFF8) result =0x0FFFFFFF; //Homogenize end-of-chain marker
     return result;
   }
-  errno=7;
-  return BAD;
+  FAIL_BAD(7);
 }
 
 /** Write a particular value in a slot in the file allocation table(s).
@@ -124,9 +121,10 @@ contents are not saved and are liable to be overwritten.
 cluster values such as eof or bad, write them in 32 bit form - 0x0FFFFFFF is end of chain
 and bad sector is 0x0FFFFFFF7
 
-This code presumes that the filesystem has multiple tables, that the tables were
-in sync when the system was started, and makes sure that they staty that way. 
-It reads from the first table only, writes back to each table, and the 
+This code presumes that the filesystem has multiple tables (but properly handles 
+the case of one table), that the tables were in sync when the system was started,
+and makes sure that they staty that way. It reads from the first table only, writes 
+back to each table, and the 
 assumptions made above make this valid.
 */
 bool Cluster::writeTable(uint32_t cluster, char* buf, uint32_t entry) {
@@ -146,8 +144,7 @@ bool Cluster::writeTable(uint32_t cluster, char* buf, uint32_t entry) {
     for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,buf)) FAIL(p.errno*100+9);
     return true;
   } else {
-    errno=10;
-    return false;
+    FAIL(10);
   }
 }
 
@@ -155,25 +152,52 @@ bool Cluster::writeTable(uint32_t cluster, char* buf, uint32_t entry) {
 given and searching until a free cluster is found or we wrap back around to the
 start cluster.
 
-This is spectacularly time-inefficient, reading a full sector each time it 
-checks a cluster, but OK in the normal case when writing a log
-on an not-too-heavily fragmented device. It is memory-efficient in that it only
-reads one entry into memory each time, so it doesn't need a buffer.
+This is faster than the other version of findFreeCluster because it reads in an 
+entire sector of the table and searches it rather than re-reading the sector 128 times.
+\param buf - pointer to a writable buffer of at least 512 bytes. Buffer will be 
+clobbered by this routine. If null (default), the old spectacularly time-inefficient method
+is used, reading a full sector each time it checks a cluster. This is OK in the 
+normal case when writing a log on an not-too-heavily fragmented device. It is 
+memory-efficient in that it only reads one entry into memory each time, so it 
+doesn't need a buffer.
 \param startCluster If you have just filled up a cluster and want to find the 
 next available cluster after that, pass the number of the cluster you have just
 filled. The default value starts searching at the beginning of the table.
 */
-uint32_t Cluster::findFreeCluster(uint32_t startCluster) {
+uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
+  if(tableEntrySize!=12) FAIL_BAD(14);
+  uint32_t cluster=startCluster;
+  uint32_t sectorsPerTable, entrySector, entryOffset,lastEntrySector=BAD;
+  union {
+    uint32_t e;
+    char  p[4];
+  } entry;
   for(uint32_t i=startCluster+1;i<numClusters+2;i++) {
-    uint32_t result=readTable(i);
-    if(errno!=0) FAIL(errno*100+11);
-    if(result==0) return i;
+    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+    if(buf!=0) {
+      if(entrySector!=lastEntrySector) if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+15);
+      lastEntrySector=entrySector;
+      entry.e=0;
+      for(uint32_t j=0;j<tableEntrySize/8;j++)entry.p[j]=buf[entryOffset+j];
+    } else {
+      entry.e=readTable(i);
+      if(errno!=0) FAIL_BAD(errno*100+16);
+    }
+    if(entry.e==0) return i;
   }
   for(uint32_t i=2;i<=startCluster;i++) {
-    uint32_t result=readTable(i);
-    if(errno!=0) FAIL(errno*100+12);
-    if(result==0) return i;
+    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+    if(buf!=0) {
+      if(entrySector!=lastEntrySector) if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+17);
+      lastEntrySector=entrySector;
+      entry.e=0;
+      for(uint32_t j=0;j<tableEntrySize/8;j++)entry.p[j]=buf[entryOffset+j];
+    } else {
+      entry.e=readTable(i);
+      if(errno!=0) FAIL_BAD(errno*100+18);
+    }
+    if(entry.e==0) return i;
   }
-  errno=13;
+  errno=19;
   return BAD;
 }
