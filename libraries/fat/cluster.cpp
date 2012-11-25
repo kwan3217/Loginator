@@ -1,4 +1,5 @@
 #include "cluster.h"
+#include "Serial.h"
 
 bool Cluster::begin() {
   if(!p.read(0,bpb,510,2)) {
@@ -34,8 +35,7 @@ bool Cluster::begin() {
   return true;
 }
 
-void Cluster::print(Print& out, Dump &d) {
-  d.region(bpb,0,sizeof(bpb),16);
+void Cluster::print(Print& out) {
   out.print("bytesPerSector:    ");
   out.println(bytesPerSector);
   out.print("sectorsPerCluster: ");
@@ -128,24 +128,21 @@ back to each table, and the
 assumptions made above make this valid.
 */
 bool Cluster::writeTable(uint32_t cluster, char* buf, uint32_t entry) {
-  if(tableEntrySize!=12) {
-    uint32_t sectorsPerTable, entrySector, entryOffset;
-    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
-    if(!p.read(entrySector,buf)) FAIL(p.errno*100+8);
-    if(tableEntrySize==16) {
-      buf[entryOffset+0]=(uint8_t)(entry & 0xFF);
-      buf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
-    } else if(tableEntrySize==32) {
-      buf[entryOffset+0]=(uint8_t)(entry & 0xFF);
-      buf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
-      buf[entryOffset+2]=(uint8_t)((entry>>16) & 0xFF);
-      buf[entryOffset+3]=(buf[entryOffset+3]&0xC0)|(uint8_t)((entry>>24) & 0x3F);
-    }
-    for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,buf)) FAIL(p.errno*100+9);
-    return true;
-  } else {
-    FAIL(10);
+  if(tableEntrySize==12) FAIL(8);
+  uint32_t sectorsPerTable, entrySector, entryOffset;
+  calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+  if(!p.read(entrySector,buf)) FAIL(p.errno*100+9);
+  if(tableEntrySize==16) {
+    buf[entryOffset+0]=(uint8_t)(entry & 0xFF);
+    buf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
+  } else if(tableEntrySize==32) {
+    buf[entryOffset+0]=(uint8_t)(entry & 0xFF);
+    buf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
+    buf[entryOffset+2]=(uint8_t)((entry>>16) & 0xFF);
+    buf[entryOffset+3]=(buf[entryOffset+3]&0xC0)|(uint8_t)((entry>>24) & 0x3F);
   }
+  for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,buf)) FAIL(p.errno*100+10);
+  return true;
 }
 
 /** Find a free cluster in the table, starting at the cluster after the cluster 
@@ -165,38 +162,44 @@ next available cluster after that, pass the number of the cluster you have just
 filled. The default value starts searching at the beginning of the table.
 */
 uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
-  if(tableEntrySize!=12) FAIL_BAD(14);
+  if(tableEntrySize==12) FAIL_BAD(14);
   uint32_t cluster=startCluster;
   uint32_t sectorsPerTable, entrySector, entryOffset,lastEntrySector=BAD;
-  union {
-    uint32_t e;
-    char  p[4];
-  } entry;
-  for(uint32_t i=startCluster+1;i<numClusters+2;i++) {
-    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+  uint32_t entry;
+  char* pentry=(char*)(&entry);
+//  Serial.println("Searching second half of table");
+  for(cluster=startCluster+1;cluster<numClusters+2;cluster++) {
     if(buf!=0) {
-      if(entrySector!=lastEntrySector) if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+15);
+      calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+      if(entrySector!=lastEntrySector) {
+  //      Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
+        if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+15);
+      }
       lastEntrySector=entrySector;
-      entry.e=0;
-      for(uint32_t j=0;j<tableEntrySize/8;j++)entry.p[j]=buf[entryOffset+j];
+      entry=0;
+      for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
     } else {
-      entry.e=readTable(i);
+      entry=readTable(cluster);
       if(errno!=0) FAIL_BAD(errno*100+16);
     }
-    if(entry.e==0) return i;
+    if(entry==0) return cluster;
   }
-  for(uint32_t i=2;i<=startCluster;i++) {
-    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+//  Serial.println("Searching first half of table");
+  for(cluster=2;cluster<=startCluster;cluster++) {
     if(buf!=0) {
-      if(entrySector!=lastEntrySector) if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+17);
+      calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+      if(entrySector!=lastEntrySector) {
+  //      Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
+        if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+17);
+      }
       lastEntrySector=entrySector;
-      entry.e=0;
-      for(uint32_t j=0;j<tableEntrySize/8;j++)entry.p[j]=buf[entryOffset+j];
+      entry=0;
+      for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
     } else {
-      entry.e=readTable(i);
+      entry=readTable(cluster);
       if(errno!=0) FAIL_BAD(errno*100+18);
     }
-    if(entry.e==0) return i;
+    if(entry==0) return cluster;
   }
   errno=19;
   return BAD;

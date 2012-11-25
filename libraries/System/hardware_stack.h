@@ -9,7 +9,7 @@ const unsigned int FIQ_Stack_Size=128;
 const unsigned int IRQ_Stack_Size=512;
 const unsigned int USR_Stack_Size=2048;
 
-const unsigned int stackPattern=0x6E61774B; // Appears as "Kwan" in little-endian ascii
+const int stackPattern=0x6E61774B; // Appears as "Kwan" in little-endian ascii
 
 extern int Stack_UND[UND_Stack_Size/sizeof(int)];
 extern int Stack_SVC[SVC_Stack_Size/sizeof(int)];

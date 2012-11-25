@@ -20,8 +20,8 @@
 #include "file.h"
 #include "FileCircular.h"
 
-int temperature, pressure;
-int temperatureRaw, pressureRaw;
+//int temperature, pressure;
+//int temperatureRaw, pressureRaw;
 int16_t ax,ay,az;    //acc
 int16_t bx,by,bz;    //compass (bfld)
 int16_t gx,gy,gz;    //gyro
@@ -36,6 +36,7 @@ SDHC sd(&SPI,7);
 Partition p(sd);
 Cluster fs(p);
 File f(fs);
+Hd sector(Serial);
 BMP180 bmp180(Wire1);
 HMC5883 hmc5883(Wire1);
 MPU6050 mpu6050(Wire1,0);
@@ -71,6 +72,8 @@ void setup() {
 
   worked=fs.begin();  
   Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
+  sector.begin();
+  fs.print(Serial,sector);
 
   char fn[13];
   strcpy(fn,"rkto0000.sds");
@@ -135,7 +138,7 @@ void setup() {
 
   ccsds.finish();
 
-  Serial.println("t,tc,ax,ay,az,bx,by,bz,gx,gy,gz,gt,max,may,maz,mgx,mgy,mgz,mt,Traw,Praw");
+  Serial.println("t,tc,ax,ay,az,bx,by,bz,gx,gy,gz,gt,max,may,maz,mgx,mgy,mgz,mt,T,P");
 //  Serial.println("t,tc,Traw,Praw");
 
 //  taskManager.schedule(100,0,sensorTimingTask,0); 
@@ -159,8 +162,8 @@ void loop1() {
     if(phase>=50) {
       phase=0;
       bmp180.takeMeasurement();
-      temperatureRaw=bmp180.getTemperatureRaw();
-      pressureRaw=bmp180.getPressureRaw();
+      auto temperatureRaw=bmp180.getTemperatureRaw();
+      auto pressureRaw=bmp180.getPressureRaw();
       Serial.print(RTCHOUR,DEC,2);
       Serial.print(":");Serial.print(RTCMIN,DEC,2);
       Serial.print(":");Serial.print(TC/PCLK,DEC,2);
@@ -219,15 +222,12 @@ void loop1() {
 }
 
 void loop2() {
+  static int phase=0;
+  phase++;
   unsigned int TC=TTC(0);
   adxl345.read(ax,ay,az);
   ccsds.start(0x01,pktseq+1,TC,0);
   ccsds.fill16(ax); ccsds.fill16(ay);  ccsds.fill16(az);  
-  ccsds.finish();
-  TC=TTC(0);
-  hmc5883.read(bx,by,bz);
-  ccsds.start(0x04,pktseq+4,TC,0);
-  ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
   ccsds.finish();
   TC=TTC(0);
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
@@ -235,10 +235,45 @@ void loop2() {
   ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
   ccsds.finish();
   TC=TTC(0);
-  l3g4200d.read(gx,gy,gz,gt,gs);
-  ccsds.start(0x05,pktseq+5,TC,0);
-  ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz);  ccsds.fill16(gt);
+  hmc5883.read(bx,by,bz);
+  ccsds.start(0x04,pktseq+4,TC,0);
+  ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
   ccsds.finish();
+  if(200==phase) {
+    TC=TTC(0);  
+    bmp180.takeMeasurement();
+    auto temperatureRaw=bmp180.getTemperatureRaw();
+    auto pressureRaw=bmp180.getPressureRaw();
+    auto temperature=bmp180.getTemperature();
+    auto pressure=bmp180.getPressure();
+    ccsds.start(0x09,pktseq+9,TC,0);
+    ccsds.fill16(temperatureRaw);
+    ccsds.fill32(pressureRaw);
+    ccsds.fill16(temperature);
+    ccsds.fill32(pressure);
+    ccsds.finish();
+    Serial.print(RTCHOUR,DEC,2);
+    Serial.print(":");Serial.print(RTCMIN,DEC,2);
+    Serial.print(":");Serial.print(TC/PCLK,DEC,2);
+    Serial.print(".");Serial.print((TC%PCLK)/(PCLK/1000),DEC,3);
+    Serial.print(",");Serial.print(ax, DEC); 
+    Serial.print(",");Serial.print(ay, DEC); 
+    Serial.print(",");Serial.print(az, DEC); 
+    Serial.print(",");Serial.print(bx, DEC); 
+    Serial.print(",");Serial.print(by, DEC); 
+    Serial.print(",");Serial.print(bz, DEC); 
+    Serial.print(",");Serial.print(max, DEC);
+    Serial.print(",");Serial.print(may, DEC);
+    Serial.print(",");Serial.print(maz, DEC);
+    Serial.print(",");Serial.print(mgx, DEC);
+    Serial.print(",");Serial.print(mgy, DEC);
+    Serial.print(",");Serial.print(mgz, DEC);
+    Serial.print(",");Serial.print(mt, DEC);
+    Serial.print(",");Serial.print(temperature, DEC);    
+    Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
+    Serial.println();
+    phase=0;
+  }
   TC=TTC(0);  
   if(pktStore.drain()) {
     unsigned int TC1=TTC(0);

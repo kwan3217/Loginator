@@ -128,7 +128,7 @@ CONLYFLAGS += -Wmissing-declarations
 endif
 
 # flags only for C++ (arm-elf-g++)
-CPPFLAGS = -fno-rtti -fno-exceptions -fno-unwind-tables
+CPPFLAGS = -fno-rtti -fno-exceptions -fno-unwind-tables -std=c++11
 
 # Assembler flags.
 #  -Wa,...:    tell GCC to pass this to the assembler.
@@ -515,6 +515,7 @@ clean_list :
 	$(REMOVE) $(CPPSRCARM:.cpp=.e)
 	$(REMOVE) FW.SFE
 	$(REMOVE) .dep/*
+	$(REMOVE) doxygen*.tmp
 
 # Include the dependency files.
 -include $(shell mkdir .dep 2>/dev/null) $(ALLDEP)
