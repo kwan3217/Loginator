@@ -1,16 +1,17 @@
+#define ROCKETOMETER
+
 #include <string.h>
+#include "gpio.h"
 #include "StateTwoWire.h"
 #include "HardSPI.h"
 #include "Serial.h"
 #include "bmp180.h"
 #include "hmc5883.h"
 #include "mpu60x0.h"
-#include "adxl345.h"
-#include "l3g4200d.h"
+#include "ad799x.h"
 #include "Task.h"
 #include "Time.h"
 #include "LPC214x.h"
-#include "gpio.h"
 #include "dump.h"
 #include "packet.h"
 #include "sdhc.h"
@@ -20,19 +21,23 @@
 #include "file.h"
 #include "FileCircular.h"
 
+//Once the log becomes greater or equal to this length, cycle the log file
+//This way we don't violate the FAT file size limit, and don't choke our processing
+//program with data.
+//Set to 128MiB so that we can test the feature
+unsigned int maxLogSize=1024U*1024U*128U;
+
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
-int16_t ax,ay,az;    //acc
 int16_t bx,by,bz;    //compass (bfld)
-int16_t gx,gy,gz;    //gyro
-uint8_t gt,gs;       //gyro temp and status
+uint16_t hx[3];      //HighAcc
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
 int16_t mt;          //MPU60x0 temp
-char buf[2*SDHC::BLOCK_SIZE];
+char buf[SDHC::BLOCK_SIZE]; //Use when you need some space to do a sd write
 
-StateTwoWire Wire1(1);
-SDHC sd(&SPI,7);
+StateTwoWire Wire1(0);
+SDHC sd(&SPI,15);
 Partition p(sd);
 Cluster fs(p);
 File f(fs);
@@ -40,10 +45,9 @@ Hd sector(Serial);
 BMP180 bmp180(Wire1);
 HMC5883 hmc5883(Wire1);
 MPU6050 mpu6050(Wire1,0);
-ADXL345 adxl345(&SPI1,20);
-L3G4200D l3g4200d(&SPI1,25);
+AD799x ad799x(Wire1);
 Base85 d(Serial);
-FileCircular pktStore(buf,f);
+FileCircular pktStore(f);
 CCSDS ccsds(pktStore);
 unsigned short pktseq[16];
 bool timeToRead;
@@ -55,6 +59,28 @@ void sensorTimingTask(void* stuff) {
   lightState=1-lightState;
 //  timeToRead=true;
   taskManager.reschedule(100,0,sensorTimingTask,0);
+}
+
+void openLog() {
+  char fn[13];
+  strcpy(fn,"rkto0000.sds");
+  int i=0;
+  Serial.println(fn);
+  while(i<9999 && f.find(fn)) {
+    i++;
+    fn[4]='0'+i/1000;
+    fn[5]='0'+(i%1000)/100;
+    fn[6]='0'+(i%100)/10;
+    fn[7]='0'+(i%10);
+    Serial.println(fn);
+  }
+  bool worked=f.openw(fn,pktStore.headPtr());
+  Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
+}
+
+void closeLog() {
+  f.sync(buf); //Sync the directory entry - after this, we may reuse this file
+               //object on a new file.
 }
 
 void setup() {
@@ -75,28 +101,14 @@ void setup() {
   sector.begin();
   fs.print(Serial,sector);
 
-  char fn[13];
-  strcpy(fn,"rkto0000.sds");
-  int i=0;
-  Serial.println(fn);
-  while(i<9999 && f.find(fn)) {
-    i++;
-    fn[4]='0'+i/1000;
-    fn[5]='0'+(i%1000)/100;
-    fn[6]='0'+(i%100)/10;
-    fn[7]='0'+(i%10);
-    Serial.println(fn);
-  }
-  worked=f.openw(fn,pktStore.headPtr());
-  Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
-
+  openLog();
   //Dump code to serial port and packet file
   int len=source_end-source_start;
   char* base=source_start;
   d.begin();
   while(len>0) {
     d.line(base,0,len>120?120:len);
-    ccsds.start(0x03,pktseq+3);
+    ccsds.start(0x03,pktseq);
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>120?120:len);
     ccsds.finish();
@@ -105,15 +117,6 @@ void setup() {
     len-=120;
   }
   d.end();
-
-  adxl345.begin();
-  Serial.print("ADXL345 identifier (should be 0o345): 0o");
-  Serial.println(adxl345.whoami(),OCT);
-
-  l3g4200d.begin(0);
-  Serial.print("L3G4200D identifier (should be 0xD3): 0x");
-  Serial.println(l3g4200d.whoami(),HEX);
-
   mpu6050.begin();
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
@@ -123,6 +126,9 @@ void setup() {
   hmc5883.whoami(HMCid);
   Serial.print("HMC5883L identifier (should be 'H43'): ");
   Serial.println(HMCid);
+
+  worked=ad799x.begin(0xB); //Turn on channels 0, 1, and 3
+  Serial.print("ad799x");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
 
   worked=bmp180.begin();
   Serial.print("bmp180");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
@@ -138,7 +144,7 @@ void setup() {
 
   ccsds.finish();
 
-  Serial.println("t,tc,ax,ay,az,bx,by,bz,gx,gy,gz,gt,max,may,maz,mgx,mgy,mgz,mt,T,P");
+  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,T,P");
 //  Serial.println("t,tc,Traw,Praw");
 
 //  taskManager.schedule(100,0,sensorTimingTask,0); 
@@ -147,140 +153,72 @@ void setup() {
   nextTC=(lastTC+interval) % timerInterval;
 }
 
-void loop1() {
+void loop() {
   static int phase=0;
+  phase++;
   unsigned int TC=TTC(0);
-  if(nextTC>lastTC) {
-    timeToRead=TC>nextTC;
-  } else {
-    timeToRead=(TC>nextTC) & (TC<lastTC);
-  }
-  if(timeToRead) {
-    lastTC=nextTC;
-    nextTC=(lastTC+interval) % timerInterval;
-    phase++;
-    if(phase>=50) {
-      phase=0;
+  mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
+  ccsds.start(0x06,pktseq,TC);
+  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
+  ccsds.finish();
+  if(0==(phase%10)) {
+    //Only read the compass and HighAcc once every 10 times we read the 6DoF
+    TC=TTC(0);
+    hmc5883.read(bx,by,bz);
+    ccsds.start(0x04,pktseq,TC);
+    ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
+    ccsds.finish();
+    TC=TTC(0);
+    ad799x.read(hx);
+    ccsds.start(0x0B,pktseq,TC);
+    ccsds.fill16(hx[0]);  ccsds.fill16(hx[1]);  ccsds.fill16(hx[2]);
+    ccsds.finish();
+    if(200==phase) {
+      TC=TTC(0);  
       bmp180.takeMeasurement();
       auto temperatureRaw=bmp180.getTemperatureRaw();
       auto pressureRaw=bmp180.getPressureRaw();
+      auto temperature=bmp180.getTemperature();
+      auto pressure=bmp180.getPressure();
+      auto TC1=TTC(0);
+      ccsds.start(0x0A,pktseq,TC);
+      ccsds.fill16(temperatureRaw);
+      ccsds.fill32(pressureRaw);
+      ccsds.fill16(temperature);
+      ccsds.fill32(pressure);
+      ccsds.fill32(TC1);
+      ccsds.finish();
       Serial.print(RTCHOUR,DEC,2);
       Serial.print(":");Serial.print(RTCMIN,DEC,2);
       Serial.print(":");Serial.print(TC/PCLK,DEC,2);
       Serial.print(".");Serial.print((TC%PCLK)/(PCLK/1000),DEC,3);
-      Serial.print(",,,,,,,,,,,,,,,,,,");Serial.print(temperatureRaw, DEC);    
-      Serial.print(",");Serial.print(pressureRaw, DEC); 
+      Serial.print(",");Serial.print(bx, DEC); 
+      Serial.print(",");Serial.print(by, DEC); 
+      Serial.print(",");Serial.print(bz, DEC); 
+      Serial.print(",");Serial.print(max, DEC);
+      Serial.print(",");Serial.print(may, DEC);
+      Serial.print(",");Serial.print(maz, DEC);
+      Serial.print(",");Serial.print(mgx, DEC);
+      Serial.print(",");Serial.print(mgy, DEC);
+      Serial.print(",");Serial.print(mgz, DEC);
+      Serial.print(",");Serial.print(mt, DEC);
+      Serial.print(",");Serial.print(temperature, DEC);    
+      Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
       Serial.println();
-      ccsds.start(0x07,pktseq+7,TC,0);
-      ccsds.fill16(temperatureRaw);
-      ccsds.fill32(pressureRaw);
-      ccsds.finish();
-    } else {
-      adxl345.read(ax,ay,az);
-      hmc5883.read(bx,by,bz);
-      l3g4200d.read(gx,gy,gz,gt,gs);
-      mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
-      if(phase%10==0) {
-        Serial.print(RTCHOUR,DEC,2);
-        Serial.print(":");Serial.print(RTCMIN,DEC,2);
-        Serial.print(":");Serial.print(TC/PCLK,DEC,2);
-        Serial.print(".");Serial.print((TC%PCLK)/(PCLK/1000),DEC,3);
-        Serial.print(",");Serial.print(ax, DEC); 
-        Serial.print(",");Serial.print(ay, DEC); 
-        Serial.print(",");Serial.print(az, DEC); 
-        Serial.print(",");Serial.print(bx, DEC); 
-        Serial.print(",");Serial.print(by, DEC); 
-        Serial.print(",");Serial.print(bz, DEC); 
-        Serial.print(",");Serial.print(gx, DEC); 
-        Serial.print(",");Serial.print(gy, DEC); 
-        Serial.print(",");Serial.print(gz, DEC); 
-        Serial.print(",");Serial.print(gt, DEC); 
-        Serial.print(",");Serial.print(max, DEC);
-        Serial.print(",");Serial.print(may, DEC);
-        Serial.print(",");Serial.print(maz, DEC);
-        Serial.print(",");Serial.print(mgx, DEC);
-        Serial.print(",");Serial.print(mgy, DEC);
-        Serial.print(",");Serial.print(mgz, DEC);
-        Serial.print(",");Serial.print(mt, DEC);
-        Serial.println();
-      }
-      ccsds.start(0x01,pktseq+1,TC,0);
-      ccsds.fill16(ax); ccsds.fill16(ay);  ccsds.fill16(az);  
-      ccsds.finish();
-      ccsds.start(0x04,pktseq+4,TC,0);
-      ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
-      ccsds.finish();
-      ccsds.start(0x05,pktseq+5,TC,0);
-      ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz);  ccsds.fill16(gt);
-      ccsds.finish();
-      ccsds.start(0x06,pktseq+6,TC,0);
-      ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
-      ccsds.finish();
+      phase=0;
     }
-    pktStore.drain();
-  }
-}
-
-void loop2() {
-  static int phase=0;
-  phase++;
-  unsigned int TC=TTC(0);
-  adxl345.read(ax,ay,az);
-  ccsds.start(0x01,pktseq+1,TC,0);
-  ccsds.fill16(ax); ccsds.fill16(ay);  ccsds.fill16(az);  
-  ccsds.finish();
-  TC=TTC(0);
-  mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
-  ccsds.start(0x06,pktseq+6,TC,0);
-  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
-  ccsds.finish();
-  TC=TTC(0);
-  hmc5883.read(bx,by,bz);
-  ccsds.start(0x04,pktseq+4,TC,0);
-  ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
-  ccsds.finish();
-  if(200==phase) {
-    TC=TTC(0);  
-    bmp180.takeMeasurement();
-    auto temperatureRaw=bmp180.getTemperatureRaw();
-    auto pressureRaw=bmp180.getPressureRaw();
-    auto temperature=bmp180.getTemperature();
-    auto pressure=bmp180.getPressure();
-    ccsds.start(0x09,pktseq+9,TC,0);
-    ccsds.fill16(temperatureRaw);
-    ccsds.fill32(pressureRaw);
-    ccsds.fill16(temperature);
-    ccsds.fill32(pressure);
-    ccsds.finish();
-    Serial.print(RTCHOUR,DEC,2);
-    Serial.print(":");Serial.print(RTCMIN,DEC,2);
-    Serial.print(":");Serial.print(TC/PCLK,DEC,2);
-    Serial.print(".");Serial.print((TC%PCLK)/(PCLK/1000),DEC,3);
-    Serial.print(",");Serial.print(ax, DEC); 
-    Serial.print(",");Serial.print(ay, DEC); 
-    Serial.print(",");Serial.print(az, DEC); 
-    Serial.print(",");Serial.print(bx, DEC); 
-    Serial.print(",");Serial.print(by, DEC); 
-    Serial.print(",");Serial.print(bz, DEC); 
-    Serial.print(",");Serial.print(max, DEC);
-    Serial.print(",");Serial.print(may, DEC);
-    Serial.print(",");Serial.print(maz, DEC);
-    Serial.print(",");Serial.print(mgx, DEC);
-    Serial.print(",");Serial.print(mgy, DEC);
-    Serial.print(",");Serial.print(mgz, DEC);
-    Serial.print(",");Serial.print(mt, DEC);
-    Serial.print(",");Serial.print(temperature, DEC);    
-    Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
-    Serial.println();
-    phase=0;
   }
   TC=TTC(0);  
   if(pktStore.drain()) {
     unsigned int TC1=TTC(0);
-    ccsds.start(0x08,pktseq+8,TC,0);
+    ccsds.start(0x08,pktseq,TC);
     ccsds.fill32(TC1);
     ccsds.finish();
   }
+  if(f.size()>=maxLogSize) {
+    closeLog();
+    openLog();
+  }
 }
 
-void loop() {loop2();}
+

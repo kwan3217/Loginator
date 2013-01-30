@@ -7,11 +7,12 @@
 class FileCircular: public Circular {
 private:
   bool drainCore();
+  char buf[SDHC::BLOCK_SIZE*2];
 protected:
   File& ouf;
 public:
   unsigned int errno;
-  FileCircular(char* Lbuf,File& Louf):Circular(1024,Lbuf),ouf(Louf) {};
+  FileCircular(File& Louf):Circular(sizeof(buf),buf),ouf(Louf) {};
   bool drain() {if(readylen()>=SDHC::BLOCK_SIZE) return drainCore();return false;};
 };
 

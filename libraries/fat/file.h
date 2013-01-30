@@ -20,6 +20,8 @@ public:
   bool remove(const char* filename, char* buf,uint32_t dir_cluster=0);
   bool wipeChain(char* buf);
   bool sync(char* buf);
+  bool close(char* buf) {return sync(buf);};
+  unsigned int size() {return de.size;};
 };
 
 #endif
