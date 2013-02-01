@@ -43,6 +43,7 @@ LIBMAKE:=$(call uniq,$(LIBMAKE))
 ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM)
 INCDEF = $(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq)
 ALLTAR = $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(EAGLE)
+BACKUP = $(addsuffix ~,$(ALLTAR))
 #MYTAR = $(shell cat $(ALLTAR) | sed -n 's"\.\./lib/\S*\s//g"')
 
 FLASH_TOOL = LPC12
@@ -238,6 +239,7 @@ COBJARM   = $(SRCARM:.c=.o)
 AOBJARM   = $(ASRCARM:.S=.o)
 CPPOBJ    = $(CPPSRC:.cpp=.o) 
 CPPOBJARM = $(CPPSRCARM:.cpp=.o)
+
 
 # Define all listing files.
 LST = $(ASRC:.S=.lst) $(ASRCARM:.S=.lst) $(SRC:.c=.lst) $(SRCARM:.c=.lst)
@@ -500,6 +502,7 @@ clean_list :
 	$(REMOVE) $(COBJARM)
 	$(REMOVE) $(CPPOBJARM)
 	$(REMOVE) $(AOBJARM)
+	@echo $(REMOVE) $(BACKUP)
 	$(REMOVE) $(LST)
 	$(REMOVE) $(SRC:.c=.s)
 	$(REMOVE) $(SRC:.c=.d)

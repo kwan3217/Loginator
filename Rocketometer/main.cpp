@@ -30,7 +30,7 @@ unsigned int maxLogSize=1024U*1024U*128U;
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
 int16_t bx,by,bz;    //compass (bfld)
-uint16_t hx[3];      //HighAcc
+uint16_t hx[4];      //HighAcc
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
 int16_t mt;          //MPU60x0 temp
@@ -171,7 +171,7 @@ void loop() {
     TC=TTC(0);
     ad799x.read(hx);
     ccsds.start(0x0B,pktseq,TC);
-    ccsds.fill16(hx[0]);  ccsds.fill16(hx[1]);  ccsds.fill16(hx[2]);
+    ccsds.fill((char*)hx,6);
     ccsds.finish();
     if(200==phase) {
       TC=TTC(0);  
