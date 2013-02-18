@@ -50,6 +50,15 @@ FLASH_TOOL = LPC12
 #FLASH_TOOL = UVISION
 #FLASH_TOOL = OPENOCD
 
+#Passed as a -D to the compiler for each C and C++ file, to allow
+#all the modules to know what hardware they are on. Choices are
+#LOGOMATIC (old Sparkfun green board), LOGINATOR (purple Loginator
+#board) and ROCKETOMETER (purple Rocketometer board)
+ifndef HARDWARE
+HARDWARE = ROCKETOMETER
+endif
+
+
 # MCU name and submodel
 MCU      = arm7tdmi-s
 SUBMDL   = LPC2148
@@ -105,7 +114,7 @@ ADEFS =  -D$(RUN_MODE)
 #    -adhlns...: create assembler listing
 #
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
-CFLAGS = $(DEBUG)
+CFLAGS = $(DEBUG) -D$(HARDWARE)
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += $(OPT)
 CFLAGS += -Wall -Wcast-align

@@ -395,6 +395,21 @@ Reset, and Code Security/Debugging */
 #define DAC_BASE_ADDR		0xE006C000
 #define DACR           (*(volatile unsigned int *)(DAC_BASE_ADDR + 0x00))
 
+/* Hardware ID */
+//We write hardware identifiers here, in its own memory page. 
+#define HW_ID_BASE_ADDR		0x0007C000
+//The first describes the hardware type:
+// 0 for Logomatic
+// 1 for Loginator
+// 2 for Rocketometer
+// remainder to 0xFFFFFFFE are reserved
+// 0xFFFFFFFF is unknown (memory block never written to)
+//The second word is a serial number, unique to hardware type, so there
+//can be a Loginator 0 and Rocketometer 0, but no two rocketometers are
+//both labeled 0.
+#define HW_TYPE        (*(volatile unsigned int *)(HW_ID_BASE_ADDR + 0x00))
+#define HW_SERIAL      (*(volatile unsigned int *)(HW_ID_BASE_ADDR + 0x04))
+
 /* Watchdog */
 #define WDG_BASE_ADDR		0xE0000000
 #define WDMOD          (*(volatile unsigned int *)(WDG_BASE_ADDR + 0x00))
