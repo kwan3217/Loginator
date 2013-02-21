@@ -1,3 +1,5 @@
+#define ROCKETOMETER
+
 #include <string.h>
 #include "gpio.h"
 #include "StateTwoWire.h"
@@ -18,16 +20,10 @@
 #include "file.h"
 #include "FileCircular.h"
 
-//Once the log becomes greater or equal to this length, cycle the log file
-//This way we don't violate the FAT file size limit, and don't choke our processing
-//program with data.
-//Set to 1MiB so that we can test the feature
-unsigned int maxLogSize=1024U*1024U*1U;
-
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
 int16_t bx,by,bz;    //compass (bfld)
-uint16_t hx[4];      //HighAcc
+uint16_t h[4];      //HighAcc
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
 int16_t mt;          //MPU60x0 temp
@@ -50,33 +46,19 @@ unsigned short pktseq[16];
 bool timeToRead;
 unsigned int lastTC,nextTC,interval;
 
-void openLog() {
-  static char fn[13];
-  if(fn[0]!='r') strcpy(fn,"rkto0000.sds");
-  static int i=0;
-  Serial.println(fn);
-  while(i<9999 && f.find(fn)) {
-    i++;
-    fn[4]='0'+i/1000;
-    fn[5]='0'+(i%1000)/100;
-    fn[6]='0'+(i%100)/10;
-    fn[7]='0'+(i%10);
-    Serial.println(fn);
-  }
-  bool worked=f.openw(fn,pktStore.headPtr());
-  Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
-}
-
-void closeLog() {
-//  f.sync(buf); //Sync the directory entry - after this, we may reuse this file
-               //object on a new file.
-}
-
-static const char version_string[]="Rocketometer v0.02 " __DATE__ " " __TIME__;
-
 void setup() {
   Serial.begin(230400);
-  Serial.println(version_string);
+  //Dump code to serial port
+  int len=source_end-source_start;
+  char* base=source_start;
+  d.begin();
+  while(len>0) {
+    d.line(base,0,len>120?120:len);
+    base+=120;
+    len-=120;
+  }
+  d.end();
+
   Wire1.begin();
 
   SPI1.begin(1000000,1,1);
@@ -90,24 +72,8 @@ void setup() {
   worked=fs.begin();  
   Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
   sector.begin();
-  fs.print(Serial);//,sector);
+  fs.print(Serial,sector);
 
-  openLog();
-  //Dump code to serial port and packet file
-  int len=source_end-source_start;
-  char* base=source_start;
-  d.begin();
-  while(len>0) {
-    d.line(base,0,len>120?120:len);
-    ccsds.start(0x03,pktseq);
-    ccsds.fill16(base-source_start);
-    ccsds.fill(base,len>120?120:len);
-    ccsds.finish();
-    pktStore.drain(); 
-    base+=120;
-    len-=120;
-  }
-  d.end();
   mpu6050.begin();
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
@@ -116,26 +82,10 @@ void setup() {
   char HMCid[4];
   hmc5883.whoami(HMCid);
   Serial.print("HMC5883L identifier (should be 'H43'): ");
-  Serial.println(HMCid);/*
-  ccsds.start(0x0E);
-  ccsds.fill(hmc5883.read(0));
-  ccsds.fill(hmc5883.read(1));
-  ccsds.fill(hmc5883.read(2));
-  ccsds.fill(hmc5883.read(9));
-  ccsds.fill(hmc5883.read(10));
-  ccsds.fill(hmc5883.read(11));
-  ccsds.fill(hmc5883.read(12));
-  ccsds.finish();*/
+  Serial.println(HMCid);
 
-  char channels=0x0B;
-  worked=ad799x.begin(channels); 
+  worked=ad799x.begin((1<<0) | (1<<1) | (1<<3)); //Turn on channels 0, 1, and 3
   Serial.print("ad799x");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
-  ccsds.start(0x0D);
-  ccsds.fill(ad799x.getAddress());
-  ccsds.fill(channels);
-  ccsds.fill(ad799x.getnChannels());
-  ccsds.fill((uint8_t)worked);
-  ccsds.finish();
 
   worked=bmp180.begin();
   Serial.print("bmp180");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
@@ -151,23 +101,7 @@ void setup() {
 
   ccsds.finish();
 
-  ccsds.start(0x0C);
-  ccsds.fill32(HW_TYPE);
-  ccsds.fill32(HW_SERIAL);
-  ccsds.fill(MAMCR);
-  ccsds.fill(MAMTIM);
-  ccsds.fill16(PLL0STAT);
-  ccsds.fill(VPBDIV);
-  ccsds.fill32(FOSC);                   //Crystal frequency, Hz
-  ccsds.fill32(CCLK);                   //Core Clock rate, Hz
-  ccsds.fill32(PCLK);                   //Peripheral Clock rate, Hz
-  ccsds.fill32(PREINT);  
-  ccsds.fill32(PREFRAC);                    
-  ccsds.fill(CCR);
-  ccsds.fill(version_string);
-  ccsds.finish();
-
-  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P");
+  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,hx,hy,hz,T,P");
 //  Serial.println("t,tc,Traw,Praw");
 
 //  taskManager.schedule(100,0,sensorTimingTask,0); 
@@ -181,23 +115,29 @@ void loop() {
   phase++;
   unsigned int TC=TTC(0);
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
+/*
   ccsds.start(0x06,pktseq,TC);
   ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
   ccsds.finish();
+*/
   if(0==(phase%10)) {
     //Only read the compass and HighAcc once every 10 times we read the 6DoF
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
-    ccsds.start(0x04,pktseq,TC);
+/*  
+  ccsds.start(0x04,pktseq,TC);
     ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
     ccsds.finish();
+*/
     TC=TTC(0);
-    ad799x.read(hx);
+    ad799x.read(h);
+    ad799x.format(h);
+/*
     ccsds.start(0x0B,pktseq,TC);
-    ccsds.fill((char*)hx,8);
+    ccsds.fill((char*)hx,6);
     ccsds.finish();
+*/
     if(200==phase) {
-//      ad799x.format(hx);
       TC=TTC(0);  
       bmp180.takeMeasurement();
       auto temperatureRaw=bmp180.getTemperatureRaw();
@@ -205,6 +145,7 @@ void loop() {
       auto temperature=bmp180.getTemperature();
       auto pressure=bmp180.getPressure();
       auto TC1=TTC(0);
+/*
       ccsds.start(0x0A,pktseq,TC);
       ccsds.fill16(temperatureRaw);
       ccsds.fill32(pressureRaw);
@@ -212,6 +153,7 @@ void loop() {
       ccsds.fill32(pressure);
       ccsds.fill32(TC1);
       ccsds.finish();
+*/
       Serial.print(RTCHOUR,DEC,2);
       Serial.print(":");Serial.print(RTCMIN,DEC,2);
       Serial.print(":");Serial.print(TC/PCLK,DEC,2);
@@ -227,24 +169,24 @@ void loop() {
       Serial.print(",");Serial.print(mgy, DEC);
       Serial.print(",");Serial.print(mgz, DEC);
       Serial.print(",");Serial.print(mt, DEC);
-      Serial.print(",");Serial.print(hx[0], DEC); 
-      Serial.print(",");Serial.print(hx[1], DEC); 
-      Serial.print(",");Serial.print(hx[2], DEC); 
-      Serial.print(",");Serial.print(hx[3], DEC); 
-      Serial.print(",");Serial.print(temperature, DEC);    
+      Serial.print(",");Serial.print(h[0], DEC); 
+      Serial.print(",");Serial.print(h[1], DEC); 
+      Serial.print(",");Serial.print(h[3], DEC); 
+      Serial.print(",");Serial.print(temperature/10, DEC);    
+      Serial.print(".");Serial.print(temperature%10, DEC);
       Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
       Serial.println();
       phase=0;
     }
   }
   TC=TTC(0);  
+/*
   if(pktStore.drain()) {
     unsigned int TC1=TTC(0);
     ccsds.start(0x08,pktseq,TC);
     ccsds.fill32(TC1);
     ccsds.finish();
   }
-/*
   if(f.size()>=maxLogSize) {
     closeLog();
     openLog();

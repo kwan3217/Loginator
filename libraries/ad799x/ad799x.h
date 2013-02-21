@@ -52,15 +52,17 @@ class AD799x {
     TwoWire &port;
     bool read(uint8_t *data, int num);
     bool write(uint8_t data);
-    unsigned char ADDRESS;  // I2C address of AD799x
+    uint8_t ADDRESS;  // I2C address of AD799x
     static const char addr_msb=0x28; //ORed with low bit of a0 to get actual address
-    int nChannels;
+    uint8_t nChannels;
     uint8_t channels;
   public:
     AD799x(TwoWire &Lport, int a0=0);
     bool begin(uint8_t Lchannels, bool vref=false);
     bool read(uint16_t ch[]);
     void format(uint16_t ch[]);
+    uint8_t getAddress() {return ADDRESS;};
+    uint8_t getnChannels() {return nChannels;};
     /**
      vref - if set, ch3 is used as a voltage reference. 
             if clear, ch3 is a normal input channel and vdd is reference

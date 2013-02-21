@@ -1,16 +1,20 @@
 #include "hmc5883.h"
 
-// Stores all of the bmp085's calibration values into global variables
-// Calibration values are required to calculate temp and pressure
-// This function should be called at the beginning of the program
+// Sets the configuration and mode registers such that the part is continuously
+// generating measurements. This function should be called at the beginning of 
+// the program
 void HMC5883::begin() {
   //Set it to single-shot mode
   port.beginTransmission(ADDRESS);
-  port.write(0x00);  //Address the mode register
+  //Address the configuration register A
+  port.write(0x00);  
+  //Write config register A
   port.write(3<<5 | 6<<2 | 0<<0); //MA - 0b11  = 8 samples average
-                                 //DO - 0b110 = 75Hz measurment rate
-                                 //MS - 0b00  = normal measurement mode
+                                  //DO - 0b110 = 75Hz measurment rate
+                                  //MS - 0b00  = normal measurement mode
+  //Write config register B (auto register address increment in HMC5883)
   port.write(1<<5 );              //GN - 0b001 = +-1.3Ga (1090DN/Ga)
+  //Write mode register
   port.write(0<<0 );              //MD - 0b00  = continuous measurement mode
   port.endTransmission();
 }

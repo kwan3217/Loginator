@@ -178,6 +178,7 @@ uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
       lastEntrySector=entrySector;
       entry=0;
       for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
+      Serial.println((unsigned int)entry);
     } else {
       entry=readTable(cluster);
       if(errno!=0) FAIL_BAD(errno*100+16);
@@ -195,6 +196,7 @@ uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
       lastEntrySector=entrySector;
       entry=0;
       for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
+      Serial.println((unsigned int)entry);
     } else {
       entry=readTable(cluster);
       if(errno!=0) FAIL_BAD(errno*100+18);

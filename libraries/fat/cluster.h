@@ -3,7 +3,6 @@
 
 #include "Partition.h"
 #include "Print.h"
-#include "dump.h"
 
 /** Extended BIOS parameter block. Included separately because it could
 appear at one of two places in the block.
@@ -83,7 +82,6 @@ public:
   bool read(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.read(clusterFirstSector(cluster)+sector,buf),p.errno*100+2);};
   bool write(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.write(clusterFirstSector(cluster)+sector,buf),p.errno*100+3);};
   void print(Print &out);
-  void print(Print &out, Dump &d) {d.region(bpb,0,sizeof(bpb),16);print(out);};
   uint32_t readTable(uint32_t cluster);
   bool writeTable(uint32_t cluster, char* buf, uint32_t entry);
   uint32_t findFreeCluster(char* buf=0, uint32_t clusterToStart=1);

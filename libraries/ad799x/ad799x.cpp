@@ -27,7 +27,7 @@ bool AD799x::write(uint8_t data) {
 bool AD799x::writeConfig(uint8_t Lchannels, bool vref) {
   channels=Lchannels;
   nChannels=0;
-  for(int i=0;i<4;i++) if(((channels << i) & 0x01)>0) nChannels++;
+  for(int i=0;i<4;i++) if(((channels >> i) & 0x01)>0) nChannels++;
   return write((channels<<4) | ((vref?1:0)<<3) | 0x0);
 }
 
