@@ -46,7 +46,7 @@ AD799x ad799x(Wire1);
 Base85 d(Serial);
 FileCircular pktStore(f);
 CCSDS ccsds(pktStore);
-unsigned short pktseq[16];
+unsigned short pktseq[32];
 bool timeToRead;
 unsigned int lastTC,nextTC,interval;
 
@@ -116,16 +116,10 @@ void setup() {
   char HMCid[4];
   hmc5883.whoami(HMCid);
   Serial.print("HMC5883L identifier (should be 'H43'): ");
-  Serial.println(HMCid);/*
+  Serial.println(HMCid);
   ccsds.start(0x0E);
-  ccsds.fill(hmc5883.read(0));
-  ccsds.fill(hmc5883.read(1));
-  ccsds.fill(hmc5883.read(2));
-  ccsds.fill(hmc5883.read(9));
-  ccsds.fill(hmc5883.read(10));
-  ccsds.fill(hmc5883.read(11));
-  ccsds.fill(hmc5883.read(12));
-  ccsds.finish();*/
+  hmc5883.fillConfig(ccsds);
+  ccsds.finish();
 
   char channels=0x0B;
   worked=ad799x.begin(channels); 

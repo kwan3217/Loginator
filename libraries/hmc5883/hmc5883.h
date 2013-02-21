@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include "Wire.h"
+#include "packet.h"
 
 class HMC5883 {
   private:
@@ -16,6 +17,7 @@ class HMC5883 {
     void begin();
     void whoami(char* id);
     void read(int16_t& x, int16_t& y, int16_t& z);
+    bool fillConfig(Packet& ccsds);
 };
 
 #endif

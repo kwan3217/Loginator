@@ -59,5 +59,16 @@ void HMC5883::whoami(char* id) {
   id[3]=0;
 }
 
+bool HMC5883::fillConfig(Packet& ccsds) {
+  if(!ccsds.fill(read( 0))) return false;
+  if(!ccsds.fill(read( 1))) return false;
+  if(!ccsds.fill(read( 2))) return false;
+  if(!ccsds.fill(read( 9))) return false;
+  if(!ccsds.fill(read(10))) return false;
+  if(!ccsds.fill(read(11))) return false;
+  if(!ccsds.fill(read(12))) return false;
+  return true;
+}
+
 
 
