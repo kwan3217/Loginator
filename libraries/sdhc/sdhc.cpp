@@ -42,7 +42,7 @@ bool SDHC::begin() {
     send_command(CMD_GO_IDLE_STATE, 0, 1);
     if(response[0] == R1_IDLE_STATE) break;
 
-    if(i == 0x1f) {
+    if(i == 0x1ff) {
       //response not idle after 512 tries;
       unselect_card();
       FAIL(2);

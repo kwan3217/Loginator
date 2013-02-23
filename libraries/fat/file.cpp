@@ -18,10 +18,12 @@ bool File::openw(const char* filename,char* buf,uint32_t dir_cluster) {
   return true;
 }
 
+static uint32_t last_cluster=1;
+
 bool File::create(const char* filename, char* buf,uint32_t dir_cluster) {
   if(!de.findEmpty(dir_cluster)) FAIL(100*de.errno+4);    
   de.canonFileName(filename,de.shortName);
-  uint32_t cl=c.findFreeCluster(buf);
+  uint32_t cl=c.findFreeCluster(buf,last_cluster);
   if(cl==c.BAD) FAIL(100*c.errno+5);
   de.setCluster(cl);
   return true;
@@ -39,16 +41,24 @@ bool File::read(char* buf) {
   return true;
 }
 
+bool File::sync(char* buf) {
+  if(!de.writeBack(buf)) FAIL(de.errno*100+8);
+  return true;
+}
+
 bool File::append(char* buf, char* fastBuf) {
 //  uint32_t write_cluster=c.BAD;
   if(de.size==0) {
+    //Need to allocate first cluster
     sector=0;
     if(c.BAD==(cluster=c.findFreeCluster(fastBuf))) FAIL(c.errno*100+8);
     de.setCluster(cluster);
     if(!c.write(cluster,sector,buf)) FAIL(c.errno*100+9);
     //Now the buffer is ours
     if(!c.writeTable(cluster,buf,c.EOF)) FAIL(c.errno*100+10);
+    last_cluster=cluster;
   } else if(sector>=c.sectorsPerCluster()) {
+    //Need to allocate a new cluster
     uint32_t next_cluster=c.readTable(cluster);
     if(c.EOF==next_cluster) next_cluster=c.findFreeCluster(fastBuf,cluster);
     if(c.BAD==next_cluster) FAIL(c.errno*100+16);
@@ -58,6 +68,7 @@ bool File::append(char* buf, char* fastBuf) {
     if(!c.writeTable(cluster,buf,next_cluster)) FAIL(c.errno*100+12);
     if(!c.writeTable(next_cluster,buf,c.EOF)) FAIL(c.errno*100+13);
     cluster=next_cluster;
+    last_cluster=cluster;
   } else {
     if(!c.write(cluster,sector,buf)) FAIL(c.errno*100+14);
   }

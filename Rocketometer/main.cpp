@@ -21,8 +21,9 @@
 //Once the log becomes greater or equal to this length, cycle the log file
 //This way we don't violate the FAT file size limit, and don't choke our processing
 //program with data.
-//Set to 1MiB so that we can test the feature
-unsigned int maxLogSize=1024U*1024U*1U;
+//Set to 128MiB so that we can test the feature
+unsigned int maxLogSize=1024U*1024U*128U;
+uint16_t resetFileSkip=100;
 
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
@@ -50,13 +51,15 @@ unsigned short pktseq[32];
 bool timeToRead;
 unsigned int lastTC,nextTC,interval;
 
-void openLog() {
+const char syncMark[]="KwanSync";
+
+void openLog(uint16_t inc=1) {
   static char fn[13];
   if(fn[0]!='r') strcpy(fn,"rkto0000.sds");
   static int i=0;
   Serial.println(fn);
   while(i<9999 && f.find(fn)) {
-    i++;
+    i+=inc;
     fn[4]='0'+i/1000;
     fn[5]='0'+(i%1000)/100;
     fn[6]='0'+(i%100)/10;
@@ -68,11 +71,11 @@ void openLog() {
 }
 
 void closeLog() {
-//  f.sync(buf); //Sync the directory entry - after this, we may reuse this file
+  f.close(buf); //Sync the directory entry - after this, we may reuse this file
                //object on a new file.
 }
 
-static const char version_string[]="Rocketometer v0.02 " __DATE__ " " __TIME__;
+static const char version_string[]="Rocketometer v1.00 " __DATE__ " " __TIME__;
 
 void setup() {
   Serial.begin(230400);
@@ -92,7 +95,9 @@ void setup() {
   sector.begin();
   fs.print(Serial);//,sector);
 
-  openLog();
+  openLog(resetFileSkip);
+  pktStore.fill(syncMark);
+  pktStore.mark();
   //Dump code to serial port and packet file
   int len=source_end-source_start;
   char* base=source_start;
@@ -191,6 +196,7 @@ void loop() {
     ccsds.fill((char*)hx,8);
     ccsds.finish();
     if(200==phase) {
+      //Only read the pressure sensor once every 200 times we read the 6DoF
 //      ad799x.format(hx);
       TC=TTC(0);  
       bmp180.takeMeasurement();
@@ -233,17 +239,24 @@ void loop() {
   }
   TC=TTC(0);  
   if(pktStore.drain()) {
+    static int light=0;
+    set_light(light,1);
     unsigned int TC1=TTC(0);
     ccsds.start(0x08,pktseq,TC);
     ccsds.fill32(TC1);
     ccsds.finish();
+
+    if(f.size()>=maxLogSize) {
+      closeLog();
+      openLog();
+      pktStore.fill(syncMark);
+      pktStore.mark();
+    }
+    set_light(light,0);
+    light++;
+    if(light>=3) light=0;
   }
-/*
-  if(f.size()>=maxLogSize) {
-    closeLog();
-    openLog();
-  }
-*/
+
 }
 
 

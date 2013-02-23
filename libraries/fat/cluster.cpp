@@ -172,13 +172,13 @@ uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
     if(buf!=0) {
       calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
       if(entrySector!=lastEntrySector) {
-  //      Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
+//        Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
         if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+15);
       }
       lastEntrySector=entrySector;
       entry=0;
       for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
-      Serial.println((unsigned int)entry);
+//      Serial.print("Entry for cluster ");Serial.print((unsigned int)cluster,DEC);Serial.print(" points to ");Serial.println((unsigned int)entry);
     } else {
       entry=readTable(cluster);
       if(errno!=0) FAIL_BAD(errno*100+16);
@@ -190,13 +190,13 @@ uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
     if(buf!=0) {
       calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
       if(entrySector!=lastEntrySector) {
-  //      Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
+//        Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
         if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+17);
       }
       lastEntrySector=entrySector;
       entry=0;
       for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
-      Serial.println((unsigned int)entry);
+//      Serial.println((unsigned int)entry);
     } else {
       entry=readTable(cluster);
       if(errno!=0) FAIL_BAD(errno*100+18);
