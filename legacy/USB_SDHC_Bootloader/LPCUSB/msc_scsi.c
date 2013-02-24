@@ -210,14 +210,8 @@ U8 * SCSIHandleCmd(U8 *pbCDB, int iCDBLen, int *piRspLen, BOOL *pfDevIn)
 
 #include "LPC214x.h"
 
-#undef LOGINATOR
-#ifdef LOGINATOR
 #define STAT0 8
-#define STAT1 1
-#else
-#define STAT0 2
-#define STAT1 11
-#endif
+#define STAT1 7
 
 static const int light_mask[2]={1 << STAT0,1 << STAT1};
 

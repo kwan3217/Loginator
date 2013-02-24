@@ -206,3 +206,5 @@ uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
   errno=19;
   return BAD;
 }
+
+

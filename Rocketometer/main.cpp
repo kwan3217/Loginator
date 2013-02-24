@@ -113,9 +113,12 @@ void setup() {
     len-=120;
   }
   d.end();
-  mpu6050.begin();
+  mpu6050.begin(3,3);
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
+  ccsds.start(0x0F);
+  mpu6050.fillConfig(ccsds);
+  ccsds.finish();
 
   hmc5883.begin();
   char HMCid[4];
@@ -227,11 +230,12 @@ void loop() {
       Serial.print(",");Serial.print(mgy, DEC);
       Serial.print(",");Serial.print(mgz, DEC);
       Serial.print(",");Serial.print(mt, DEC);
-      Serial.print(",");Serial.print(hx[0], DEC); 
-      Serial.print(",");Serial.print(hx[1], DEC); 
-      Serial.print(",");Serial.print(hx[2], DEC); 
-      Serial.print(",");Serial.print(hx[3], DEC); 
-      Serial.print(",");Serial.print(temperature, DEC);    
+      Serial.print(",");Serial.print(hx[0], HEX,4); 
+      Serial.print(",");Serial.print(hx[1], HEX,4); 
+      Serial.print(",");Serial.print(hx[2], HEX,4); 
+      Serial.print(",");Serial.print(hx[3], HEX,4); 
+      Serial.print(",");Serial.print(temperature/10, DEC);    
+      Serial.print(".");Serial.print(temperature%10, DEC);    
       Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
       Serial.println();
       phase=0;

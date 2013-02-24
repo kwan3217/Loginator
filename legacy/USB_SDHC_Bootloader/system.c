@@ -51,20 +51,15 @@ void boot_up(void)
     //Initialize the MCU clock PLL
     system_init();
 
-	IODIR0 |= (1 << 31) | (1<<11) | (1<<2);
-  IOSET0 = (1<<11) | (1<<2); //Turn off STAT lights
+	IODIR0 |= (1 << 31) | (1<<8) | (1<<7);
+  IOSET0 = (1<<8) | (1<<7); //Turn off STAT lights
 	IOCLR0 = (1 << 31); //Turn on USB LED
-
     //Init UART0 for debug
-    PINSEL0 |= 0x00000005; //enable uart0
-    U0LCR = 0x83; // 8 bits, no Parity, 1 Stop bit, DLAB = 1 
-    U0DLM = 0x01; 
-    U0DLL = 0x86; // 9600 Baud Rate @ 60MHz VPB Clock  
-    U0LCR = 0x03; // DLAB = 0                          
+    init_serial0(230400);
 
     //Init rprintf
     rprintf_devopen(putc_serial0);
-    rprintf("USB Bootloader v1.2");
+    rprintf("USB Rocketometer Bootloader v1.3");
 
 	//IOSET0 |= (1 << 31); //Turn off USB LED
 }

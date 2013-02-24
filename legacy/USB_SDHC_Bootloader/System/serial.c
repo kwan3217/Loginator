@@ -19,7 +19,7 @@ void init_serial0 ( unsigned long baudrate )
 {
     unsigned long Fdiv;
 
-    PINSEL0 = 0x00000005;                  /* Enable RxD0 and TxD0              */
+    PINSEL0 |= 0x00000005;                  /* Enable RxD0 and TxD0              */
     U0LCR = 0x83;                          /* 8 bits, no Parity, 1 Stop bit     */
     Fdiv = ( Fcclk / 16 ) / baudrate ;     /* baud rate                        */
     U0DLM = Fdiv / 256;

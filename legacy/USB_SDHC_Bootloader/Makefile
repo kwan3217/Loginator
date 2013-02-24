@@ -162,12 +162,12 @@ ADEFS += -D__WinARM__
 CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += -O$(OPT)
-CFLAGS += -Wall -Wcast-align -Wimplicit 
+CFLAGS += -Wall -Wcast-align -Wimplicit
 CFLAGS += -Wpointer-arith -Wswitch
 CFLAGS += -Wredundant-decls -Wreturn-type -Wshadow -Wunused
 CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.lst,$<) 
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
-CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -ffunction-sections -fdata-sections  -fno-rtti -fno-exceptions -fno-unwind-tables
 
 # flags only for C
 CONLYFLAGS += -Wnested-externs 
@@ -254,7 +254,7 @@ LPC21ISP_CONTROL = -control
 
 # Define programs and commands.
 SHELL = sh
-CROSS_TARGET = arm-elf
+CROSS_TARGET = arm-none-eabi
 CC = $(CROSS_TARGET)-gcc
 CPP = $(CROSS_TARGET)-g++
 OBJCOPY = $(CROSS_TARGET)-objcopy

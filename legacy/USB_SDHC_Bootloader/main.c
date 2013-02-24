@@ -22,6 +22,13 @@
 //USB
 #include "main_msc.h"
 
+// Placeholder functions
+void __exidx_start() {};
+void __exidx_end() {};
+void _exit() {};
+void _kill() {};
+void _getpid() {};
+
 //This is the file name that the bootloader will scan for
 #define FW_FILE "FW.SFE"
 

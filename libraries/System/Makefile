@@ -20,6 +20,7 @@ endif
 
 ABI = arm-none-eabi
 LD_SCRIPT = ../libraries/System/lowmem_cpp_eabi.ld
+ZPAQDIR=../libraries/System
 
 reduce = $(if $(strip $2),$(call reduce,$1,$(wordlist 2,$(words $2),$2),$(call $1,$(firstword $2),$3)),$3)
 
@@ -42,7 +43,7 @@ ASRCARM:=$(call uniq,$(ASRCARM))
 LIBMAKE:=$(call uniq,$(LIBMAKE))
 ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM)
 INCDEF = $(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq)
-ALLTAR = $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(EAGLE)
+ALLTAR = $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(EAGLE) $(ZPAQDIR)/max.cfg
 BACKUP = $(addsuffix ~,$(ALLTAR))
 #MYTAR = $(shell cat $(ALLTAR) | sed -n 's"\.\./lib/\S*\s//g"')
 
@@ -323,7 +324,6 @@ program: $(LPC21ISP_FLASHFILE)
 	$(LPC21ISP) $(LPC21ISP_OPTIONS) $(LPC21ISP_DEBUG) $(LPC21ISP_FLASHFILE) $(LPC21ISP_PORT) $(LPC21ISP_BAUD) $(LPC21ISP_XTAL)
 
 TAR_EXT = max.zpaq
-ZPAQDIR=/usr/share/doc/zpaq/examples
 
 TARBALL = $(TARGET).tar.$(TAR_EXT)
 

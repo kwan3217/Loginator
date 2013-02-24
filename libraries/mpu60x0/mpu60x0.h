@@ -9,6 +9,7 @@
 
 #include <inttypes.h>
 #include "Wire.h"
+#include "packet.h"
 
 class MPU60x0 {
 public:
@@ -17,21 +18,23 @@ public:
   virtual int16_t read16(unsigned char addr) {return ((int16_t)read(addr))<<8 | ((int16_t)read(addr+1));};
   unsigned char whoami() {return read(0x75);};
   virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
-  virtual bool begin(); //Do anything necessary to init the part. Bus is available at this point.
+  bool begin(uint8_t gyro_scale=0, uint8_t acc_scale=0); //Do anything necessary to init the part. Bus is available at this point.
 };
 
 //I2C version of MPU60x0
 class MPU6050: public MPU60x0 {
 private:
-  static const int ADDRESS=0x68;  // 7-bit I2C address of MPU60x0
   TwoWire& port;
+  uint8_t ADDRESS;  // I2C address of AD799x
+  static const char addr_msb=0x68; //ORed with low bit of a0 to get actual address
   int A0;
 public:
   virtual unsigned char read(unsigned char addr);
   virtual void write(unsigned char addr, unsigned char data);
   virtual int16_t read16(unsigned char addr);
-  MPU6050(TwoWire& Lport,int LA0):port(Lport),A0(LA0) {};
+  MPU6050(TwoWire& Lport,int LA0):port(Lport),ADDRESS(addr_msb+LA0) {};
   virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
+  bool fillConfig(Packet& ccsds);
 };
 
 //SPI version of MPU60x0. The 6000 supports both I2C and SPI,
