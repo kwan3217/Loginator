@@ -3,7 +3,7 @@ EAGLE=Rocketometer.brd Rocketometer.sch
 
 include ../libraries/Serial/Makefile
 include ../libraries/Task/Makefile
-include ../libraries/StateTwoWire/Makefile
+include ../libraries/Wire/StateTwoWire/Makefile
 include ../libraries/bmp180/Makefile
 include ../libraries/ad799x/Makefile
 include ../libraries/hmc5883/Makefile

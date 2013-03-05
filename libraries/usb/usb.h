@@ -2,7 +2,14 @@
 #define USB_H
 
 #include "LPC214x.h"
-#include "sdhc.h"
+
+#define DEBUG
+#ifdef DEBUG
+#include "Serial.h"
+#define DBG Serial.println
+#else
+#define DBG(x ...) 
+#endif
 
 class USB;
 
@@ -20,7 +27,7 @@ class USBEndpoint {
 public:
   int packetSize;
   USBEndpoint(int LpacketSize):packetSize(LpacketSize) {};
-  virtual void handle(USB* that, int physical, char status)=0;
+  virtual void handle(USB* usb, int physical, char status)=0;
 };
 
 class SetupPacket {
@@ -31,10 +38,10 @@ public:
   unsigned short wIndex;
   unsigned short wLength;
   static const unsigned int REQTYPE_DIR_TO_HOST=1;
-  static const unsigned int REQTYPE_DIR_TO_DEVICE=1;
+  static const unsigned int REQTYPE_DIR_TO_DEVICE=0;
   unsigned int getType() {return (requestType>>5) & 0x03;};
   unsigned int getDir() {return (requestType>>7) & 0x01;};
-  unsigned int getRecip() {return (requestType>>0) & 0x03;};
+  unsigned int getRecip() {return (requestType>>0) & 0x1F;};
   void debug();
 };
 
@@ -47,8 +54,8 @@ class StandardRequestHandler:public RequestHandler {
 private:
   char stdReqData[8];
   bool handleDevice(SetupPacket& setup, unsigned short* len, char** data);
-  bool handleInterface(SetupPacket& setup, unsigned short* len, char** data) {};
-  bool handleEndpoint(SetupPacket& setup, unsigned short* len, char** data) {};
+  bool handleInterface(SetupPacket& setup, unsigned short* len, char** data) {return false;};
+  bool handleEndpoint(SetupPacket& setup, unsigned short* len, char** data) {return false;};
 public:
   static const unsigned int REQTYPE_RECIP_DEVICE=0;
   static const unsigned int REQTYPE_RECIP_INTERFACE=1;
@@ -65,7 +72,7 @@ public:
   static const unsigned int REQ_GET_INTERFACE     = 0x0A;
   static const unsigned int REQ_SET_INTERFACE     = 0x0B;
   static const unsigned int REQ_SYNCH_FRAME       = 0x0C;
-  virtual bool handle(SetupPacket& setup, unsigned short* len, char** data) {};
+  virtual bool handle(SetupPacket& setup, unsigned short* len, char** data);
 };
 
 class ControlEndpoint:public USBEndpoint {
@@ -79,7 +86,7 @@ public:
   static const unsigned int REQTYPE_TYPE_VENDOR=2;
   static const unsigned int REQTYPE_TYPE_RESERVED=3;
   ControlEndpoint():USBEndpoint(64) {requestHandler[REQTYPE_TYPE_STANDARD]=&standardRequestHandler;};
-  virtual void handle(USB* that, int physical, char status);
+  virtual void handle(USB* usb, int physical, char status);
 };
 
 #define leShort(x) (x)& 0xFF,((x)>>8)&0xFF
@@ -88,9 +95,7 @@ private:
   //One handler for each logical endpoint
   USBEndpoint* endpoint[16];
   ControlEndpoint ep0;
-  const char* descriptor[16];
-  int descriptorType[16];
-  int descriptorLength[16];
+  static const char descDevice[];
 public:
   static const unsigned char CMD_EP_SELECT=0x00;
   static const unsigned char CMD_EP_SET_STATUS=0x40;
@@ -108,6 +113,7 @@ public:
 
   static const unsigned int EP_STATUS_SETUP=(1<<2);
 
+  static const unsigned int CON=(1<<0);
   static const unsigned int CON_CH=(1<<1);
   static const unsigned int SUS_CH=(1<<3);
   static const unsigned int RST=(1<<4);
@@ -134,19 +140,11 @@ public:
   int readEndpoint(int physical, char* buf, unsigned int maxLen);
   void writeEndpoint(int physical, char* buf, unsigned int len);
   void stall(int physical, bool stalled);
-  void registerDescriptor(int n, const char* desc, int type, int len);
+  void registerDevDescriptor(const char* desc, int len);
+  void SoftConnect(bool connected) { cmdWrite(CMD_DEV_STATUS, connected?CON:0);}
   FrameHandler* frameHandler;
   DeviceHandler* deviceHandler;
 };
 
-class MSC:public USB {
-private:
-  SDHC& sd;
-  static const char descDevice[];
-  static const char descConfiguration[];
-public:
-  MSC(SDHC& Lsd):sd(Lsd) {};
-  virtual bool begin();
-};
 
 #endif

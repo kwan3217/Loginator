@@ -45,6 +45,7 @@ private:
   void print_group(const char* p, int len);
 public:
   Base85(Print& Lout):Dump(Lout,64) {};
+  Base85(Print& Lout, int LpreferredLen):Dump(Lout,LpreferredLen) {};
   virtual void line(const char* start, int base, int len);
 };
 
