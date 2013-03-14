@@ -88,9 +88,9 @@ void USB::HwInt() {
   }
 }
 
-int USB::readEndpoint(int physical, char* buf, unsigned int maxLen) {
+int USBEndpoint::read(USB* that, char* buf, unsigned int maxLen) {
   if(buf==0) return -1;
-  USBCtrl=RD_EN | (physical<<1);
+  USBCtrl=RD_EN | (logEPNum<<1);
   unsigned int len;
   do {
     len=USBRxPLen;
@@ -109,13 +109,13 @@ int USB::readEndpoint(int physical, char* buf, unsigned int maxLen) {
   //Clear RD_EN
   USBCtrl=0; 
   //Clear endpoint buffer
-  cmd(CMD_EP_SELECT | physical);
-  cmd(CMD_EP_CLEAR_BUFFER);
+  that->cmd(CMD_EP_SELECT | physEPNumOut);
+  that->cmd(CMD_EP_CLEAR_BUFFER);
   return len;
 }
 
-void USB::writeEndpoint(int physical, char* buf, unsigned int len) {
-  USBCtrl=WR_EN | (physical<<1);
+void USBEndpoint::write(USB* that, char* buf, unsigned int len) {
+  USBCtrl=WR_EN | logEPNum;
   USBTxPLen=len;
   while(USBCtrl & WR_EN) {
     USBTxData=((unsigned int)buf[0])<< 0 
@@ -124,8 +124,8 @@ void USB::writeEndpoint(int physical, char* buf, unsigned int len) {
              |((unsigned int)buf[3])<<24;
     buf+=4;
   }
-  cmd(CMD_EP_SELECT|(physical>>1));
-  cmd(CMD_EP_VALIDATE_BUFFER);
+  that->cmd(CMD_EP_SELECT|logEPNum);
+  that->cmd(CMD_EP_VALIDATE_BUFFER);
 }
 
 /** Record an endpoint handler for a certain logical endpoint and realize
@@ -140,8 +140,8 @@ void USB::registerEndpoint(USBEndpoint *ep, int logicalNum, int dir) {
   endpoint[logicalNum]=ep;
   USBEpIntEn|=(dir << logicalNum*2);
   USBDevIntEn|=(1<<2);
-  if(dir & EP_OUT) realize(logicalNum<<2 | OUT,ep->packetSize);
-  if(dir & EP_IN)  realize(logicalNum<<2 | IN ,ep->packetSize);
+  if(dir & EP_OUT) realize(logicalNum<<2 | OUT,ep->getPacketSize());
+  if(dir & EP_IN)  realize(logicalNum<<2 | IN ,ep->getPacketSize());
 };
 
 void USB::loop() {
@@ -161,29 +161,37 @@ void USB::realize(int physical, int size) {
   cmdWrite(CMD_EP_SET_STATUS|physical,0);
 }
 
-void USB::stall(int physical, bool stalled) {
-  cmdWrite(CMD_EP_SET_STATUS | physical,stalled?1:0);
+void USBEndpoint::stall(USB* that, int dir, bool stalled) {
+  that->cmdWrite(CMD_EP_SET_STATUS | (dir==OUT?physEPNumOut:physEPNumIn),stalled?1:0);
 }
 
 void ControlEndpoint::handle(USB* that, int physical, char status) {
-  if((physical & 0x01)==USB::OUT) {
+  if((physical & 0x01)==OUT) {
     //This is an OUT (host to device) transfer
-    if(status & USB::EP_STATUS_SETUP) {
-      that->readEndpoint(physical, (char*)&setup, sizeof(setup));
+    if(status & EP_STATUS_SETUP) {
+      endpoint[physical>>1]that->readEndpoint(physical, (char*)&setup, sizeof(setup));
       setup.debug();
-      int iType=setup.getType();
+//      int iType=setup.getType();
       if((setup.wLength==0) || (setup.getDir()==SetupPacket::REQTYPE_DIR_TO_HOST)) {
         bool handled=false;
         if(requestHandler[setup.getType()]==0) {
           DBG("No handler for reqtype");
           DBG(setup.getType());
         } else {
-          handled=requestHandler[setup.getType()]->handle(setup, &setup.wLength,0);
-          if(!handled) DBG("Handler failed");
+          handled=requestHandler[setup.getType()]->handle(setup, setup.wLength,pbData);
+          if(!handled) {
+            DBG("Handler failed");
+            that->stall(physical,true);
+            return;
+          } else {
+            setupIn(setup.wLength,pbData);
+          }
         }
-        if(!handled) that->stall(physical,true);
       }
     }
+  } else {
+    //This is an IN (device to host) transfer
+    in();
   }
 }
 
@@ -200,35 +208,29 @@ void SetupPacket::debug() {
   DBG(wLength,HEX,4);
 }
 
-bool StandardRequestHandler::handle(SetupPacket& setup, unsigned short* len, char** data) {
-  switch(setup.getRecip()) {
-    case REQTYPE_RECIP_DEVICE:
-      return handleDevice(setup,len,data);
-    case REQTYPE_RECIP_INTERFACE:
-      return handleInterface(setup,len,data);
-    case REQTYPE_RECIP_ENDPOINT:
-      return handleEndpoint(setup,len,data);
-    default:
-      return false;
-  }
+int StandardRequestHandler::dispatch(SetupPacket& setup) {
+  return setup.getRecip();
 }
 
-bool StandardRequestHandler::handleDevice(SetupPacket& setup, unsigned short* len, char** data) {
+bool StandardDeviceHandler::handle(SetupPacket& setup, unsigned short& len, const char*& data) {
   switch(setup.request) {
     case REQ_GET_DESCRIPTOR:
       DBG("Desc");DBG(setup.wValue,HEX);
-      break;      
+      len=descDevice[0];
+      data=descDevice;
+      return true;
   }
   return false;
 }
 
 //A descriptor is an array of bytes. The USB protocol requires a length byte
-//first, but we will skip that since we can figure out how long the array is at
-//run time.
+//first. All implementations I have seen have one long array with multiple 
+//descriptors, which the implementation then has to parse out. I'm not going to 
+//do that.
 
-//We define the 
-
-const char USB::descDevice[]={leShort(0x0200), //USB standard 2.00
+const char StandardDeviceHandler::descDevice[]={18,
+                              DESC_DEVICE,
+                              leShort(0x0200), //USB standard 2.00
                               0x00, //Device Class (defined by Interface)
                               0x00, //Device subclass (zero since class is zero)
                               0x00, //Device protocol (defined by interface)
@@ -237,8 +239,8 @@ const char USB::descDevice[]={leShort(0x0200), //USB standard 2.00
                               leShort(0x0001),   //Product ID
                               leShort(0x0001),   //Device version number 0.01
                               0x01, //Index of manufacturer name
-                              0x00, //Index of product name
-                              0x00, //Index of device serial number
+                              0x02, //Index of product name
+                              0x03, //Index of device serial number
                               1};   //Number of configurations
 
 
