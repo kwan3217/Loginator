@@ -2,6 +2,8 @@
 #include "gpio.h"
 #include "Time.h"
 
+const DevDescriptor StandardDeviceHandler::devDescriptor(0x3217,0x0001,0x0001);
+
 /** Get the USB hardware ready, up to but not including turning on SoftConnect. This includes
 setting pin 23 to USB Vbus detect,
 setting pin 31 to USB SoftConnect,
@@ -169,7 +171,7 @@ void ControlEndpoint::handle(USB* that, int physical, char status) {
   if((physical & 0x01)==OUT) {
     //This is an OUT (host to device) transfer
     if(status & EP_STATUS_SETUP) {
-      endpoint[physical>>1]that->readEndpoint(physical, (char*)&setup, sizeof(setup));
+//      endpoint[physical>>1]that->readEndpoint(physical, (char*)&setup, sizeof(setup));
       setup.debug();
 //      int iType=setup.getType();
       if((setup.wLength==0) || (setup.getDir()==SetupPacket::REQTYPE_DIR_TO_HOST)) {
@@ -181,7 +183,7 @@ void ControlEndpoint::handle(USB* that, int physical, char status) {
           handled=requestHandler[setup.getType()]->handle(setup, setup.wLength,pbData);
           if(!handled) {
             DBG("Handler failed");
-            that->stall(physical,true);
+//            endpoint[physical>>1]->stall(that,OUT,true);
             return;
           } else {
             setupIn(setup.wLength,pbData);
@@ -191,7 +193,7 @@ void ControlEndpoint::handle(USB* that, int physical, char status) {
     }
   } else {
     //This is an IN (device to host) transfer
-    in();
+  //  in();
   }
 }
 
@@ -216,8 +218,8 @@ bool StandardDeviceHandler::handle(SetupPacket& setup, unsigned short& len, cons
   switch(setup.request) {
     case REQ_GET_DESCRIPTOR:
       DBG("Desc");DBG(setup.wValue,HEX);
-      len=descDevice[0];
-      data=descDevice;
+      len=devDescriptor.bLength;
+      data=(const char*)&devDescriptor;
       return true;
   }
   return false;
@@ -228,20 +230,6 @@ bool StandardDeviceHandler::handle(SetupPacket& setup, unsigned short& len, cons
 //descriptors, which the implementation then has to parse out. I'm not going to 
 //do that.
 
-const char StandardDeviceHandler::descDevice[]={18,
-                              DESC_DEVICE,
-                              leShort(0x0200), //USB standard 2.00
-                              0x00, //Device Class (defined by Interface)
-                              0x00, //Device subclass (zero since class is zero)
-                              0x00, //Device protocol (defined by interface)
-                              64,   //max packet size for control endpoint
-                              leShort(0x3217),   //Vendor ID (not in usb.if as of 12 Oct 2012)
-                              leShort(0x0001),   //Product ID
-                              leShort(0x0001),   //Device version number 0.01
-                              0x01, //Index of manufacturer name
-                              0x02, //Index of product name
-                              0x03, //Index of device serial number
-                              1};   //Number of configurations
 
 
 

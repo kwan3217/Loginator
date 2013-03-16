@@ -92,15 +92,83 @@ public:
   virtual bool handle(SetupPacket& setup, unsigned short& len, const char*& data) {
     int d=dispatch(setup);
     if(d<0) return false;
-    leaf[d]->handle(setup,len,data);
+    return leaf[d]->handle(setup,len,data);
   };
   virtual int dispatch(SetupPacket& setup);
+};
+
+struct USBDescriptor {
+  static const int DESC_DEVICE            = 1;
+  static const int DESC_CONFIGURATION     = 2;
+  static const int DESC_STRING            = 3;
+  static const int DESC_INTERFACE         = 4;
+  static const int DESC_ENDPOINT          = 5;
+  static const int DESC_DEVICE_QUALIFIER  = 6;
+  static const int DESC_OTHER_SPEED       = 7;
+  static const int DESC_INTERFACE_POWER   = 8;
+  uint8_t bLength __attribute__((packed));
+  uint8_t bDescriptorType __attribute__((packed));
+  USBDescriptor(uint8_t LbLength,uint8_t LbDescriptorType):bLength(LbLength),bDescriptorType(LbDescriptorType){};
+};
+
+struct DevDescriptor:public USBDescriptor {
+  uint16_t bcdUSB          __attribute__((packed)); 
+  uint8_t  bDeviceClass    __attribute__((packed));
+  uint8_t  bDeviceSubClass __attribute__((packed));
+  uint8_t  bDeviceProtocol __attribute__((packed));
+  uint8_t  bMaxPacketSize  __attribute__((packed));
+  uint16_t idVendor        __attribute__((packed));
+  uint16_t idProduct       __attribute__((packed));
+  uint16_t bcdDevice       __attribute__((packed));
+  uint8_t iManufacturer    __attribute__((packed));
+  uint8_t iProduct         __attribute__((packed));
+  uint8_t iSerialNumber    __attribute__((packed));
+  uint8_t bNumConfigurations __attribute__((packed));
+  DevDescriptor(uint16_t LidVendor,uint16_t LidProduct, uint16_t LbcdDevice)
+   :USBDescriptor(18,DESC_DEVICE),bcdUSB(0x0200),bDeviceClass(0),bDeviceSubClass(0),bDeviceProtocol(0),bMaxPacketSize(64),
+    idVendor(LidVendor),idProduct(LidProduct),bcdDevice(LbcdDevice),iManufacturer(0),iProduct(0),iSerialNumber(0),bNumConfigurations(0)
+  {};
+};
+
+struct ConfDescriptor:public USBDescriptor {
+  uint16_t wTotalLength       __attribute__((packed));
+  uint8_t bNumInterfaces      __attribute__((packed));
+  uint8_t bConfigurationValue __attribute__((packed));
+  uint8_t iConfiguration      __attribute__((packed));
+  uint8_t bmAttributes        __attribute__((packed));
+  uint8_t bMaxPower           __attribute__((packed));
+  ConfDescriptor(uint8_t LbmAttributes,uint8_t LbMaxPower):USBDescriptor(9,DESC_CONFIGURATION),bmAttributes(LbmAttributes),bMaxPower(LbMaxPower) {};
+};
+
+struct InterfaceDescriptor:public USBDescriptor {
+  uint8_t bInterfaceNumber    __attribute__((packed));
+  uint8_t bAlternateSetting   __attribute__((packed));
+  uint8_t bNumEndpoints       __attribute__((packed));
+  uint8_t bInterfaceClass     __attribute__((packed));
+  uint8_t bInterfaceSubclass  __attribute__((packed));
+  uint8_t iInterface          __attribute__((packed));
+  InterfaceDescriptor(int LbNumEndpoints):USBDescriptor(7,DESC_INTERFACE),bAlternateSetting(0) {};
+};
+
+struct EndpointDescriptor:public USBDescriptor {
+  uint8_t bEndpointAddress    __attribute__((packed));
+  uint8_t bmAttributes        __attribute__((packed));
+  uint16_t wMaxPacketSize     __attribute__((packed));
+  uint8_t bInterval           __attribute__((packed));
+  EndpointDescriptor():USBDescriptor(7,DESC_ENDPOINT) {};
+};
+
+struct ClassSpecDescriptor:public USBDescriptor {
+  uint8_t bDescriptorSubtype  __attribute__((packed));
+  static const uint8_t CS_INTERFACE=0x24;
+  ClassSpecDescriptor(uint8_t LbLength,uint8_t LbDescriptorType, uint8_t LbDescriptorSubtype):
+    USBDescriptor(LbLength,LbDescriptorType),bDescriptorSubtype(LbDescriptorSubtype) {};
 };
 
 class StandardDeviceHandler:public RequestHandler {
   static const unsigned int REQ_GET_DESCRIPTOR    = 0x06;
   static const unsigned int REQ_SET_DESCRIPTOR    = 0x07;
-  static const char descDevice[];
+  static const DevDescriptor devDescriptor;
   virtual bool handle(SetupPacket& setup, unsigned short& len, const char*& data);
 };
 
@@ -188,7 +256,6 @@ public:
   virtual void handle(USB* usb, int physical, char status);
 };
 
-#define leShort(x) (x)& 0xFF,((x)>>8)&0xFF
 class USB {
 private:
   //One handler for each logical endpoint
@@ -210,13 +277,5 @@ public:
   DeviceHandler* deviceHandler;
 };
 
-static const int DESC_DEVICE            = 1;
-static const int DESC_CONFIGURATION     = 2;
-static const int DESC_STRING            = 3;
-static const int DESC_INTERFACE         = 4;
-static const int DESC_ENDPOINT          = 5;
-static const int DESC_DEVICE_QUALIFIER  = 6;
-static const int DESC_OTHER_SPEED       = 7;
-static const int DESC_INTERFACE_POWER   = 8;
 
 #endif

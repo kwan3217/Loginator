@@ -40,7 +40,7 @@ static inline uint16_t swap_endian16(uint16_t data) {
 }
 
 void AD799x::format(uint16_t ch[]) {
-  uint16_t ch0,ch1,ch2,ch3;
+  static uint16_t ch0=0,ch1=0,ch2=0,ch3=0;
   if(nChannels>=0) {ch0=swap_endian16(ch[0]); ch[0]=0;}
   if(nChannels>=1) {ch1=swap_endian16(ch[1]); ch[1]=0;}
   if(nChannels>=2) {ch2=swap_endian16(ch[2]); ch[2]=0;}
