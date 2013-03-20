@@ -32,4 +32,5 @@ T_PACKETS       ULONG     =      1572103
 
 Greater than 26 minutes of data recorded. Processing took about 14 minutes.
 Time stamp difference between first MPU record and last: 1601.1205s (26m41.1205s)
-
+Range zero is 1058s (last top of second before first acceleration)
+MPU did saturate during boost

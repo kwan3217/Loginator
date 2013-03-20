@@ -29,15 +29,16 @@ struct UnionFuncDescriptor:public ClassSpecDescriptor {
 class CDC {
 private:
   USB& usb;
+/*
   InterfaceDescriptor iDescControl;
   InterfaceDescriptor iDescData;
   HeaderFuncDescriptor hDesc;
   CallMgmtFuncDescriptor cmDesc;
   ACMFuncDescriptor acmDesc;
   UnionFuncDescriptor uDesc;
+*/
 public:
-  CDC(USB& Lusb):usb(Lusb),
-    idescControl( {};
+  CDC(USB& Lusb):usb(Lusb) {};
   virtual bool begin();
 };
 

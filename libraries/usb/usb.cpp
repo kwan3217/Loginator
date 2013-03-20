@@ -73,7 +73,7 @@ void USB::HwInt() {
     //The DEV_STAT device interrupt is set
     USBDevIntClr=DEV_STAT; //Ack the interrupt
     int status=cmdRead(CMD_DEV_STATUS);
-    if(deviceHandler && (status & (CON_CH | SUS_CH | RST))) deviceHandler->handle(this,status);
+    if(status & (CON_CH | SUS_CH | RST)) deviceHandle(status);
   }
   if(USBDevIntSt & EP_SLOW) {
     USBDevIntClr=EP_SLOW;
@@ -87,6 +87,12 @@ void USB::HwInt() {
         if(endpoint[physical/2]) endpoint[physical/2]->handle(this,physical,data);
       }
     }
+  }
+}
+
+void USB::deviceHandle(char status) {
+  if(status & RST) {
+    //I think that RST is handled automatically
   }
 }
 
@@ -167,6 +173,36 @@ void USBEndpoint::stall(USB* that, int dir, bool stalled) {
   that->cmdWrite(CMD_EP_SET_STATUS | (dir==OUT?physEPNumOut:physEPNumIn),stalled?1:0);
 }
 
+int USBEndpoint::in(USB* that, const char* pbBuf, int iLen) {
+       
+  // set write enable for specific endpoint
+  USBCtrl = WR_EN | ((logEPNum & 0xF) << 2);
+        
+  // set packet length
+  USBTxPLen = iLen;
+        
+  // write data
+  while (USBCtrl & WR_EN) {
+    USBTxData = (pbBuf[3] << 24) | (pbBuf[2] << 16) | (pbBuf[1] << 8) | pbBuf[0];
+    pbBuf += 4;
+  }
+
+  // select endpoint and validate buffer
+  that->cmd(CMD_EP_SELECT | physEPNumIn);
+  that->cmd(CMD_EP_VALIDATE_BUFFER);
+        
+  return iLen;
+}
+
+void USBEndpoint::in(USB* that) {
+  if(inResidue<=0) return; //early exit if no data to send
+
+  int iChunk=packetSize<inResidue?packetSize:inResidue;
+  in(that,pbInData,iChunk);
+  pbInData+=iChunk;
+  inResidue-=iChunk;
+}
+
 void ControlEndpoint::handle(USB* that, int physical, char status) {
   if((physical & 0x01)==OUT) {
     //This is an OUT (host to device) transfer
@@ -179,21 +215,21 @@ void ControlEndpoint::handle(USB* that, int physical, char status) {
         if(requestHandler[setup.getType()]==0) {
           DBG("No handler for reqtype");
           DBG(setup.getType());
+          stall(that,OUT,true);
         } else {
-          handled=requestHandler[setup.getType()]->handle(setup, setup.wLength,pbData);
+          handled=requestHandler[setup.getType()]->handle(setup, setup.wLength,pbInData);
           if(!handled) {
             DBG("Handler failed");
-//            endpoint[physical>>1]->stall(that,OUT,true);
-            return;
+            stall(that,OUT,true);
           } else {
-            setupIn(setup.wLength,pbData);
+            setupIn(setup.wLength,pbInData);
           }
         }
       }
     }
   } else {
     //This is an IN (device to host) transfer
-  //  in();
+    in(that);
   }
 }
 

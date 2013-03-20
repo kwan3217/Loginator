@@ -52,11 +52,6 @@ public:
   virtual void handle(USB* that, char frameCount)=0;
 };
 
-class DeviceHandler {
-  public:
-  virtual void handle(USB* that, char status)=0;
-};
-
 class SetupPacket {
 public:
   unsigned char requestType;
@@ -215,8 +210,8 @@ private:
   int physEPNumOut,physEPNumIn,logEPNum;
   int packetSize;
 protected:
-  int iResidue,iLen;
-  const char* pbData;
+  int inResidue,inLen;
+  const char* pbInData;
 public:
   USBEndpoint(int LlogEPNum, int LpacketSize):
     physEPNumOut(LlogEPNum<<2|OUT),
@@ -238,8 +233,9 @@ public:
   //Stall or unstall the endpoint in the indicated direction
   void stall(USB* that, int dir, bool stalled);
 
-  void setupIn(int LiLen, const char* LpbData) {iResidue=iLen=LiLen;pbData=LpbData;};
+  void setupIn(int LiLen, const char* LpbData) {inResidue=inLen=LiLen;pbInData=LpbData;};
   void in(USB* that);
+  int in(USB* that, const char* pbBuf, int iLen);
 };
 
 class ControlEndpoint:public USBEndpoint {
@@ -273,8 +269,8 @@ public:
   void realize(int physical, int size);
   void registerDevDescriptor(const char* desc, int len);
   void SoftConnect(bool connected) { cmdWrite(CMD_DEV_STATUS, connected?CON:0);}
+  void deviceHandle(char status);
   FrameHandler* frameHandler;
-  DeviceHandler* deviceHandler;
 };
 
 
