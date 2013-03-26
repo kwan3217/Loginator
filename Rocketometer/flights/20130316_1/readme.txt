@@ -3,7 +3,7 @@
 Site: Alpine Elementary field
 Weather: Overcast, calm winds during flight, weather at KCOLONGM64 51.5f 29.97 in 6.7mph 49%RH
 
-Forgot to pull cap from launch rod before flight. Minor ding to rocket nose cone only damage. Flew straight, seemed to turn level to ground at apogee, I could see a yellow tinge to the tracking smoke. Parachute ejected but never deployed. Rocket fell free from apogee. No damage at impact. Rocketometer was still running after flight.
+Forgot to pull cap from launch rod before flight. Minor ding to rocket nose cone only damage. Flew straight, seemed to turn level to ground at apogee, I could see a yellow tinge to the tracking smoke. Parachute ejected but never deployed. Rocket fell free from apogee. Rocketometer was still running after flight. Engine hook unzipped about 1/8 inch to the aft, probably due to ejection. One fin has a cracked glue joint. Rocket could probably be repaired, but not reflown in its current condition.
 
 Rocketometer has one file as expected, RKTO0500.SDS 35,369,984 bytes. Indicates that Rocketometer was running through whole flight.
 
