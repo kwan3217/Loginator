@@ -92,11 +92,12 @@ void USB::HwInt() {
 
 void USB::deviceHandle(char status) {
   if(status & RST) {
+    DBG("Reset");
     //I think that RST is handled automatically
   }
 }
 
-int USBEndpoint::read(USB* that, char* buf, unsigned int maxLen) {
+int USBEndpoint::out(USB* that, char* buf, unsigned int maxLen) {
   if(buf==0) return -1;
   USBCtrl=RD_EN | (logEPNum<<1);
   unsigned int len;
@@ -174,9 +175,10 @@ void USBEndpoint::stall(USB* that, int dir, bool stalled) {
 }
 
 int USBEndpoint::in(USB* that, const char* pbBuf, int iLen) {
-       
   // set write enable for specific endpoint
   USBCtrl = WR_EN | ((logEPNum & 0xF) << 2);
+  DBG("USBCtrl");
+  DBG(iLen,HEX,8);
         
   // set packet length
   USBTxPLen = iLen;
@@ -195,6 +197,8 @@ int USBEndpoint::in(USB* that, const char* pbBuf, int iLen) {
 }
 
 void USBEndpoint::in(USB* that) {
+  DBG("IN");
+  DBG(inResidue,DEC);
   if(inResidue<=0) return; //early exit if no data to send
 
   int iChunk=packetSize<inResidue?packetSize:inResidue;
@@ -207,9 +211,9 @@ void ControlEndpoint::handle(USB* that, int physical, char status) {
   if((physical & 0x01)==OUT) {
     //This is an OUT (host to device) transfer
     if(status & EP_STATUS_SETUP) {
-//      endpoint[physical>>1]that->readEndpoint(physical, (char*)&setup, sizeof(setup));
+      out(that, (char*)&setup, sizeof(setup));
       setup.debug();
-//      int iType=setup.getType();
+      int iType=setup.getType();
       if((setup.wLength==0) || (setup.getDir()==SetupPacket::REQTYPE_DIR_TO_HOST)) {
         bool handled=false;
         if(requestHandler[setup.getType()]==0) {

@@ -226,7 +226,7 @@ public:
   virtual void handle(USB* usb, int physical, char status)=0;
   //Transfer of bytes from physical endpoint buffer in USB peripheral to main memory
   //Always use the OUT physical endpoint
-  int  read(USB* that, char* buf, unsigned int maxLen);
+  int  out(USB* that, char* buf, unsigned int maxLen);
   //Transfer of bytes from main memory to physical endpoint buffer
   //Always use the IN physical endpoint
   void write(USB* that, char* buf, unsigned int len);
