@@ -1,5 +1,5 @@
 #include "bmp180.h"
-#include "Task.h"
+#include "DirectTask.h"
 #include "Time.h"
 
 #undef BMP180_DEBUG 
@@ -9,7 +9,8 @@ BMP180::BMP180(TwoWire &Lport):port(Lport),OSS(3) {}
 // Stores all of the bmp085's calibration values into global variables
 // Calibration values are required to calculate temp and pressure
 // This function should be called at the beginning of the program
-bool BMP180::begin() {
+bool BMP180::begin(unsigned int Ltimer_ch) {
+  timer_ch=Ltimer_ch;
   port.beginTransmission(ADDRESS);
   port.write(0xE0);
   port.write(0x6B);
@@ -173,7 +174,7 @@ void BMP180::startMeasurement() {
   startMeasurementCore();
   start=true;
   ready=false;
-  taskManager.schedule(5,0,&finishTempTask,this);
+  directTaskManager.schedule(timer_ch,5,0,&finishTempTask,this);
 }
 
 void BMP180::finishTempCore() {
@@ -185,14 +186,14 @@ void BMP180::finishTempCore() {
   // Request a pressure reading w/ oversampling setting
   port.beginTransmission(ADDRESS);
   port.write(0xF4);
-  port.write(0x34 + (OSS<<6));
+  port.write(0x34 | (OSS<<6));
   port.endTransmission();
 }
 
 void BMP180::finishTemp() {
   finishTempCore();  
   // Wait for conversion, delay time dependent on OSS
-  taskManager.schedule(2 + (3<<OSS),0,&finishPresTask,this);
+  directTaskManager.schedule(timer_ch,2 + (3<<OSS),0,&finishPresTask,this);
 }
 
 void BMP180::finishPresCore() {

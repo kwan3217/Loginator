@@ -8,6 +8,7 @@
 #include "mpu60x0.h"
 #include "ad799x.h"
 #include "Time.h"
+#include "DirectTask.h"
 #include "LPC214x.h"
 #include "dump.h"
 #include "packet.h"
@@ -27,12 +28,11 @@ uint16_t resetFileSkip=100;
 
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
-int16_t bx,by,bz;    //compass (bfld)
-uint16_t hx[4];      //HighAcc
-int16_t max,may,maz; //MPU60x0 acc
-int16_t mgx,mgy,mgz; //MPU60x0 gyro
-int16_t mt;          //MPU60x0 temp
 char buf[SDHC::BLOCK_SIZE]; //Use when you need some space to do a sd write
+volatile bool writeDrain=false;
+volatile unsigned int drainTC0,drainTC1;
+
+const int readPeriodMs=3; //Read period in ms
 
 StateTwoWire Wire1(0);
 SDHC sd(&SPI,15);
@@ -48,8 +48,6 @@ Base85 d(Serial);
 FileCircular pktStore(f);
 CCSDS ccsds(pktStore);
 unsigned short pktseq[32];
-bool timeToRead;
-unsigned int lastTC,nextTC,interval;
 
 const char syncMark[]="KwanSync";
 
@@ -75,7 +73,71 @@ void closeLog() {
                //object on a new file.
 }
 
-static const char version_string[]="Rocketometer v1.00 " __DATE__ " " __TIME__;
+static const char version_string[]="Rocketometer v1.01 " __DATE__ " " __TIME__;
+
+int16_t max,may,maz; //MPU60x0 acc
+int16_t mgx,mgy,mgz; //MPU60x0 gyro
+int16_t mt;          //MPU60x0 temp
+int16_t bx,by,bz;    //compass (bfld)
+uint16_t hx[4];      //HighAcc
+bool wantPrint;
+uint32_t TC,TC1;
+int temperatureRaw,pressureRaw;
+int16_t temperature;
+int32_t pressure;
+
+void collectData(void* stuff) {
+  static int phase=0;
+  static uint32_t bmpTC;
+  phase++;
+  TC=TTC(0);
+  mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
+  ad799x.read(hx);
+  TC1=TTC(0);
+  ccsds.start(0x10,pktseq,TC);
+  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
+  ccsds.fill((char*)hx,8);
+  ccsds.fill32(TC1);
+  ccsds.finish();
+  if(0==(phase%20)) {
+    //Only read the compass once every n times we read the 6DoF
+    TC=TTC(0);
+    hmc5883.read(bx,by,bz);
+    ccsds.start(0x04,pktseq,TC);
+    ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
+    ccsds.finish();
+  }
+  if(200==phase) {
+    //Only read the pressure sensor once every n times we read the 6DoF
+    bmpTC=TTC(0);  
+    bmp180.startMeasurement();
+  } else if(bmp180.ready) {
+    temperatureRaw=bmp180.getTemperatureRaw();
+    pressureRaw=bmp180.getPressureRaw();
+    temperature=bmp180.getTemperature();
+    pressure=bmp180.getPressure();
+    bmp180.ready=false;
+    TC1=TTC(0);
+    ccsds.start(0x0A,pktseq,bmpTC);
+    ccsds.fill16(temperatureRaw);
+    ccsds.fill32(pressureRaw);
+    ccsds.fill16(temperature);
+    ccsds.fill32(pressure);
+    ccsds.fill32(TC1);
+    ccsds.finish();
+    wantPrint=true;
+    phase=0;
+  }
+  //Why here? Because since creation of packets is interrupt driven, and there
+  //is only a single buffer, only the interrupt routine is allowed to write
+  if(writeDrain) {
+    ccsds.start(0x08,pktseq,drainTC0);
+    ccsds.fill32(drainTC1);
+    ccsds.finish();
+    writeDrain=false;
+  }
+  directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
+}
 
 void setup() {
   Serial.begin(230400);
@@ -139,7 +201,7 @@ void setup() {
   ccsds.fill((uint8_t)worked);
   ccsds.finish();
 
-  worked=bmp180.begin();
+  worked=bmp180.begin(2);
   Serial.print("bmp180");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
   Serial.print("BMP180 identifier (should be 0x55): 0x");
   Serial.println(bmp180.whoami(),HEX);
@@ -172,83 +234,15 @@ void setup() {
   Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P");
 //  Serial.println("t,tc,Traw,Praw");
 
-//  taskManager.schedule(100,0,sensorTimingTask,0); 
-  lastTC=TTC(0);
-  interval=(PCLK/1000)*10;
-  nextTC=(lastTC+interval) % timerInterval;
+  directTaskManager.begin();
+  directTaskManager.schedule(1,readPeriodMs,0,collectData,0); 
 }
 
 void loop() {
-  static int phase=0;
-  phase++;
-  unsigned int TC=TTC(0);
-  mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
-  ccsds.start(0x06,pktseq,TC);
-  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
-  ccsds.finish();
-  if(0==(phase%10)) {
-    //Only read the compass and HighAcc once every 10 times we read the 6DoF
-    TC=TTC(0);
-    hmc5883.read(bx,by,bz);
-    ccsds.start(0x04,pktseq,TC);
-    ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
-    ccsds.finish();
-    TC=TTC(0);
-    ad799x.read(hx);
-    ccsds.start(0x0B,pktseq,TC);
-    ccsds.fill((char*)hx,8);
-    ccsds.finish();
-    if(200==phase) {
-      //Only read the pressure sensor once every 200 times we read the 6DoF
-//      ad799x.format(hx);
-      TC=TTC(0);  
-      bmp180.takeMeasurement();
-      auto temperatureRaw=bmp180.getTemperatureRaw();
-      auto pressureRaw=bmp180.getPressureRaw();
-      auto temperature=bmp180.getTemperature();
-      auto pressure=bmp180.getPressure();
-      auto TC1=TTC(0);
-      ccsds.start(0x0A,pktseq,TC);
-      ccsds.fill16(temperatureRaw);
-      ccsds.fill32(pressureRaw);
-      ccsds.fill16(temperature);
-      ccsds.fill32(pressure);
-      ccsds.fill32(TC1);
-      ccsds.finish();
-      Serial.print(RTCHOUR,DEC,2);
-      Serial.print(":");Serial.print(RTCMIN,DEC,2);
-      Serial.print(":");Serial.print(TC/PCLK,DEC,2);
-      Serial.print(".");Serial.print((TC%PCLK)/(PCLK/1000),DEC,3);
-      Serial.print(",");Serial.print(TC,DEC,10);
-      Serial.print(",");Serial.print(bx, DEC); 
-      Serial.print(",");Serial.print(by, DEC); 
-      Serial.print(",");Serial.print(bz, DEC); 
-      Serial.print(",");Serial.print(max, DEC);
-      Serial.print(",");Serial.print(may, DEC);
-      Serial.print(",");Serial.print(maz, DEC);
-      Serial.print(",");Serial.print(mgx, DEC);
-      Serial.print(",");Serial.print(mgy, DEC);
-      Serial.print(",");Serial.print(mgz, DEC);
-      Serial.print(",");Serial.print(mt, DEC);
-      Serial.print(",");Serial.print(hx[0], HEX,4); 
-      Serial.print(",");Serial.print(hx[1], HEX,4); 
-      Serial.print(",");Serial.print(hx[2], HEX,4); 
-      Serial.print(",");Serial.print(hx[3], HEX,4); 
-      Serial.print(",");Serial.print(temperature/10, DEC);    
-      Serial.print(".");Serial.print(temperature%10, DEC);    
-      Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
-      Serial.println();
-      phase=0;
-    }
-  }
-  TC=TTC(0);  
+  drainTC0=TTC(0);  
   if(pktStore.drain()) {
-    static int light=0;
-    set_light(light,1);
-    unsigned int TC1=TTC(0);
-    ccsds.start(0x08,pktseq,TC);
-    ccsds.fill32(TC1);
-    ccsds.finish();
+    writeDrain=true;
+    drainTC1=TTC(0);
 
     if(f.size()>=maxLogSize) {
       closeLog();
@@ -256,11 +250,33 @@ void loop() {
       pktStore.fill(syncMark);
       pktStore.mark();
     }
-    set_light(light,0);
-    light++;
-    if(light>=3) light=0;
   }
-
+  if(wantPrint) {
+    Serial.print(RTCHOUR,DEC,2);
+    Serial.print(":");Serial.print(RTCMIN,DEC,2);
+    Serial.print(":");Serial.print(((unsigned int)(TC/PCLK)),DEC,2);
+    Serial.print(".");Serial.print(((unsigned int)((TC%PCLK)/(PCLK/1000))),DEC,3);
+    Serial.print(",");Serial.print(((unsigned int)(TC)),DEC,10);
+    Serial.print(",");Serial.print(bx, DEC); 
+    Serial.print(",");Serial.print(by, DEC); 
+    Serial.print(",");Serial.print(bz, DEC); 
+    Serial.print(",");Serial.print(max, DEC);
+    Serial.print(",");Serial.print(may, DEC);
+    Serial.print(",");Serial.print(maz, DEC);
+    Serial.print(",");Serial.print(mgx, DEC);
+    Serial.print(",");Serial.print(mgy, DEC);
+    Serial.print(",");Serial.print(mgz, DEC);
+    Serial.print(",");Serial.print(mt, DEC);
+    Serial.print(",");Serial.print(hx[0], HEX,4); 
+    Serial.print(",");Serial.print(hx[1], HEX,4); 
+    Serial.print(",");Serial.print(hx[2], HEX,4); 
+    Serial.print(",");Serial.print(hx[3], HEX,4); 
+    Serial.print(",");Serial.print(temperature/10, DEC);    
+    Serial.print(".");Serial.print(temperature%10, DEC);    
+    Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
+    Serial.println();
+    wantPrint=false;
+  }
 }
 
 

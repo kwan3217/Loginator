@@ -16,6 +16,7 @@ template <typename priority, typename T, int S>
 class Heap {
 private:
   position pqsize;
+  pqnode<priority,T> pqueue[S+1];
   void siftup(position pos) {
     position j=pos/2,k=pos;
     priority py=pqueue[pos].pty;
@@ -54,7 +55,6 @@ private:
     if(a==b) return 0;
     /*if(a>b)*/ return 1; //Trichotomoy
   };
-  pqnode<priority,T> pqueue[S+1];
 public:
   Heap(): pqsize(0) {}; //Takes place of create();
   bool empty() {return pqsize==0;};

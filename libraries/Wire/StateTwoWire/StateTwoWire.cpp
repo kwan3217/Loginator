@@ -4,6 +4,9 @@
 #include "irq.h"
 #include "Serial.h"
 
+//Define this to use interrupts - really doesn't gain 
+#undef I2C_IRQ
+
 //StateTwoWire: Use LPC214x hardware I2C port to implement TwoWire object
 StateTwoWire::StateTwoWire(int Lport):port(Lport) {
   thisPtr[port]=this;
@@ -147,10 +150,18 @@ static const State state[32]={&state00,&state08,
                               &stateIn,&stateF8};
 
 void StateTwoWire::stateDriver() {
+#ifdef I2C_IRQ
   int s=I2CSTAT(port);
   state[s>>3](this);
   I2CCONCLR(port)=SI;
   VICVectAddr=0;
+#else
+  if(I2CCONSET(port) & SI) {
+    int s=I2CSTAT(port);
+    state[s>>3](this);
+    I2CCONCLR(port)=SI;
+  }
+#endif
 }
 
 //Initialize I2C peripheral 
@@ -171,11 +182,13 @@ void StateTwoWire::twi_init(unsigned int freq) {
   }
   I2CCONSET(port)=EN;
   I2CCONCLR(port)=SI;
+#ifdef I2C_IRQ
   if(port==0) { 
     IRQHandler::install(IRQHandler::I2C0,IntHandler0);
   } else {
     IRQHandler::install(IRQHandler::I2C1,IntHandler1);
   }
+#endif
 }
 
 uint8_t StateTwoWire::twi_readFrom(uint8_t Laddress, char* Ldata, uint8_t Llength) {
@@ -186,7 +199,12 @@ uint8_t StateTwoWire::twi_readFrom(uint8_t Laddress, char* Ldata, uint8_t Llengt
   lengthRead=Llength;
   I2CCONSET(port)=STA; //set I2EN and STA
   done=false;
-  while(!done) ;
+  while(!done) 
+#ifdef I2C_IRQ
+  ;
+#else
+  stateDriver();
+#endif
   return Llength;
 }
 
@@ -198,9 +216,18 @@ uint8_t StateTwoWire::twi_writeTo(uint8_t Laddress, const char* Ldata, uint8_t L
   lengthWrite=Llength;
   I2CCONSET(port)=STA; //set I2EN and STA
   done=false;
+#ifdef I2C_IRQ
   if(wait) {
-    while(!done) ;
+#endif
+  while(!done) 
+#ifdef I2C_IRQ
+  ;
+#else
+  stateDriver();
+#endif
+#ifdef I2C_IRQ
   }
+#endif
   return 0;
 }
 

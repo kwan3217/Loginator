@@ -44,11 +44,12 @@ class BMP180 {
     void startMeasurementCore();
     static const unsigned char ADDRESS=0x77;  // I2C address of BMP085
     unsigned char OSS;  // Oversampling Setting
+    unsigned int timer_ch;
   public:
     Stream *ouf;
     BMP180(TwoWire &Lport);
     volatile bool ready;
-    bool begin();
+    bool begin(unsigned int Ltimer_ch);
     bool readCalibration();
     void printCalibration(Stream *Louf);
     void fillCalibration(Packet& pkt);

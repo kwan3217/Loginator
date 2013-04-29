@@ -40,13 +40,13 @@ void setup_clock(void) {
 
   measurePCLK();
 
-  //Set up Timer0 to count up to 1 second at full speed, then auto reset with no interrupt.
+  //Set up Timer0 to count up to timerSec seconds at full speed, then auto reset with no interrupt.
   //This is needed for the accurate delay function and the task manager
   TTCR(0) = (1 << 1);       // Reset counter and prescaler and halt timer
   TCTCR(0) = 0; //Drive timer from PCLK, not external pin
   TMCR(0) = (1 <<1);     // On MR0, reset but no int.
-  timerInterval=PCLK*timerSec;
-  TMR0(0) = timerInterval;  //Reset when timer equals PCLK rate, effectively once per second
+  timerInterval=PCLK*timerSec-1;
+  TMR0(0) = timerInterval;  //Reset when timer equals PCLK rate, effectively once per timerSec seconds
   TPR(0) = 0;  //No prescale, 1 timer tick equals 1 PCLK tick
 
   //Set up PWM timer to support analogWrite(). Ticks at 1MHz, resets every 1024 ticks. 
@@ -150,4 +150,6 @@ void setup_pll(unsigned int channel, unsigned int M) {
   feed(channel);
 
 }
-                                               
+
+ 
+                                              

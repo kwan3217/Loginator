@@ -21,10 +21,6 @@ const int light_pin[3]={
   #endif
 #endif
 };
-void set_light(int statnum, int on) {
-  set_pin(light_pin[statnum],0,1); //Set pin to GPIO write
-  gpio_write(light_pin[statnum],on==0); //low if on, high if off
-}
 
 
 
