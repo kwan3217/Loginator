@@ -44,7 +44,8 @@ BMP180 bmp180(Wire1);
 HMC5883 hmc5883(Wire1);
 MPU6050 mpu6050(Wire1,0);
 AD799x ad799x(Wire1);
-Base85 d(Serial);
+const int dumpPktSize=120;
+Base85 d(Serial,dumpPktSize);
 FileCircular pktStore(f);
 CCSDS ccsds(pktStore);
 unsigned short pktseq[32];
@@ -165,14 +166,14 @@ void setup() {
   char* base=source_start;
   d.begin();
   while(len>0) {
-    d.line(base,0,len>120?120:len);
-    ccsds.start(0x03,pktseq);
+    d.line(base,0,len>dumpPktSize?dumpPktSize:len);
+    ccsds.start(0x13,pktseq);
     ccsds.fill16(base-source_start);
-    ccsds.fill(base,len>120?120:len);
+    ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
     ccsds.finish();
     pktStore.drain(); 
-    base+=120;
-    len-=120;
+    base+=dumpPktSize;
+    len-=dumpPktSize;
   }
   d.end();
   mpu6050.begin(3,3);

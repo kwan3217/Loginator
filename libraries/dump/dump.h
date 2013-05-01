@@ -50,8 +50,9 @@ public:
 };
 
 class Hd: public Dump {
-  virtual void line(const char* start, int base, int len);
 public:
   Hd(Print& Lout):Dump(Lout,16) {};
+  Hd(Print& Lout, int LpreferredLen):Dump(Lout,LpreferredLen) {};
+  virtual void line(const char* start, int base, int len);
 };
 #endif

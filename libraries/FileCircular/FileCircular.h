@@ -7,7 +7,7 @@
 class FileCircular: public Circular {
 private:
   bool drainCore();
-  char buf[SDHC::BLOCK_SIZE*2];
+  char buf[SDHC::BLOCK_SIZE*6];
 protected:
   File& ouf;
 public:
