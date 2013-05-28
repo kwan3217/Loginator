@@ -30,3 +30,5 @@ void Partition::print(Print &out) {
   out.print("LBA length:     ");
   out.println((int)lba_length,HEX);
 }
+
+

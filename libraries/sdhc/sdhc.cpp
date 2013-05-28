@@ -123,7 +123,7 @@ bool SDHC::begin() {
 
   // switch to higher SPI frequency 
   s->setfreq(5000000);  
-
+  buf.empty();
   return true;
 }
 
@@ -190,7 +190,11 @@ void SDHC::send_command(unsigned char command, unsigned int arg, unsigned int re
 
 //Read an SD card block, but only record part of it in LPC memory.
 bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
-  if(start+len>BLOCK_SIZE) FAIL(8);
+#ifdef SDHC_PKT
+  buf.fill32BE(block);
+  buf.fill32BE((TTC(0) & 0xFFFFFFF0) | 0);
+#endif
+  if(start+len>BLOCK_SIZE) FAILREC(8);
 
   // address card 
   select_card();
@@ -199,7 +203,7 @@ bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
   send_command(CMD_READ_SINGLE_BLOCK, scale_block_address(block),1);
   if(response[0]) {
     unselect_card();
-    FAIL(100*response[0]+9);
+    FAILREC(100*response[0]+9);
   }
 
   // wait for data block (start byte 0xfe) 
@@ -220,10 +224,14 @@ bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
   // allow card some time to finish 
   rec_byte();
 
-  return true;
+  SUCCEED;
 }
 
 bool SDHC::write(uint32_t block, const char* buffer) {
+#ifdef SDHC_PKT
+  buf.fill32BE(block);
+  buf.fill32BE((TTC(0) & 0xFFFFFFF0) | 1);
+#endif
   // address card 
   select_card();
 
@@ -231,7 +239,7 @@ bool SDHC::write(uint32_t block, const char* buffer) {
   send_command(CMD_WRITE_SINGLE_BLOCK, scale_block_address(block),1);
   if(response[0]) {
     unselect_card();
-    FAIL(100*response[0]+10);
+    FAILREC(100*response[0]+10);
   }
 
   // send start byte 
@@ -251,7 +259,7 @@ bool SDHC::write(uint32_t block, const char* buffer) {
   // deaddress card 
   unselect_card();
 
-  return true;
+  SUCCEED;
 }
 
 bool SDHC::get_info(struct SDHC_info& info) {
@@ -410,4 +418,19 @@ void SDHC_info::print(Print &out) {
   out.println(flag_write_protect_temp,DEC);
   out.print("Format:        ");
   out.println(format,DEC);
+}
+
+void SDHC_info::fill(Packet& p) {
+  p.fill(manufacturer);
+  p.fill(oem,3);
+  p.fill(product,6);
+  p.fill(revision);           
+  p.fill32(serial);           
+  p.fill(manufacturing_year);  
+  p.fill(manufacturing_month);
+  p.fill64(capacity);         
+  p.fill(flag_copy);          
+  p.fill(flag_write_protect); 
+  p.fill(flag_write_protect_temp);
+  p.fill(format);                  
 }

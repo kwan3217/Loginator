@@ -3,6 +3,7 @@
 
 #include "Partition.h"
 #include "Print.h"
+#include "packet.h"
 
 /** Extended BIOS parameter block. Included separately because it could
 appear at one of two places in the block.
@@ -16,6 +17,7 @@ struct BPBExtension {
                                                         ///< but this is accessible without parsing the file structure to find it
   char* fsDisplayType[8] __attribute__ ((packed));      ///< File System Display type, 
                                                         ///< but this is accessible without parsing the file structure to find it
+  void fill(Packet& p);
 };
 
 /**

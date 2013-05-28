@@ -9,8 +9,19 @@
 
 #include "spi_user.h"
 #include "Print.h"
+#define SDHC_PKT
+#ifdef SDHC_PKT
+#include "Circular.h"
+#define FAILREC(x) {errno=(x);buf.fill32BE(errno);buf.mark();return false;}
+#define SUCCEED    {buf.fill32BE(0);buf.mark();return true;}
+#else
+#define FAILREC(x) {errno=(x);return false;}
+#define SUCCEED    {return true;}
+#endif
+#include "packet.h"
 
 #define FAIL(x) {errno=(x);return false;}
+
 #define ASSERT(x,y) {bool result=(x);if(!result) FAIL((y));return result;}
 
 /**
@@ -37,8 +48,8 @@ public:
   static const int SDHC_FORMAT_UNKNOWN     = 3; ///< The card's layout is unknown.
 
   unsigned char manufacturer;            ///< A manufacturer code globally assigned by the SD card organization.
-  unsigned char oem[3+1];                ///< A string describing the card's OEM or content, globally assigned by the SD card organization.
-  unsigned char product[6+1];            ///< A product name.
+  char oem[3+1];                ///< A string describing the card's OEM or content, globally assigned by the SD card organization.
+  char product[6+1];            ///< A product name.
   unsigned char revision;                ///< The card's revision, coded in packed BCD. For example, the revision value \c 0x32 means "3.2".
   unsigned int serial;                   ///< A serial number assigned by the manufacturer.
   unsigned char manufacturing_year;      ///< The year of manufacturing. A value of zero means year 2000.
@@ -53,6 +64,7 @@ public:
                                          ///  state of the card's mechanical write-protect switch.
   unsigned char format;                  ///< The card's data layout. See the \c SDHC_FORMAT_* constants for details. \note This value is not guaranteed to match reality.
   void print(Print &out);
+  void fill(Packet& p);
 };
 
 class SDHC:spi_user {
@@ -129,10 +141,16 @@ static const int CMD_CRC_ON_OFF            = 0x3b;
   void select_card() {s->select_cs(p0);};
   void unselect_card() {s->deselect_cs(p0);};
   uint32_t scale_block_address(uint32_t addr) {return (uint32_t)(card_type & SDHC_SPEC_SDHC ? addr : addr*512);};
+#ifdef SDHC_PKT
+  char buf_data[256];
+#endif
 public:
+#ifdef SDHC_PKT
+  Circular buf; 
+#endif
   static const int BLOCK_SIZE=512;
   unsigned int errno;
-  SDHC(HardSPI *Ls, int Lp0):spi_user(Ls,Lp0),errno(0) {};
+  SDHC(HardSPI *Ls, int Lp0):spi_user(Ls,Lp0),buf(sizeof(buf_data),buf_data),errno(0) {};
   bool begin(void);
   bool available(void);
 

@@ -13,7 +13,7 @@ protected:
 public:
   unsigned int errno;
   FileCircular(File& Louf):Circular(sizeof(buf),buf),ouf(Louf) {};
-  bool drain() {if(readylen()>=SDHC::BLOCK_SIZE) return drainCore();return false;};
+  bool drain() {errno=0;if(readylen()>=SDHC::BLOCK_SIZE) return drainCore();return false;};
 };
 
 #endif

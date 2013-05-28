@@ -57,6 +57,18 @@ bool CCSDS::fill32(unsigned int in) {
   return true;
 }
 
+bool CCSDS::fill64(uint64_t in) {
+  if(!buf.fill((char)((in >> 56) & 0xFF))) return false;
+  if(!buf.fill((char)((in >> 48) & 0xFF))) return false;
+  if(!buf.fill((char)((in >> 40) & 0xFF))) return false;
+  if(!buf.fill((char)((in >> 32) & 0xFF))) return false;
+  if(!buf.fill((char)((in >> 24) & 0xFF))) return false;
+  if(!buf.fill((char)((in >> 16) & 0xFF))) return false;
+  if(!buf.fill((char)((in >>  8) & 0xFF))) return false;
+  if(!buf.fill((char)((in >>  0) & 0xFF))) return false;
+  return true;
+}
+
 bool CCSDS::fillfp(fp f) {
   char* fc=(char*)(&f);
   return buf.fill(fc,sizeof(f));

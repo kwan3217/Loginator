@@ -36,6 +36,23 @@ public:
   bool fill(const char* in);
   bool fill(const char* in, int len);
 
+  //Fill in Big-endian
+  bool fill16BE(unsigned short in) {
+    if(!fill((char)((in >> 8) & 0xFF))) return false;
+    if(!fill((char)((in >> 0) & 0xFF))) return false;
+    return true;
+  }
+  bool fill32BE(unsigned int in) {
+    if(!fill((char)((in >> 24) & 0xFF))) return false;
+    if(!fill((char)((in >> 16) & 0xFF))) return false;
+    if(!fill((char)((in >>  8) & 0xFF))) return false;
+    if(!fill((char)((in >>  0) & 0xFF))) return false;
+    return true;
+  };
+  bool fill16LE(unsigned short in) {return fill((char*)&in,2);};
+  bool fill32LE(unsigned int in) {return fill((char*)&in,4);};
+
+
   //Mark all current unready data as ready
   void mark();
   //Get the next character ready to be flushed

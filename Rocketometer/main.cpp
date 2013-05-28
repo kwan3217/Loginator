@@ -30,12 +30,14 @@ uint16_t resetFileSkip=100;
 //int temperatureRaw, pressureRaw;
 char buf[SDHC::BLOCK_SIZE]; //Use when you need some space to do a sd write
 volatile bool writeDrain=false;
+volatile bool writeSd=false;
 volatile unsigned int drainTC0,drainTC1;
 
 const int readPeriodMs=3; //Read period in ms
 
 StateTwoWire Wire1(0);
 SDHC sd(&SPI,15);
+SDHC_info sdinfo;
 Partition p(sd);
 Cluster fs(p);
 File f(fs);
@@ -52,6 +54,25 @@ unsigned short pktseq[32];
 
 const char syncMark[]="KwanSync";
 
+void blinklock(int blinkcode) {
+  VICIntEnClr=0xFFFFFFFF;
+  set_light(0,0);
+  set_light(1,0);
+  set_light(2,0);
+  for(;;) {
+    for(int i=0;(blinkcode >> i)>0 && i<32;i++) {
+      set_light((blinkcode >> i) & 1,1);
+      delay(1000);
+      set_light((blinkcode >> i) & 1,0);
+      delay(1000);
+    }
+    set_light(2,1);
+    delay(1000);
+    set_light(2,0);
+    delay(1000);
+  }
+}
+
 void openLog(uint16_t inc=1) {
   static char fn[13];
   if(fn[0]!='r') strcpy(fn,"rkto0000.sds");
@@ -67,6 +88,7 @@ void openLog(uint16_t inc=1) {
   }
   bool worked=f.openw(fn,pktStore.headPtr());
   Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
+  if(!worked) blinklock(f.errno);
 }
 
 void closeLog() {
@@ -86,6 +108,12 @@ uint32_t TC,TC1;
 int temperatureRaw,pressureRaw;
 int16_t temperature;
 int32_t pressure;
+
+void writeSdPacket() {
+  ccsds.start(0x11);
+  while(sd.buf.readylen()>0) ccsds.fill(sd.buf.get());
+  ccsds.finish();
+}
 
 void collectData(void* stuff) {
   static int phase=0;
@@ -137,6 +165,10 @@ void collectData(void* stuff) {
     ccsds.finish();
     writeDrain=false;
   }
+  if(writeSd) {
+    writeSdPacket();
+    writeSd=false;
+  }
   directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
 }
 
@@ -149,14 +181,20 @@ void setup() {
 
   bool worked=sd.begin();
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
+  if(!worked) blinklock(sd.errno);
 
+  sd.get_info(sdinfo);
+  sdinfo.print(Serial);
   worked=p.begin(1);
   Serial.print("p");     Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errno);
+  p.print(Serial);
+  if(!worked) blinklock(p.errno);
 
   worked=fs.begin();  
   Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
-  sector.begin();
+//  sector.begin();
   fs.print(Serial);//,sector);
+  if(!worked) blinklock(fs.errno);
 
   openLog(resetFileSkip);
   pktStore.fill(syncMark);
@@ -167,21 +205,31 @@ void setup() {
   d.begin();
   while(len>0) {
     d.line(base,0,len>dumpPktSize?dumpPktSize:len);
-    ccsds.start(0x13,pktseq);
+    ccsds.start(0x03,pktseq);
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
     ccsds.finish();
     pktStore.drain(); 
+    if(sd.buf.readylen()>128) writeSdPacket();
     base+=dumpPktSize;
     len-=dumpPktSize;
   }
   d.end();
+
+  ccsds.start(0x12,pktseq);
+  sdinfo.fill(ccsds);
+  ccsds.finish();
+  pktStore.drain(); 
+  if(sd.buf.readylen()>128) writeSdPacket();
+
   mpu6050.begin(3,3);
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
   ccsds.start(0x0F);
   mpu6050.fillConfig(ccsds);
   ccsds.finish();
+  pktStore.drain(); 
+  if(sd.buf.readylen()>128) writeSdPacket();
 
   hmc5883.begin();
   char HMCid[4];
@@ -191,22 +239,27 @@ void setup() {
   ccsds.start(0x0E);
   hmc5883.fillConfig(ccsds);
   ccsds.finish();
+  pktStore.drain(); 
+  if(sd.buf.readylen()>128) writeSdPacket();
 
   char channels=0x0B;
   worked=ad799x.begin(channels); 
   Serial.print("ad799x");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
+  if(!worked) blinklock(0xAAAA5555);
   ccsds.start(0x0D);
   ccsds.fill(ad799x.getAddress());
   ccsds.fill(channels);
   ccsds.fill(ad799x.getnChannels());
   ccsds.fill((uint8_t)worked);
   ccsds.finish();
+  pktStore.drain(); 
+  if(sd.buf.readylen()>128) writeSdPacket();
 
   worked=bmp180.begin(2);
   Serial.print("bmp180");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
   Serial.print("BMP180 identifier (should be 0x55): 0x");
   Serial.println(bmp180.whoami(),HEX);
-
+  if(!worked) blinklock(0x5555AAAA);
   bmp180.printCalibration(&Serial);
 
   bmp180.ouf=0;
@@ -215,6 +268,8 @@ void setup() {
   bmp180.fillCalibration(ccsds);
 
   ccsds.finish();
+  pktStore.drain(); 
+  if(sd.buf.readylen()>128) writeSdPacket();
 
   ccsds.start(0x0C);
   ccsds.fill32(HW_TYPE);
@@ -231,6 +286,8 @@ void setup() {
   ccsds.fill(CCR);
   ccsds.fill(version_string);
   ccsds.finish();
+  pktStore.drain(); 
+  if(sd.buf.readylen()>128) writeSdPacket();
 
   Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P");
 //  Serial.println("t,tc,Traw,Praw");
@@ -244,13 +301,18 @@ void loop() {
   if(pktStore.drain()) {
     writeDrain=true;
     drainTC1=TTC(0);
-
+    if(sd.buf.readylen()>128) writeSd=true;
     if(f.size()>=maxLogSize) {
       closeLog();
       openLog();
       pktStore.fill(syncMark);
       pktStore.mark();
     }
+  }
+  if(pktStore.errno!=0) {
+    Serial.print("Problem writing file: pktStore.errno=");
+    Serial.println(pktStore.errno);
+    blinklock(pktStore.errno);
   }
   if(wantPrint) {
     Serial.print(RTCHOUR,DEC,2);
