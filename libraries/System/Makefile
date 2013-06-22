@@ -104,7 +104,7 @@ EXTRA_LIBDIRS =
 CSTANDARD = -std=gnu99
 
 # Place -D or -U options for ASM here
-ADEFS =  -D$(RUN_MODE)
+ADEFS +=  -D$(RUN_MODE)
 
 # Compiler flags.
 #  -g*:          generate debugging information

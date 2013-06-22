@@ -1,6 +1,7 @@
 MEDIA="/media/MICROSD 8GB"
 EAGLE=Rocketometer.brd Rocketometer.sch
 
+CDEFS = -DRIEGEL
 include ../libraries/Serial/Makefile
 include ../libraries/Task/Makefile
 include ../libraries/Wire/StateTwoWire/Makefile
@@ -12,6 +13,8 @@ include ../libraries/l3g4200d/Makefile
 include ../libraries/mpu60x0/Makefile
 include ../libraries/dump/Makefile
 include ../libraries/packet/Makefile
+#include ../libraries/fat/Makefile
+include ../libraries/riegel/Makefile
 include ../libraries/FileCircular/Makefile
 include ../libraries/System/Makefile
 

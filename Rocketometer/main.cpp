@@ -12,11 +12,19 @@
 #include "LPC214x.h"
 #include "dump.h"
 #include "packet.h"
+#ifdef RIEGEL
+#include "fat.h"
+#include "fat_config.h"
+#include "partition.h"
+#include "sd_raw.h"
+#include "sd_raw_config.h"
+#else
 #include "sdhc.h"
 #include "Partition.h"
 #include "cluster.h"
 #include "direntry.h"
 #include "file.h"
+#endif
 #include "FileCircular.h"
 
 //Once the log becomes greater or equal to this length, cycle the log file
@@ -96,7 +104,13 @@ void closeLog() {
                //object on a new file.
 }
 
-static const char version_string[]="Rocketometer v1.01 " __DATE__ " " __TIME__;
+static const char version_string[]="Rocketometer v1.1 " 
+#ifdef RIEGEL
+"using Roland Riegel FAT/SD library "
+#else
+"using Kwan FAT/SD library "
+#endif
+__DATE__ " " __TIME__;
 
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
