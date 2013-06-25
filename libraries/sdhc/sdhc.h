@@ -24,6 +24,10 @@
 
 #define ASSERT(x,y) {bool result=(x);if(!result) FAIL((y));return result;}
 
+inline uint32_t tr(uint8_t system, uint8_t function, uint8_t call) {
+  return ((uint32_t)system)<<16 | ((uint32_t)function)<<8 | ((uint32_t)call);
+}
+
 /**
  * \addtogroup sdhc
  *
@@ -156,7 +160,7 @@ public:
 
   bool read(uint32_t offset, char* buffer) {return read(offset,buffer,0,BLOCK_SIZE);}; 
   bool read(uint32_t offset, char* buffer, int start, int len);
-  bool write(uint32_t offset, const char* buffer);
+  bool write(uint32_t offset, const char* buffer, uint32_t trace);
   bool get_info(SDHC_info& info);
 };
 

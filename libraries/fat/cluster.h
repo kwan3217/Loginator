@@ -72,6 +72,7 @@ private:
     return ((cluster-2)*sectorsPerCluster8)+firstDataSector;
   };
   void calcTableCluster(uint32_t cluster, uint32_t& sectorsPerTable, uint32_t& entrySector, uint32_t& entryOffset);
+  char findbuf[512];
 public:
   int errno;
   Cluster(Partition &Lp):p(Lp) {};
@@ -82,12 +83,11 @@ public:
   bool begin();
   bool read(uint32_t cluster, uint8_t sector, char* buf, int start, int len) {ASSERT(p.read(clusterFirstSector(cluster)+sector,buf,start,len),p.errno*100+1);};
   bool read(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.read(clusterFirstSector(cluster)+sector,buf),p.errno*100+2);};
-  bool write(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.write(clusterFirstSector(cluster)+sector,buf),p.errno*100+3);};
+  bool write(uint32_t cluster, uint8_t sector, char* buf) {ASSERT(p.write(clusterFirstSector(cluster)+sector,buf,tr(1,1,1)),p.errno*100+3);};
   void print(Print &out);
   uint32_t readTable(uint32_t cluster);
-  bool writeTable(uint32_t cluster, char* buf, uint32_t entry);
-  uint32_t findFreeCluster(char* buf=0, uint32_t clusterToStart=1);
-  uint32_t findFreeCluster(uint32_t clusterToStart) {return findFreeCluster(0,clusterToStart);};
+  bool writeTable(uint32_t cluster, uint32_t entry);
+  uint32_t findFreeCluster(uint32_t clusterToStart=1);
   static const uint32_t BAD=0x0FFFFFF7;
   static const uint32_t EOF=0x0FFFFFFF;
 };

@@ -2,6 +2,7 @@
 #define gpio_h
 
 #include "LPC214x.h"
+#include "Time.h"
 
 inline void set_pin(int pin, int mode) {
   int mask=~(0x3 << ((pin & 0x0F)<<1));
@@ -56,6 +57,8 @@ inline void set_light(int statnum, int on) {
   set_pin(light_pin[statnum],0,1); //Set pin to GPIO write
   gpio_write(light_pin[statnum],on==0); //low if on, high if off
 }
+
+void blinklock(int blinkcode);
 
 #endif
 

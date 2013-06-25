@@ -12,31 +12,24 @@
 #include "LPC214x.h"
 #include "dump.h"
 #include "packet.h"
-#ifdef RIEGEL
-#include "fat.h"
-#include "fat_config.h"
-#include "partition.h"
-#include "sd_raw.h"
-#include "sd_raw_config.h"
-#else
 #include "sdhc.h"
 #include "Partition.h"
 #include "cluster.h"
 #include "direntry.h"
 #include "file.h"
-#endif
+static const int blockSize=SDHC::BLOCK_SIZE;
 #include "FileCircular.h"
 
 //Once the log becomes greater or equal to this length, cycle the log file
 //This way we don't violate the FAT file size limit, and don't choke our processing
 //program with data.
 //Set to 128MiB so that we can test the feature
-unsigned int maxLogSize=1024U*1024U*128U;
-uint16_t resetFileSkip=100;
+const unsigned int maxLogSize=1024U*1024U*4U;
+const uint16_t resetFileSkip=100;
 
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
-char buf[SDHC::BLOCK_SIZE]; //Use when you need some space to do a sd write
+char vbus;
 volatile bool writeDrain=false;
 volatile bool writeSd=false;
 volatile unsigned int drainTC0,drainTC1;
@@ -62,55 +55,34 @@ unsigned short pktseq[32];
 
 const char syncMark[]="KwanSync";
 
-void blinklock(int blinkcode) {
-  VICIntEnClr=0xFFFFFFFF;
-  set_light(0,0);
-  set_light(1,0);
-  set_light(2,0);
-  for(;;) {
-    for(int i=0;(blinkcode >> i)>0 && i<32;i++) {
-      set_light((blinkcode >> i) & 1,1);
-      delay(1000);
-      set_light((blinkcode >> i) & 1,0);
-      delay(1000);
-    }
-    set_light(2,1);
-    delay(1000);
-    set_light(2,0);
-    delay(1000);
-  }
-}
+static uint16_t log_i=0;
 
 void openLog(uint16_t inc=1) {
+  Serial.println(inc,DEC);
+  Serial.println(log_i,DEC);
+  if(inc==0) blinklock(108);
   static char fn[13];
   if(fn[0]!='r') strcpy(fn,"rkto0000.sds");
-  static int i=0;
   Serial.println(fn);
-  while(i<9999 && f.find(fn)) {
-    i+=inc;
-    fn[4]='0'+i/1000;
-    fn[5]='0'+(i%1000)/100;
-    fn[6]='0'+(i%100)/10;
-    fn[7]='0'+(i%10);
+  while(log_i<9999 && f.find(fn)) {
+    log_i+=inc;
+    fn[4]='0'+log_i/1000;
+    fn[5]='0'+(log_i%1000)/100;
+    fn[6]='0'+(log_i%100)/10;
+    fn[7]='0'+(log_i%10);
     Serial.println(fn);
   }
-  bool worked=f.openw(fn,pktStore.headPtr());
+  bool worked=f.openw(fn);
   Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
   if(!worked) blinklock(f.errno);
 }
 
 void closeLog() {
-  f.close(buf); //Sync the directory entry - after this, we may reuse this file
+  f.close(); //Sync the directory entry - after this, we may reuse this file
                //object on a new file.
 }
 
-static const char version_string[]="Rocketometer v1.1 " 
-#ifdef RIEGEL
-"using Roland Riegel FAT/SD library "
-#else
-"using Kwan FAT/SD library "
-#endif
-__DATE__ " " __TIME__;
+static const char version_string[]="Rocketometer v1.1 using Kwan FAT/SD library " __DATE__ " " __TIME__;
 
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
@@ -123,17 +95,28 @@ int temperatureRaw,pressureRaw;
 int16_t temperature;
 int32_t pressure;
 
-void writeSdPacket() {
+static void writeSdPacket() {
   ccsds.start(0x11);
   while(sd.buf.readylen()>0) ccsds.fill(sd.buf.get());
-  ccsds.finish();
+  ccsds.finish(0x11);
+}
+
+static void maybeWriteSdPacket() {
+  if(sd.buf.readylen()>128) writeSdPacket();
 }
 
 void collectData(void* stuff) {
+  directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
+  //Don't bother to read the sensors if we can't store the data
+  //this way we yield more time back to the writing routine so 
+  //hopefully the buffer becomes empty sooner
+  if(pktStore.isFull()) return; 
   static int phase=0;
   static uint32_t bmpTC;
+  static char old_vbus=0;
   phase++;
   TC=TTC(0);
+  vbus=gpio_read(23);
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
   ad799x.read(hx);
   TC1=TTC(0);
@@ -141,14 +124,21 @@ void collectData(void* stuff) {
   ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
   ccsds.fill((char*)hx,8);
   ccsds.fill32(TC1);
-  ccsds.finish();
+  ccsds.finish(0x10);
+  if(vbus!=old_vbus) {
+    ccsds.start(0x13,pktseq,TC);
+    ccsds.fill(old_vbus);
+    ccsds.fill(vbus);
+    ccsds.finish(0x13);
+    old_vbus=vbus;
+  }
   if(0==(phase%20)) {
     //Only read the compass once every n times we read the 6DoF
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
     ccsds.start(0x04,pktseq,TC);
     ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
-    ccsds.finish();
+    ccsds.finish(0x04);
   }
   if(200==phase) {
     //Only read the pressure sensor once every n times we read the 6DoF
@@ -167,7 +157,7 @@ void collectData(void* stuff) {
     ccsds.fill16(temperature);
     ccsds.fill32(pressure);
     ccsds.fill32(TC1);
-    ccsds.finish();
+    ccsds.finish(0x0A);
     wantPrint=true;
     phase=0;
   }
@@ -176,14 +166,13 @@ void collectData(void* stuff) {
   if(writeDrain) {
     ccsds.start(0x08,pktseq,drainTC0);
     ccsds.fill32(drainTC1);
-    ccsds.finish();
+    ccsds.finish(0x08);
     writeDrain=false;
   }
   if(writeSd) {
     writeSdPacket();
     writeSd=false;
   }
-  directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
 }
 
 void setup() {
@@ -191,9 +180,36 @@ void setup() {
   Serial.println(version_string);
   Wire1.begin();
 
-  SPI1.begin(1000000,1,1);
+  bool worked;
+#ifdef RIEGEL
+  //Open zeroth partition on card
+  partition = partition_open(sd_raw_read, sd_raw_read_interval,sd_raw_write,sd_raw_write_interval,0);
+  if(!partition) {
+    Serial.print("opening partition failed. sd_errno=");
+    Serial.print((unsigned int)sd_errno,DEC);
+    Serial.print(" part_errno=");
+    Serial.print((unsigned int)part_errno,DEC);
+    blinklock(204);
+  }
 
-  bool worked=sd.begin();
+  /* open file system */
+  fs = fat_open(partition);
+  if(!fs) {
+    Serial.println("opening filesystem failed");
+    blinklock(214);
+  }
+
+  /* open root directory */
+  struct fat_dir_entry_struct directory;
+  fat_get_dir_entry_of_path(fs, "/", &directory);
+
+  dd = fat_open_dir(fs, &directory);
+  if(!dd) {
+    Serial.println("opening root directory failed");
+  }
+
+#else
+  worked=sd.begin();
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
   if(!worked) blinklock(sd.errno);
 
@@ -209,6 +225,7 @@ void setup() {
 //  sector.begin();
   fs.print(Serial);//,sector);
   if(!worked) blinklock(fs.errno);
+#endif
 
   openLog(resetFileSkip);
   pktStore.fill(syncMark);
@@ -222,28 +239,30 @@ void setup() {
     ccsds.start(0x03,pktseq);
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
-    ccsds.finish();
+    ccsds.finish(0x03);
     pktStore.drain(); 
-    if(sd.buf.readylen()>128) writeSdPacket();
+    maybeWriteSdPacket();
     base+=dumpPktSize;
     len-=dumpPktSize;
   }
   d.end();
 
+#ifndef RIEGEL
   ccsds.start(0x12,pktseq);
   sdinfo.fill(ccsds);
-  ccsds.finish();
+  ccsds.finish(0x12);
   pktStore.drain(); 
-  if(sd.buf.readylen()>128) writeSdPacket();
+  maybeWriteSdPacket();
+#endif
 
   mpu6050.begin(3,3);
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
   ccsds.start(0x0F);
   mpu6050.fillConfig(ccsds);
-  ccsds.finish();
+  ccsds.finish(0x0F);
   pktStore.drain(); 
-  if(sd.buf.readylen()>128) writeSdPacket();
+  maybeWriteSdPacket();
 
   hmc5883.begin();
   char HMCid[4];
@@ -252,9 +271,9 @@ void setup() {
   Serial.println(HMCid);
   ccsds.start(0x0E);
   hmc5883.fillConfig(ccsds);
-  ccsds.finish();
+  ccsds.finish(0x0E);
   pktStore.drain(); 
-  if(sd.buf.readylen()>128) writeSdPacket();
+  maybeWriteSdPacket();
 
   char channels=0x0B;
   worked=ad799x.begin(channels); 
@@ -265,9 +284,9 @@ void setup() {
   ccsds.fill(channels);
   ccsds.fill(ad799x.getnChannels());
   ccsds.fill((uint8_t)worked);
-  ccsds.finish();
+  ccsds.finish(0x0D);
   pktStore.drain(); 
-  if(sd.buf.readylen()>128) writeSdPacket();
+  maybeWriteSdPacket();
 
   worked=bmp180.begin(2);
   Serial.print("bmp180");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
@@ -281,9 +300,9 @@ void setup() {
 
   bmp180.fillCalibration(ccsds);
 
-  ccsds.finish();
+  ccsds.finish(0x02);
   pktStore.drain(); 
-  if(sd.buf.readylen()>128) writeSdPacket();
+  maybeWriteSdPacket();
 
   ccsds.start(0x0C);
   ccsds.fill32(HW_TYPE);
@@ -299,11 +318,11 @@ void setup() {
   ccsds.fill32(PREFRAC);                    
   ccsds.fill(CCR);
   ccsds.fill(version_string);
-  ccsds.finish();
+  ccsds.finish(0x0C);
   pktStore.drain(); 
-  if(sd.buf.readylen()>128) writeSdPacket();
+  maybeWriteSdPacket();
 
-  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P");
+  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus");
 //  Serial.println("t,tc,Traw,Praw");
 
   directTaskManager.begin();
@@ -315,8 +334,15 @@ void loop() {
   if(pktStore.drain()) {
     writeDrain=true;
     drainTC1=TTC(0);
+#ifndef RIEGEL
     if(sd.buf.readylen()>128) writeSd=true;
-    if(f.size()>=maxLogSize) {
+#endif
+    uint32_t logSize;
+#ifdef RIEGEL
+#else
+    logSize=f.size();
+#endif    
+    if(logSize>=maxLogSize) {
       closeLog();
       openLog();
       pktStore.fill(syncMark);
@@ -351,6 +377,7 @@ void loop() {
     Serial.print(",");Serial.print(temperature/10, DEC);    
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
+    Serial.print(",");Serial.print(vbus, DEC); 
     Serial.println();
     wantPrint=false;
   }

@@ -18,6 +18,7 @@ public:
   virtual void line(const char* start, int base, int len)=0;
   void region(const char* start, int base, int len, int rec_len);
   void region(const char* start, int len, int rec_len) {region(start,(int)start,len,rec_len);};
+  void region(const char* start, int len) {region(start,0,len,preferredLen);};
   void dumpText() {region(btext,etext-btext,preferredLen);};
   void dumpSource() {region(source_start,0,source_end-source_start,preferredLen);}
 };

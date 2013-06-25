@@ -1,5 +1,7 @@
 #include "packet.h"
 #include "Time.h"
+#include "gpio.h"
+#include "Serial.h"
 
 bool Packet::fill(const char* in) {
   while(*in) {
@@ -17,6 +19,13 @@ bool Packet::fill(const char* in, int length) {
 }
 
 bool CCSDS::start(unsigned short apid, unsigned short* seq, unsigned int TC) {
+  if(lock_apid>0) {
+    Serial.print("Tried to start a packet when one already in process: old: 0x");
+    Serial.print(lock_apid,HEX);Serial.print(" new: 0x");Serial.print(apid,HEX);
+    blinklock(apid);
+  }
+  lock_apid=apid;
+
   const int Ver=0;  //0 for standard CCSDS telecommand according to CCSDS 102.0-B-5 11/2000
   const int Type=0; //0 for telemetry, 1 for command
   int Sec=(TC!=0xFFFFFFFFU)?1:0;  //Presence of secondary header
@@ -34,11 +43,21 @@ bool CCSDS::start(unsigned short apid, unsigned short* seq, unsigned int TC) {
   return true;
 }
 
-bool CCSDS::finish() {
+bool CCSDS::finish(int tag) {
+  //If the buffer is already full, we know not to do this
+  if(buf.isFull()) {
+    lock_apid=0; //otherwise the lock will never be released
+    return false;
+  }
   int len=buf.unreadylen()-7;
+  if(len<0) {
+    Serial.print("Bad packet finish: 0x");Serial.println(tag,HEX);
+    blinklock(tag);
+  }
   buf.pokeMid(4,(len >> 8) & 0xFF);
   buf.pokeMid(5,(len >> 0) & 0xFF);
   buf.mark();
+  lock_apid=0;
   return true;
 }
 

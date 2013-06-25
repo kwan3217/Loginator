@@ -31,4 +31,7 @@ void Partition::print(Print &out) {
   out.println((int)lba_length,HEX);
 }
 
+bool Partition::write(const uint32_t block, const char* buf, uint32_t trace) {
+  ASSERT(sd.write(block+lba_start,buf,trace),sd.errno*100+7);
+};
 

@@ -1,6 +1,7 @@
 #include <string.h>
 #include "direntry.h"
 
+
 void DirEntry::print(Print& out) {
   if(shortName[0]==0xE5) {
     out.println("Entry represents deleted file");
@@ -157,9 +158,12 @@ bool DirEntry::findEmpty(uint32_t dir_cluster) {
   return false;
 }
 
-bool DirEntry::writeBack(char* buf) {
+bool DirEntry::writeBack() {
   if(!f.read(entryCluster,entrySector,buf)) FAIL(f.errno*100+4);
-  memcpy(buf+entryOffset,entry,sizeof(entry));
+  char* pentry=(char*)&entry;
+  for(unsigned int i=0;i<sizeof(entry);i++) {
+    buf[entryOffset+i]=pentry[i];
+  }
   if(!f.write(entryCluster,entrySector,buf)) FAIL(f.errno*100+5);
   return true;
 }

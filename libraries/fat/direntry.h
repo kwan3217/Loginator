@@ -8,6 +8,7 @@
 class DirEntry {
 private:
   Cluster& f;  
+  char buf[512];
 public:
   DirEntry(Cluster& Lf):f(Lf) {};
   int errno;
@@ -60,7 +61,7 @@ public:
   static void canonFileName(const char* fn, char* canon);
   bool find(const char* fn,uint32_t dir_cluster=0);
   bool findEmpty(uint32_t dir_cluster=0);
-  bool writeBack(char* buf);
+  bool writeBack();
 };
 
  

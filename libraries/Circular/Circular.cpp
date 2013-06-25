@@ -1,7 +1,7 @@
 #include "Circular.h"
 
 bool Circular::isFull() {
-  return (head+1)%N==tail;
+  return fullState || ((head+1)%N==tail);
 }
 
 bool Circular::isEmpty() {
@@ -16,6 +16,9 @@ bool Circular::fill(char in) {
     head=(head+1)%N;
     return true;
   }
+  //if buffer is full, throw away all unmarked data
+  head=mid;
+  fullState=true;
   return false;
 }
 
@@ -104,6 +107,7 @@ bool Circular::drain(Circular& to) {
     }
     to.fill(get());
   }
+  fullState=false;
   to.mark();
   return true;
 }

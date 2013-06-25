@@ -37,7 +37,7 @@ public:
   void print(Print &out);
   bool read(const uint32_t block, char* buf) {ASSERT(sd.read(block+lba_start,buf),sd.errno*100+5);};
   bool read(const uint32_t block, char* buf, int start, int len) {ASSERT(sd.read(block+lba_start,buf,start,len),sd.errno*100+6);};
-  bool write(const uint32_t block, const char* buf){ASSERT(sd.write(block+lba_start,buf),sd.errno*100+7);};
+  bool write(const uint32_t block, const char* buf, uint32_t trace);
 };
 
 #endif

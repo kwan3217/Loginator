@@ -1,5 +1,3 @@
-MEDIA=/mnt/Loginator
-
 # List C++ source files here.
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
@@ -58,6 +56,8 @@ FLASH_TOOL = LPC12
 ifndef HARDWARE
 HARDWARE = ROCKETOMETER
 endif
+
+CDEFS += -DLPC2148
 
 
 # MCU name and submodel

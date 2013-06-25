@@ -11,18 +11,18 @@
 class FileCircular: public Circular {
 private:
   bool drainCore();
-  static const blockSize=
+  static const int blockSize=
 #ifdef RIEGEL
 512
 #else
 SDHC::BLOCK_SIZE
 #endif
 ;
-  static const bufSize=blockSize*6;
+  static const int bufSize=blockSize*2;
   char buf[bufSize];
 protected:
 #ifdef RIEGEL
-  struct fat_file_struct*
+  struct fat_file_struct*& //reference to pointer
 #else
   File &
 #endif
@@ -31,6 +31,7 @@ public:
   unsigned int errno;
   FileCircular(
 #ifdef RIEGEL
+  struct fat_file_struct*&
 #else
 File &
 #endif

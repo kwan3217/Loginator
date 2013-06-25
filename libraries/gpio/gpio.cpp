@@ -22,5 +22,25 @@ const int light_pin[3]={
 #endif
 };
 
+void blinklock(int blinkcode) {
+  VICIntEnClr=0xFFFFFFFF;
+  set_light(0,0);
+  set_light(1,0);
+  set_light(2,0);
+  for(;;) {
+    for(int i=0;(blinkcode >> i)>0 && i<32;i++) {
+      set_light((blinkcode >> i) & 1,1);
+      delay(1000);
+      set_light((blinkcode >> i) & 1,0);
+      delay(1000);
+    }
+    set_light(2,1);
+    delay(1000);
+    set_light(2,0);
+    delay(1000);
+  }
+}
+
+
 
 

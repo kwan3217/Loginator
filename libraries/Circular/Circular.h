@@ -20,9 +20,11 @@ protected:
   int volatile mid;
   //Location of the next slot to be flushed
   int volatile tail;
-  
+  //If set, buffer reached full. All unmarked data was tossed and 
+  //no new data should be accepted until buffer is drained.
+  bool fullState;
 public:
-  Circular(int LN, char* Lbuf):N(LN),buf(Lbuf),head(0),mid(0),tail(0) {}
+  Circular(int LN, char* Lbuf):N(LN),buf(Lbuf),head(0),mid(0),tail(0),fullState(false) {}
 
   //Is there no space to write another char?
   bool isFull();

@@ -127,21 +127,21 @@ and makes sure that they staty that way. It reads from the first table only, wri
 back to each table, and the 
 assumptions made above make this valid.
 */
-bool Cluster::writeTable(uint32_t cluster, char* buf, uint32_t entry) {
+bool Cluster::writeTable(uint32_t cluster, uint32_t entry) {
   if(tableEntrySize==12) FAIL(8);
   uint32_t sectorsPerTable, entrySector, entryOffset;
   calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
-  if(!p.read(entrySector,buf)) FAIL(p.errno*100+9);
+  if(!p.read(entrySector,findbuf)) FAIL(p.errno*100+9);
   if(tableEntrySize==16) {
-    buf[entryOffset+0]=(uint8_t)(entry & 0xFF);
-    buf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
+    findbuf[entryOffset+0]=(uint8_t)(entry & 0xFF);
+    findbuf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
   } else if(tableEntrySize==32) {
-    buf[entryOffset+0]=(uint8_t)(entry & 0xFF);
-    buf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
-    buf[entryOffset+2]=(uint8_t)((entry>>16) & 0xFF);
-    buf[entryOffset+3]=(buf[entryOffset+3]&0xC0)|(uint8_t)((entry>>24) & 0x3F);
+    findbuf[entryOffset+0]=(uint8_t)(entry & 0xFF);
+    findbuf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
+    findbuf[entryOffset+2]=(uint8_t)((entry>>16) & 0xFF);
+    findbuf[entryOffset+3]=(findbuf[entryOffset+3]&0xC0)|(uint8_t)((entry>>24) & 0x3F);
   }
-  for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,buf)) FAIL(p.errno*100+10);
+  for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,findbuf,tr(1,2,1))) FAIL(p.errno*100+10);
   return true;
 }
 
@@ -151,17 +151,11 @@ start cluster.
 
 This is faster than the other version of findFreeCluster because it reads in an 
 entire sector of the table and searches it rather than re-reading the sector 128 times.
-\param buf - pointer to a writable buffer of at least 512 bytes. Buffer will be 
-clobbered by this routine. If null (default), the old spectacularly time-inefficient method
-is used, reading a full sector each time it checks a cluster. This is OK in the 
-normal case when writing a log on an not-too-heavily fragmented device. It is 
-memory-efficient in that it only reads one entry into memory each time, so it 
-doesn't need a buffer.
 \param startCluster If you have just filled up a cluster and want to find the 
 next available cluster after that, pass the number of the cluster you have just
 filled. The default value starts searching at the beginning of the table.
 */
-uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
+uint32_t Cluster::findFreeCluster(uint32_t startCluster) {
   if(tableEntrySize==12) FAIL_BAD(14);
   uint32_t cluster=startCluster;
   uint32_t sectorsPerTable, entrySector, entryOffset,lastEntrySector=BAD;
@@ -169,38 +163,28 @@ uint32_t Cluster::findFreeCluster(char* buf, uint32_t startCluster) {
   char* pentry=(char*)(&entry);
 //  Serial.println("Searching second half of table");
   for(cluster=startCluster+1;cluster<numClusters+2;cluster++) {
-    if(buf!=0) {
-      calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
-      if(entrySector!=lastEntrySector) {
+    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+    if(entrySector!=lastEntrySector) {
 //        Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
-        if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+15);
-      }
-      lastEntrySector=entrySector;
-      entry=0;
-      for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
-//      Serial.print("Entry for cluster ");Serial.print((unsigned int)cluster,DEC);Serial.print(" points to ");Serial.println((unsigned int)entry);
-    } else {
-      entry=readTable(cluster);
-      if(errno!=0) FAIL_BAD(errno*100+16);
+      if(!p.read(entrySector,findbuf)) FAIL_BAD(p.errno*100+15);
     }
+    lastEntrySector=entrySector;
+    entry=0;
+    for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=findbuf[entryOffset+j];
+//      Serial.print("Entry for cluster ");Serial.print((unsigned int)cluster,DEC);Serial.print(" points to ");Serial.println((unsigned int)entry);
     if(entry==0) return cluster;
   }
 //  Serial.println("Searching first half of table");
   for(cluster=2;cluster<=startCluster;cluster++) {
-    if(buf!=0) {
-      calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
-      if(entrySector!=lastEntrySector) {
+    calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
+    if(entrySector!=lastEntrySector) {
 //        Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
-        if(!p.read(entrySector,buf)) FAIL_BAD(p.errno*100+17);
-      }
-      lastEntrySector=entrySector;
-      entry=0;
-      for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=buf[entryOffset+j];
-//      Serial.println((unsigned int)entry);
-    } else {
-      entry=readTable(cluster);
-      if(errno!=0) FAIL_BAD(errno*100+18);
+      if(!p.read(entrySector,findbuf)) FAIL_BAD(p.errno*100+17);
     }
+    lastEntrySector=entrySector;
+    entry=0;
+    for(uint32_t j=0;j<tableEntrySize/8;j++)pentry[j]=findbuf[entryOffset+j];
+//      Serial.println((unsigned int)entry);
     if(entry==0) return cluster;
   }
   errno=19;

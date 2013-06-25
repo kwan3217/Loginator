@@ -12,8 +12,13 @@
 
 //#define SD_DEBUG
 #ifdef SD_DEBUG
-#include "Serial.h"
 #endif
+
+#include "Serial.h"
+#include "dump.h"
+Hd dump(Serial,32);
+
+const uint32_t special_block=0x5B70;
 
 bool SDHC::begin() {
   // enable outputs for MOSI, SCK, SS, input for MISO 
@@ -227,11 +232,16 @@ bool SDHC::read(uint32_t block, char* buffer, int start, int len) {
   SUCCEED;
 }
 
-bool SDHC::write(uint32_t block, const char* buffer) {
+bool SDHC::write(uint32_t block, const char* buffer, uint32_t trace) {
 #ifdef SDHC_PKT
   buf.fill32BE(block);
   buf.fill32BE((TTC(0) & 0xFFFFFFF0) | 1);
 #endif
+
+//  Serial.print("Trace: ");Serial.println((unsigned int)trace,HEX,8);
+//  Serial.print("Block: ");Serial.println((unsigned int)block,HEX,8);
+//  dump.region(buffer,512);
+
   // address card 
   select_card();
 
