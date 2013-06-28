@@ -11,14 +11,14 @@ bool Packet::fill(const char* in) {
   return true;
 }
 
-bool Packet::fill(const char* in, int length) {
-  for(int i=0;i<length;i++) {
+bool Packet::fill(const char* in, uint32_t length) {
+  for(uint32_t i=0;i<length;i++) {
     if(!fill(in[i])) return false;
   }
   return true;
 }
 
-bool CCSDS::start(unsigned short apid, unsigned short* seq, unsigned int TC) {
+bool CCSDS::start(uint16_t apid, uint16_t* seq, uint32_t TC) {
   if(lock_apid>0) {
     Serial.print("Tried to start a packet when one already in process: old: 0x");
     Serial.print(lock_apid,HEX);Serial.print(" new: 0x");Serial.print(apid,HEX);
@@ -43,7 +43,7 @@ bool CCSDS::start(unsigned short apid, unsigned short* seq, unsigned int TC) {
   return true;
 }
 
-bool CCSDS::finish(int tag) {
+bool CCSDS::finish(uint16_t tag) {
   //If the buffer is already full, we know not to do this
   if(buf.isFull()) {
     lock_apid=0; //otherwise the lock will never be released
@@ -62,13 +62,13 @@ bool CCSDS::finish(int tag) {
 }
 
 //Fill in Big-endian order as specified by CCSDS 102.0-B-5, 1.6a
-bool CCSDS::fill16(unsigned short in) {
+bool CCSDS::fill16(uint16_t in) {
   if(!buf.fill((char)((in >> 8) & 0xFF))) return false;
   if(!buf.fill((char)((in >> 0) & 0xFF))) return false;
   return true;
 }
 
-bool CCSDS::fill32(unsigned int in) {
+bool CCSDS::fill32(uint32_t in) {
   if(!buf.fill((char)((in >> 24) & 0xFF))) return false;
   if(!buf.fill((char)((in >> 16) & 0xFF))) return false;
   if(!buf.fill((char)((in >>  8) & 0xFF))) return false;

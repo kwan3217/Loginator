@@ -24,8 +24,8 @@ static const int blockSize=SDHC::BLOCK_SIZE;
 //This way we don't violate the FAT file size limit, and don't choke our processing
 //program with data.
 //Set to 128MiB so that we can test the feature
-const unsigned int maxLogSize=1024U*1024U*4U;
-const uint16_t resetFileSkip=100;
+const unsigned int maxLogSize=1024U*1024U*1024U;
+const uint16_t resetFileSkip=10;
 
 //int temperature, pressure;
 //int temperatureRaw, pressureRaw;
@@ -34,7 +34,13 @@ volatile bool writeDrain=false;
 volatile bool writeSd=false;
 volatile unsigned int drainTC0,drainTC1;
 
-const int readPeriodMs=3; //Read period in ms
+const uint32_t fastReadPeriodMs=3;
+const uint32_t slowReadPeriodMs=10*fastReadPeriodMs;
+uint32_t readPeriodMs=fastReadPeriodMs; //Read period in ms
+
+inline uint32_t abs(int in) {
+  return in>0?in:-in;
+}
 
 StateTwoWire Wire1(0);
 SDHC sd(&SPI,15);
@@ -105,12 +111,25 @@ static void maybeWriteSdPacket() {
   if(sd.buf.readylen()>128) writeSdPacket();
 }
 
+bool isVertNow;
+bool wasVert;
+uint32_t vertTimeout;
+uint32_t oldOvr;
+
 void collectData(void* stuff) {
-  directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
   //Don't bother to read the sensors if we can't store the data
   //this way we yield more time back to the writing routine so 
   //hopefully the buffer becomes empty sooner
-  if(pktStore.isFull()) return; 
+  if(pktStore.isFull()) {
+    directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
+    return; 
+  }
+  if(oldOvr!=pktStore.getBufOverflow()) {
+    ccsds.start(0x15,pktseq,TC);
+    ccsds.fill(pktStore.getBufOverflow());
+    ccsds.finish(0x15);
+    oldOvr=pktStore.getBufOverflow();
+  }
   static int phase=0;
   static uint32_t bmpTC;
   static char old_vbus=0;
@@ -118,6 +137,28 @@ void collectData(void* stuff) {
   TC=TTC(0);
   vbus=gpio_read(23);
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
+  isVertNow=(abs(maz)>abs(max)) && (abs(maz)>abs(may));
+  if(isVertNow) {
+    vertTimeout=uptime()+20*60;
+    if(!wasVert) {
+      ccsds.start(0x14,pktseq,TC);
+      ccsds.fill((char)1);
+      ccsds.fill32((unsigned int)uptime());
+      ccsds.fill32((unsigned int)vertTimeout);
+      ccsds.finish(0x14);
+    }
+    wasVert=true;
+  } else if (wasVert) {
+    wasVert=vertTimeout>uptime();
+    if(!wasVert) {
+      ccsds.start(0x14,pktseq,TC);
+      ccsds.fill((char)0);
+      ccsds.fill32((unsigned int)uptime());
+      ccsds.fill32((unsigned int)vertTimeout);
+      ccsds.finish(0x14);
+    }
+  }
+  readPeriodMs=wasVert?fastReadPeriodMs:slowReadPeriodMs;
   ad799x.read(hx);
   TC1=TTC(0);
   ccsds.start(0x10,pktseq,TC);
@@ -140,7 +181,7 @@ void collectData(void* stuff) {
     ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
     ccsds.finish(0x04);
   }
-  if(200==phase) {
+  if((500/readPeriodMs)==phase) {
     //Only read the pressure sensor once every n times we read the 6DoF
     bmpTC=TTC(0);  
     bmp180.startMeasurement();
@@ -173,43 +214,18 @@ void collectData(void* stuff) {
     writeSdPacket();
     writeSd=false;
   }
+  directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
 }
 
 void setup() {
+  set_light(1,1);
   Serial.begin(230400);
   Serial.println(version_string);
   Wire1.begin();
 
   bool worked;
-#ifdef RIEGEL
-  //Open zeroth partition on card
-  partition = partition_open(sd_raw_read, sd_raw_read_interval,sd_raw_write,sd_raw_write_interval,0);
-  if(!partition) {
-    Serial.print("opening partition failed. sd_errno=");
-    Serial.print((unsigned int)sd_errno,DEC);
-    Serial.print(" part_errno=");
-    Serial.print((unsigned int)part_errno,DEC);
-    blinklock(204);
-  }
-
-  /* open file system */
-  fs = fat_open(partition);
-  if(!fs) {
-    Serial.println("opening filesystem failed");
-    blinklock(214);
-  }
-
-  /* open root directory */
-  struct fat_dir_entry_struct directory;
-  fat_get_dir_entry_of_path(fs, "/", &directory);
-
-  dd = fat_open_dir(fs, &directory);
-  if(!dd) {
-    Serial.println("opening root directory failed");
-  }
-
-#else
   worked=sd.begin();
+
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
   if(!worked) blinklock(sd.errno);
 
@@ -225,7 +241,7 @@ void setup() {
 //  sector.begin();
   fs.print(Serial);//,sector);
   if(!worked) blinklock(fs.errno);
-#endif
+
 
   openLog(resetFileSkip);
   pktStore.fill(syncMark);
@@ -247,13 +263,11 @@ void setup() {
   }
   d.end();
 
-#ifndef RIEGEL
   ccsds.start(0x12,pktseq);
   sdinfo.fill(ccsds);
   ccsds.finish(0x12);
   pktStore.drain(); 
   maybeWriteSdPacket();
-#endif
 
   mpu6050.begin(3,3);
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
@@ -322,7 +336,9 @@ void setup() {
   pktStore.drain(); 
   maybeWriteSdPacket();
 
-  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus");
+  //Set USB_ON to GPIO read
+  set_pin(23,0,0);
+  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus,ovr,wasVert,isVert");
 //  Serial.println("t,tc,Traw,Praw");
 
   directTaskManager.begin();
@@ -332,16 +348,12 @@ void setup() {
 void loop() {
   drainTC0=TTC(0);  
   if(pktStore.drain()) {
+    flicker();
     writeDrain=true;
     drainTC1=TTC(0);
-#ifndef RIEGEL
     if(sd.buf.readylen()>128) writeSd=true;
-#endif
     uint32_t logSize;
-#ifdef RIEGEL
-#else
     logSize=f.size();
-#endif    
     if(logSize>=maxLogSize) {
       closeLog();
       openLog();
@@ -378,6 +390,9 @@ void loop() {
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
     Serial.print(",");Serial.print(vbus, DEC); 
+    Serial.print(",");Serial.print((unsigned int)pktStore.getBufOverflow(), DEC); 
+    Serial.print(",");Serial.print(wasVert?1:0, DEC); 
+    Serial.print(",");Serial.print(isVertNow?1:0, DEC); 
     Serial.println();
     wantPrint=false;
   }

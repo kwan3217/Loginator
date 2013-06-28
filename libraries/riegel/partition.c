@@ -19,6 +19,7 @@
     #include <stdlib.h>
 #endif
 
+uint32_t part_errno;
 /**
  * \addtogroup partition Partition table support
  *
@@ -67,25 +68,31 @@ struct partition_struct* partition_open(device_read_t device_read, device_read_i
     struct partition_struct* new_partition = 0;
     uint8_t buffer[0x10];
 
-    if(!device_read || !device_read_interval || index >= 4)
-        return 0;
+    if(!device_read || !device_read_interval || index >= 4) {
+      part_errno=1;
+      return 0;
+    }
 
-    if(index >= 0)
-    {
+    if(index >= 0) {
         /* read specified partition table index */
-        if(!device_read(0x01be + index * 0x10, buffer, sizeof(buffer)))
+        if(!device_read(0x01be + index * 0x10, buffer, sizeof(buffer))) {
+            part_errno=2;
             return 0;
-
+        }
         /* abort on empty partition entry */
-        if(buffer[4] == 0x00)
+        if(buffer[4] == 0x00) {
+            part_errno=3;
             return 0;
+        }
     }
 
     /* allocate partition descriptor */
 #if USE_DYNAMIC_MEMORY
     new_partition = malloc(sizeof(*new_partition));
-    if(!new_partition)
+    if(!new_partition) {
+        part_errno=4;
         return 0;
+    }
 #else
     new_partition = partition_handles;
     uint8_t i;
@@ -96,8 +103,10 @@ struct partition_struct* partition_open(device_read_t device_read, device_read_i
 
         ++new_partition;
     }
-    if(i >= PARTITION_COUNT)
+    if(i >= PARTITION_COUNT) {
+        part_errno=5;
         return 0;
+    }
 #endif
 
     memset(new_partition, 0, sizeof(*new_partition));
@@ -118,7 +127,7 @@ struct partition_struct* partition_open(device_read_t device_read, device_read_i
     {
         new_partition->type = 0xff;
     }
-
+    part_errno=0;
     return new_partition;
 }
 

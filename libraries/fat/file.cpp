@@ -18,8 +18,6 @@ bool File::openw(const char* filename,uint32_t dir_cluster) {
   return true;
 }
 
-static uint32_t last_cluster=1;
-
 bool File::create(const char* filename,uint32_t dir_cluster) {
   if(!de.findEmpty(dir_cluster)) FAIL(100*de.errno+4);    
   de.canonFileName(filename,de.shortName);

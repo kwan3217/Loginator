@@ -41,6 +41,19 @@ void blinklock(int blinkcode) {
   }
 }
 
+static int flickerLight;            
 
+void flicker(int on) {
+  set_light(flickerLight,on);       
+  if(on==0) {             
+    flickerLight++;        
+    if(flickerLight>=3) flickerLight=0;         
+  }
+}
 
-
+void flicker() {
+  static int on;
+  flicker(on);
+  on++;             
+  if(on>=2) on=0;
+}

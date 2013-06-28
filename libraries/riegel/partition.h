@@ -20,6 +20,7 @@ extern "C"
 {
 #endif
 
+extern uint32_t part_errno;
 /**
  * \addtogroup partition
  *

@@ -1,6 +1,8 @@
 #ifndef Circular_h
 #define Circular_h
 
+#include <inttypes.h>
+
 //Circular buffer with attempt at atomic message write
 //The buffer consists of a block of memory which conceptually contains
 //two parts - data which is ready to be flushed, and data which is not
@@ -12,19 +14,20 @@
 //All circular buffers are 1024 characters.
 class Circular {
 protected:
-  int N;
+  uint32_t N;
   char* buf;
   //Location of the next slot to be written to
-  int volatile head;
+  uint32_t volatile head;
   //Location of the next slot not yet ready to be flushed
-  int volatile mid;
+  uint32_t volatile mid;
   //Location of the next slot to be flushed
-  int volatile tail;
+  uint32_t volatile tail;
   //If set, buffer reached full. All unmarked data was tossed and 
   //no new data should be accepted until buffer is drained.
   bool fullState;
+  uint32_t bufOverflow;
 public:
-  Circular(int LN, char* Lbuf):N(LN),buf(Lbuf),head(0),mid(0),tail(0),fullState(false) {}
+  Circular(uint32_t LN, char* Lbuf):N(LN),buf(Lbuf),head(0),mid(0),tail(0),fullState(false),bufOverflow(0) {}
 
   //Is there no space to write another char?
   bool isFull();
@@ -36,23 +39,23 @@ public:
   void empty();
 
   bool fill(const char* in);
-  bool fill(const char* in, int len);
+  bool fill(const char* in, uint32_t len);
 
   //Fill in Big-endian
-  bool fill16BE(unsigned short in) {
+  bool fill16BE(uint32_t in) {
     if(!fill((char)((in >> 8) & 0xFF))) return false;
     if(!fill((char)((in >> 0) & 0xFF))) return false;
     return true;
   }
-  bool fill32BE(unsigned int in) {
+  bool fill32BE(uint32_t in) {
     if(!fill((char)((in >> 24) & 0xFF))) return false;
     if(!fill((char)((in >> 16) & 0xFF))) return false;
     if(!fill((char)((in >>  8) & 0xFF))) return false;
     if(!fill((char)((in >>  0) & 0xFF))) return false;
     return true;
   };
-  bool fill16LE(unsigned short in) {return fill((char*)&in,2);};
-  bool fill32LE(unsigned int in) {return fill((char*)&in,4);};
+  bool fill16LE(uint16_t in) {return fill((char*)&in,2);};
+  bool fill32LE(uint32_t in) {return fill((char*)&in,4);};
 
 
   //Mark all current unready data as ready
@@ -77,6 +80,7 @@ public:
   char* volatile headPtr() {return buf+head;}
   char* volatile tailPtr() {return buf+tail;}
   char* volatile midPtr()  {return buf+mid;}
+  uint32_t getBufOverflow() {return bufOverflow;}
 };
 
 #endif

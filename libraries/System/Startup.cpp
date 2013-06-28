@@ -8,7 +8,7 @@ There are two reasons that Startup has to be in asm:
 
 1. Registers CPSR and SP are not directly available to C code.
      So, we write a crumb of inline asm to access these registers,
-     then write the rest in C.
+     then write the rest in C(++).
 2. Exact control of the interrupt table is needed
      So, we use more inline asm 
 
@@ -86,7 +86,9 @@ void loop();
 //No cleanup code because function won't return (what would it return to?)
 void __attribute__ ((naked))            Reset_Handler(void); 
 
-void __attribute__ ((naked)) __attribute__ ((section(".vectors"))) vectorg(void) {
+void __attribute__ ((naked)) 
+__attribute__ ((section(".vectors"))) 
+vectorg(void) {
   asm("ldr pc,[pc,#24]\n\t"
       "ldr pc,[pc,#24]\n\t"
       "ldr pc,[pc,#24]\n\t"

@@ -32,15 +32,7 @@ void DirectTaskManager::handleTimerISR() {
 }
 
 void DirectTaskManager::handle() {
-  static int light=0;
-  static int on=1;
-  set_light(light,on);
-  if(on==0) {
-    light++;
-    if(light>=3) light=0;
-  }
-  on++;
-  if(on>=2) on=0;
+//  flicker();
   unsigned int tir_in=TIR(timer);
   for(unsigned int i=1;i<4;i++) if(tir_in&TIR_MR(i)) {
     taskfunc f=taskList[i].f;

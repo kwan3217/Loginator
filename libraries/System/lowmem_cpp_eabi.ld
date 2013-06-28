@@ -135,6 +135,13 @@ is in between read-only data and initialized data. */
     }
     > RAM
 
+    .usb (NOLOAD):
+    {
+        *(.usb)
+        . = ALIGN(16);
+    }
+    > RAM_USB
+
 
     /* Stabs debugging sections.  */
     .stab          0 : { *(.stab) }

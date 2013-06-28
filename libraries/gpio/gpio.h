@@ -59,6 +59,8 @@ inline void set_light(int statnum, int on) {
 }
 
 void blinklock(int blinkcode);
+void flicker(int on);
+void flicker(void);
 
 #endif
 

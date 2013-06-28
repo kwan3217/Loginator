@@ -18,6 +18,7 @@ bool Circular::fill(char in) {
   }
   //if buffer is full, throw away all unmarked data
   head=mid;
+  if(!fullState) bufOverflow++; //wasn't full when we got here, count this as an overflow
   fullState=true;
   return false;
 }
@@ -37,8 +38,8 @@ bool Circular::fill(const char* in) {
   return true;
 }
 
-bool Circular::fill(const char* in, int len) {
-  for(int i=0;i<len;i++) {
+bool Circular::fill(const char* in, uint32_t len) {
+  for(uint32_t i=0;i<len;i++) {
     if(!fill(in[i])) return false;;
   }
   return true;
@@ -101,10 +102,9 @@ int Circular::readylen() {
 bool Circular::drain(Circular& to) {
   while(readylen()>0) {
     if(to.isFull()) {
-      to.empty();
-      empty();
       return false;
     }
+    fullState=false;
     to.fill(get());
   }
   fullState=false;

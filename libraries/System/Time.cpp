@@ -19,7 +19,7 @@ static void measurePCLK(void) {
       break;
   }
 }
-                              //    J  F  M  A  M  J  J  A  S  O  N  D
+                           //    J  F  M  A  M  J  J  A  S  O  N  D
 static const char monthTable[]={ 0,31,28,31,30,31,30,31,31,30,31,30};
 
 void set_rtc(int y, int m, int d, int h, int n, int s) {
@@ -32,6 +32,10 @@ void set_rtc(int y, int m, int d, int h, int n, int s) {
   RTCHOUR=h;
   RTCMIN=n;
   RTCSEC=s;
+}
+
+uint32_t uptime() {
+  return RTCDOY*86400+RTCHOUR*3600+RTCMIN*60+RTCSEC;
 }
 
 void setup_clock(void) {
