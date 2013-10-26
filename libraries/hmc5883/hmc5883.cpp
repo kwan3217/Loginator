@@ -47,9 +47,25 @@ int16_t HMC5883::read16(uint8_t address) {
 }
 
 void HMC5883::read(int16_t& x, int16_t& y, int16_t& z) {
-  x=read16(3);
-  y=read16(5);
-  z=read16(7);
+  uint8_t msbx, lsbx;
+  uint8_t msby, lsby;
+  uint8_t msbz, lsbz;
+  
+  port.beginTransmission(ADDRESS);
+  port.write(3);
+  port.endTransmission();
+  
+  port.requestFrom(ADDRESS, 6);
+  msbx = port.read();
+  lsbx = port.read();
+  msbz = port.read();
+  lsbz = port.read();
+  msby = port.read();
+  lsby = port.read();
+  x=( (int16_t) msbx<<8 | lsbx);
+  y=( (int16_t) msby<<8 | lsby);
+  z=( (int16_t) msbz<<8 | lsbz);
+  
 }
 
 void HMC5883::whoami(char* id) {

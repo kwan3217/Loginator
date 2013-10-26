@@ -178,7 +178,11 @@ void collectData(void* stuff) {
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
     ccsds.start(0x04,pktseq,TC);
-    ccsds.fill16(bx);  ccsds.fill16(by);  ccsds.fill16(bz);
+    //Sensor registers are in X, Z, Y order, not XYZ. Old code didn't know this,
+    //wrote sensor registers in order, therefore wrote xzy order unintentionally.
+    //We will keep this order to maintain compatibility with old data, including
+    //flight 36.290
+    ccsds.fill16(bx);  ccsds.fill16(bz);  ccsds.fill16(by);
     ccsds.finish(0x04);
   }
   if((500/readPeriodMs)==phase) {
