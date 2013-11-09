@@ -24,18 +24,22 @@
 
 #include <inttypes.h>
 #include "Stream.h"
+#include "Circular.h"
 
 class HardwareSerial: public Stream {
   private:
+    static const int bufSize=512;
+    char txBuf_loc[bufSize], rxBuf_loc[bufSize];
   public:
+    Circular txBuf,rxBuf;
     unsigned int port;
     HardwareSerial(int port);
     void begin(unsigned int baud);
     void end();
-    virtual int available(void);
-    virtual int peek(void);
-    virtual int read(void);
-    virtual void flush(void);
+    virtual int available(void) {return rxBuf.readylen();};
+    virtual int peek(void) {return rxBuf.peekTail();};
+    virtual int read(void) {return rxBuf.get();};
+    virtual void flush(void) {rxBuf.empty();};
     virtual void write(uint8_t);
     using Print::write; // pull in write(str) and write(buf, size) from Print
 };

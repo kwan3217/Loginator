@@ -28,6 +28,7 @@ char Circular::get() {
   char result=buf[tail];
   tail=(tail+1)%N;
   return result;
+  fullState=false;
 }
 
 bool Circular::fill(const char* in) {

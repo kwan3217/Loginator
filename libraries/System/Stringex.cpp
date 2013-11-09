@@ -1,5 +1,5 @@
 #include <string.h>
-#include "stringex.h"
+#include "Stringex.h"
 
 char hexDigits[]="0123456789ABCDEF";
 

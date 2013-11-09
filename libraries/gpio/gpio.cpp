@@ -29,9 +29,9 @@ void blinklock(int blinkcode) {
   set_light(2,0);
   for(;;) {
     for(int i=0;(blinkcode >> i)>0 && i<32;i++) {
-      set_light((blinkcode >> i) & 1,1);
-      delay(1000);
-      set_light((blinkcode >> i) & 1,0);
+      set_light(0,1);
+      delay(((blinkcode >> i) & 1)*1000+1000);
+      set_light(0,0);
       delay(1000);
     }
     set_light(2,1);
@@ -47,7 +47,7 @@ void flicker(int on) {
   set_light(flickerLight,on);       
   if(on==0) {             
     flickerLight++;        
-    if(flickerLight>=3) flickerLight=0;         
+    if(flickerLight>=3) flickerLight=1;
   }
 }
 

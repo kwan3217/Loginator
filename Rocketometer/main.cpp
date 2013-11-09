@@ -19,6 +19,7 @@
 #include "file.h"
 static const int blockSize=SDHC::BLOCK_SIZE;
 #include "FileCircular.h"
+#include "gps.h"
 
 //Once the log becomes greater or equal to this length, cycle the log file
 //This way we don't violate the FAT file size limit, and don't choke our processing
@@ -34,9 +35,7 @@ volatile bool writeDrain=false;
 volatile bool writeSd=false;
 volatile unsigned int drainTC0,drainTC1;
 
-const uint32_t fastReadPeriodMs=3;
-const uint32_t slowReadPeriodMs=10*fastReadPeriodMs;
-uint32_t readPeriodMs=fastReadPeriodMs; //Read period in ms
+const uint32_t readPeriodMs=3;
 
 inline uint32_t abs(int in) {
   return in>0?in:-in;
@@ -54,10 +53,10 @@ HMC5883 hmc5883(Wire1);
 MPU6050 mpu6050(Wire1,0);
 AD799x ad799x(Wire1);
 const int dumpPktSize=120;
-Base85 d(Serial,dumpPktSize);
 FileCircular pktStore(f);
 CCSDS ccsds(pktStore);
 unsigned short pktseq[32];
+NMEAParser gps;
 
 const char syncMark[]="KwanSync";
 
@@ -111,10 +110,13 @@ static void maybeWriteSdPacket() {
   if(sd.buf.readylen()>128) writeSdPacket();
 }
 
-bool isVertNow;
-bool wasVert;
-uint32_t vertTimeout;
 uint32_t oldOvr;
+int bmpPhase=0;
+int hmcPhase=0;
+const int bmpMaxPhase=150;
+const int hmcMaxPhase=10;
+uint32_t bmpTC;
+char old_vbus=0;
 
 void collectData(void* stuff) {
   //Don't bother to read the sensors if we can't store the data
@@ -130,35 +132,11 @@ void collectData(void* stuff) {
     ccsds.finish(0x15);
     oldOvr=pktStore.getBufOverflow();
   }
-  static int phase=0;
-  static uint32_t bmpTC;
-  static char old_vbus=0;
-  phase++;
+  hmcPhase++;
+  bmpPhase++;
   TC=TTC(0);
   vbus=gpio_read(23);
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
-  isVertNow=(abs(maz)>abs(max)) && (abs(maz)>abs(may));
-  if(isVertNow) {
-    vertTimeout=uptime()+20*60;
-    if(!wasVert) {
-      ccsds.start(0x14,pktseq,TC);
-      ccsds.fill((char)1);
-      ccsds.fill32((unsigned int)uptime());
-      ccsds.fill32((unsigned int)vertTimeout);
-      ccsds.finish(0x14);
-    }
-    wasVert=true;
-  } else if (wasVert) {
-    wasVert=vertTimeout>uptime();
-    if(!wasVert) {
-      ccsds.start(0x14,pktseq,TC);
-      ccsds.fill((char)0);
-      ccsds.fill32((unsigned int)uptime());
-      ccsds.fill32((unsigned int)vertTimeout);
-      ccsds.finish(0x14);
-    }
-  }
-  readPeriodMs=wasVert?fastReadPeriodMs:slowReadPeriodMs;
   ad799x.read(hx);
   TC1=TTC(0);
   ccsds.start(0x10,pktseq,TC);
@@ -173,7 +151,7 @@ void collectData(void* stuff) {
     ccsds.finish(0x13);
     old_vbus=vbus;
   }
-  if(0==(phase%20)) {
+  if(hmcPhase>=hmcMaxPhase) {
     //Only read the compass once every n times we read the 6DoF
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
@@ -184,12 +162,16 @@ void collectData(void* stuff) {
     //flight 36.290
     ccsds.fill16(bx);  ccsds.fill16(bz);  ccsds.fill16(by);
     ccsds.finish(0x04);
+    hmcPhase=0;
   }
-  if((500/readPeriodMs)==phase) {
+  if(bmpPhase>=bmpMaxPhase) {
     //Only read the pressure sensor once every n times we read the 6DoF
     bmpTC=TTC(0);  
     bmp180.startMeasurement();
-  } else if(bmp180.ready) {
+    wantPrint=true;
+    bmpPhase=0;
+  }
+  if(bmp180.ready) {
     temperatureRaw=bmp180.getTemperatureRaw();
     pressureRaw=bmp180.getPressureRaw();
     temperature=bmp180.getTemperature();
@@ -203,8 +185,6 @@ void collectData(void* stuff) {
     ccsds.fill32(pressure);
     ccsds.fill32(TC1);
     ccsds.finish(0x0A);
-    wantPrint=true;
-    phase=0;
   }
   //Why here? Because since creation of packets is interrupt driven, and there
   //is only a single buffer, only the interrupt routine is allowed to write
@@ -223,7 +203,8 @@ void collectData(void* stuff) {
 
 void setup() {
   set_light(1,1);
-  Serial.begin(230400);
+//  Serial.begin(230400);
+  Serial.begin(115200);
   Serial.println(version_string);
   Wire1.begin();
 
@@ -253,9 +234,7 @@ void setup() {
   //Dump code to serial port and packet file
   int len=source_end-source_start;
   char* base=source_start;
-  d.begin();
   while(len>0) {
-    d.line(base,0,len>dumpPktSize?dumpPktSize:len);
     ccsds.start(0x03,pktseq);
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
@@ -265,7 +244,6 @@ void setup() {
     base+=dumpPktSize;
     len-=dumpPktSize;
   }
-  d.end();
 
   ccsds.start(0x12,pktseq);
   sdinfo.fill(ccsds);
@@ -279,7 +257,7 @@ void setup() {
   ccsds.start(0x0F);
   mpu6050.fillConfig(ccsds);
   ccsds.finish(0x0F);
-  pktStore.drain(); 
+  pktStore.drain();
   maybeWriteSdPacket();
 
   hmc5883.begin();
@@ -290,11 +268,11 @@ void setup() {
   ccsds.start(0x0E);
   hmc5883.fillConfig(ccsds);
   ccsds.finish(0x0E);
-  pktStore.drain(); 
+  pktStore.drain();
   maybeWriteSdPacket();
 
   char channels=0x0B;
-  worked=ad799x.begin(channels); 
+  worked=ad799x.begin(channels);
   Serial.print("ad799x");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
   if(!worked) blinklock(0xAAAA5555);
   ccsds.start(0x0D);
@@ -303,7 +281,7 @@ void setup() {
   ccsds.fill(ad799x.getnChannels());
   ccsds.fill((uint8_t)worked);
   ccsds.finish(0x0D);
-  pktStore.drain(); 
+  pktStore.drain();
   maybeWriteSdPacket();
 
   worked=bmp180.begin(2);
@@ -319,7 +297,7 @@ void setup() {
   bmp180.fillCalibration(ccsds);
 
   ccsds.finish(0x02);
-  pktStore.drain(); 
+  pktStore.drain();
   maybeWriteSdPacket();
 
   ccsds.start(0x0C);
@@ -332,17 +310,17 @@ void setup() {
   ccsds.fill32(FOSC);                   //Crystal frequency, Hz
   ccsds.fill32(CCLK);                   //Core Clock rate, Hz
   ccsds.fill32(PCLK);                   //Peripheral Clock rate, Hz
-  ccsds.fill32(PREINT);  
-  ccsds.fill32(PREFRAC);                    
+  ccsds.fill32(PREINT);
+  ccsds.fill32(PREFRAC);
   ccsds.fill(CCR);
   ccsds.fill(version_string);
   ccsds.finish(0x0C);
-  pktStore.drain(); 
+  pktStore.drain();
   maybeWriteSdPacket();
 
   //Set USB_ON to GPIO read
   set_pin(23,0,0);
-  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus,ovr,wasVert,isVert");
+  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus,ovr");
 //  Serial.println("t,tc,Traw,Praw");
 
   directTaskManager.begin();
@@ -395,10 +373,13 @@ void loop() {
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
     Serial.print(",");Serial.print(vbus, DEC); 
     Serial.print(",");Serial.print((unsigned int)pktStore.getBufOverflow(), DEC); 
-    Serial.print(",");Serial.print(wasVert?1:0, DEC); 
-    Serial.print(",");Serial.print(isVertNow?1:0, DEC); 
+    Serial.print(",");Serial.print((unsigned int)((void*)gps.State), HEX,8); 
     Serial.println();
     wantPrint=false;
+  }
+  if(Serial.available()>0) {
+    set_light(0,1);
+    gps.parseNMEA(Serial.read());
   }
 }
 

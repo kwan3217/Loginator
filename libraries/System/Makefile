@@ -2,6 +2,7 @@
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
 CPPSRC += main.cpp
+CPPSRC += ../libraries/System/Stringex.cpp
 CPPSRC += ../libraries/System/Startup.cpp
 CPPSRC += ../libraries/System/hardware_stack.cpp
 CPPSRC += ../libraries/System/Time.cpp
@@ -39,8 +40,8 @@ CPPSRCARM:=$(call uniq,$(CPPSRCARM))
 ASRC:=$(call uniq,$(ASRC))
 ASRCARM:=$(call uniq,$(ASRCARM))
 LIBMAKE:=$(call uniq,$(LIBMAKE))
-ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM)
-INCDEF = $(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq)
+ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM) $(PERL)
+INCDEF = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq))
 ALLTAR = $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(EAGLE) $(ZPAQDIR)/max.cfg
 BACKUP = $(addsuffix ~,$(ALLTAR))
 #MYTAR = $(shell cat $(ALLTAR) | sed -n 's"\.\./lib/\S*\s//g"')
@@ -266,6 +267,7 @@ ALL_ASFLAGS = -mcpu=$(MCU) $(THUMB_IW) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
 # Default target.
+.DEFAULT_GOAL = all
 all: begin gccversion sizebefore build sizeafter finished end
 
 #ifeq ($(FORMAT),ihex)
@@ -490,6 +492,7 @@ clean_list :
 	@echo $(MSG_CLEANING)
 	$(REMOVE) ../Common_WinARM/$(TARGET).hex
 	$(REMOVE) Doxyfile
+	$(REMOVE) sinShort.h
 	$(REMOVE) -r html
 	$(REMOVE) -r latex
 	$(REMOVE) $(TARGET).hex

@@ -29,17 +29,32 @@
 #include "Serial.h"
 #include "Time.h"
 #include "gpio.h"
+#include "irq.h"
 
 //Actual hardware interaction
 
-static inline int putc_serial(int port,int ch) {
-  while (!(ULSR(port) & 0x20));
-  return (UTHR(port) = ch);
+static void UARTISR(int n, HardwareSerial& port) {
+  if((0x01<<1) & UIIR(n)) {//If it's a THRE int...
+    int i=0;
+    while(i<16 && port.txBuf.readylen()>0) {
+      UTHR(0)=port.txBuf.get();
+      i++;
+    }
+  } else { //presume it's a read int
+    port.rxBuf.fill(URBR(n));
+    port.rxBuf.mark();
+  }  
+  //Acknowledge the VIC
+  VICVectAddr = 0;
 }
+
+static void UARTISR0() {UARTISR(0,Serial);}
+static void UARTISR1() {UARTISR(1,Serial1);}
+
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-HardwareSerial::HardwareSerial(int Lport):port(Lport) {
+HardwareSerial::HardwareSerial(int Lport):port(Lport),txBuf(bufSize,txBuf_loc),rxBuf(bufSize,rxBuf_loc) {
 
 }
 
@@ -58,7 +73,12 @@ void HardwareSerial::begin(unsigned int baud) {
     set_pin(8,1); //TX1
     set_pin(9,1); //RX1
   }
-  ULCR(port) = 0x83;   // 8 bits, no parity, 1 stop bit, DLAB = 1
+  ULCR(port) = (3 << 0) | //8 data bits
+               (0 << 2) | //1 stop bit
+               (0 << 3) | //No parity
+               (0 << 4) | //I said, no parity!
+               (0 << 6) | //No break transmission
+               (1 << 7);  //DLAB = 1
   //DLAB - Divisor Latch Access bit. When set, a certain memory address
   //       maps to the divisor latches, which control the baud rate. When
   //       cleared, those same addresses correspond to the processor end
@@ -71,20 +91,24 @@ void HardwareSerial::begin(unsigned int baud) {
   UDLM(port)=(UDL >> 8) & 0xFF;
   UDLL(port)=(UDL >> 0) & 0xFF;
 
-  UFCR(port) = 0xC7; //Enable and clear both FIFOs, Rx trigger level=14 chars
-  ULCR(port) = 0x03; //Turn of DLAB - FIFOs accessable
-  UIER(port)=0;
+  UFCR(port) = (1 << 0) |  //FIFOs on
+               (1 << 1) |  //Clear rx FIFO
+               (1 << 2) |  //Clear tx FIFO
+               (3 << 6);   //Rx watermark=14 bytes
+  ULCR(port) = ULCR(port) & ~(1<<7); //Turn of DLAB - FIFOs accessable
 
-/*
-   enableIRQ();
   if(port==0) {
-    install_irq(UART0_INT,uart0_isr);
-    U0IER=0x03; //Rx ready, Tx empty, not line status, not autobaud ints
+    IRQHandler::install(IRQHandler::UART0,UARTISR0);
   } else {
-    install_irq(UART1_INT,uart1_isr);
-    U1IER=0x03; //Rx ready, Tx empty, not line status, not autobaud ints
+    IRQHandler::install(IRQHandler::UART1,UARTISR1);
   }
- */
+  UIER(port) = (1 << 0) | //Int on Rx ready
+#ifdef NOBLOCK_TX    
+               (1 << 1) | //Int on Tx empty
+#endif    
+               (0 << 2) | //No int on line status
+               (0 << 8) | //No int on autobaud timeout
+               (0 << 9);  //No int on end of autobaud
 }
 
 void HardwareSerial::end() {
@@ -102,24 +126,17 @@ void HardwareSerial::end() {
   }
 }
 
-int HardwareSerial::available(void) {
-  return 0;
-}
-
-int HardwareSerial::peek(void) {
-  return -1;
-}
-
-int HardwareSerial::read(void) {
-  return -1;
-}
-
-void HardwareSerial::flush() {
-
-}
-
 void HardwareSerial::write(uint8_t c) {
-  putc_serial(port,c);
+  if(!txBuf.fill(c)) blinklock(1);
+  txBuf.mark();
+#ifdef NOBLOCK_TX  
+  if(ULSR(port) & (1<<5)) UTHR(port)=txBuf.get(); //If transmit fifo is empty, kick off transfer by writing first byte
+#else
+  while(!txBuf.isEmpty()) {
+    while (!(ULSR(port) & (1<<5))); //do nothing, wait for Tx FIFO to become empty;
+    UTHR(port)=txBuf.get();
+  }
+#endif
 }
 
 // Preinstantiate Objects //////////////////////////////////////////////////////

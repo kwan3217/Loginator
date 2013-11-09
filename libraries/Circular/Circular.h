@@ -69,9 +69,9 @@ public:
   //Get the number of characters which are ready
   int readylen();
 
-  char peekTail(int ahead);
-  char peekMid(int ahead);
-  char peekHead(int ahead);
+  char peekTail(int ahead=0);
+  char peekMid(int ahead=0);
+  char peekHead(int ahead=0);
 
   void pokeTail(int ahead, char poke);
   void pokeMid(int ahead, char poke);
