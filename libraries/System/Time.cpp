@@ -34,8 +34,43 @@ void set_rtc(int y, int m, int d, int h, int n, int s) {
   RTCSEC=s;
 }
 
-uint32_t uptime() {
-  return RTCDOY*86400+RTCHOUR*3600+RTCMIN*60+RTCSEC;
+//This is called by something like a PPS detector. If the PPS is in the top half
+//of the second, 
+void time_mark() {
+  bool botOfSecond=(CTC& 0x7FFF)>=(1<<14);
+  //Reset the subsecond counter
+  CCR|=(1<<1);
+  CCR&=~(1<<1);
+  if(botOfSecond) {
+    int s=RTCSEC;
+    int n=RTCMIN;
+    int h=RTCHOUR;
+    int d=RTCDOM;
+    int m=RTCMONTH;
+    int y=RTCYEAR;
+    s++;
+    if(s>=60) {
+      s-=60;
+      n++;
+      if(n>=60) {
+        n-=60;
+        h++;
+        if(h>=24) {
+          h-=24;
+          d++;
+          if(d>(monthTable[m]+(((m==2)&&(y%4==0))?1:0))) { //Take that, papists!
+            d=1;
+            m++;
+            if(m>12) {
+              m=1;
+              y++;
+            }
+          }
+        }
+      }
+    }
+    set_rtc(y,m,d,h,n,s);
+  }
 }
 
 void setup_clock(void) {

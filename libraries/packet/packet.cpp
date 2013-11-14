@@ -18,12 +18,13 @@ bool Packet::fill(const char* in, uint32_t length) {
   return true;
 }
 
-bool CCSDS::start(uint16_t apid, uint16_t* seq, uint32_t TC) {
+bool CCSDS::start(Circular &Lbuf, uint16_t apid, uint16_t* seq, uint32_t TC) {
   if(lock_apid>0) {
     Serial.print("Tried to start a packet when one already in process: old: 0x");
     Serial.print(lock_apid,HEX);Serial.print(" new: 0x");Serial.print(apid,HEX);
     blinklock(apid);
   }
+  buf=&Lbuf;
   lock_apid=apid;
 
   const int Ver=0;  //0 for standard CCSDS telecommand according to CCSDS 102.0-B-5 11/2000
@@ -45,51 +46,52 @@ bool CCSDS::start(uint16_t apid, uint16_t* seq, uint32_t TC) {
 
 bool CCSDS::finish(uint16_t tag) {
   //If the buffer is already full, we know not to do this
-  if(buf.isFull()) {
+  if(buf->isFull()) {
     lock_apid=0; //otherwise the lock will never be released
     return false;
   }
-  int len=buf.unreadylen()-7;
+  int len=buf->unreadylen()-7;
   if(len<0) {
     Serial.print("Bad packet finish: 0x");Serial.println(tag,HEX);
     blinklock(tag);
   }
-  buf.pokeMid(4,(len >> 8) & 0xFF);
-  buf.pokeMid(5,(len >> 0) & 0xFF);
-  buf.mark();
+  buf->pokeMid(4,(len >> 8) & 0xFF);
+  buf->pokeMid(5,(len >> 0) & 0xFF);
+  buf->mark();
   lock_apid=0;
+  buf=0;
   return true;
 }
 
 //Fill in Big-endian order as specified by CCSDS 102.0-B-5, 1.6a
 bool CCSDS::fill16(uint16_t in) {
-  if(!buf.fill((char)((in >> 8) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 0) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 8) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 0) & 0xFF))) return false;
   return true;
 }
 
 bool CCSDS::fill32(uint32_t in) {
-  if(!buf.fill((char)((in >> 24) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 16) & 0xFF))) return false;
-  if(!buf.fill((char)((in >>  8) & 0xFF))) return false;
-  if(!buf.fill((char)((in >>  0) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 24) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 16) & 0xFF))) return false;
+  if(!buf->fill((char)((in >>  8) & 0xFF))) return false;
+  if(!buf->fill((char)((in >>  0) & 0xFF))) return false;
   return true;
 }
 
 bool CCSDS::fill64(uint64_t in) {
-  if(!buf.fill((char)((in >> 56) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 48) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 40) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 32) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 24) & 0xFF))) return false;
-  if(!buf.fill((char)((in >> 16) & 0xFF))) return false;
-  if(!buf.fill((char)((in >>  8) & 0xFF))) return false;
-  if(!buf.fill((char)((in >>  0) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 56) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 48) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 40) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 32) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 24) & 0xFF))) return false;
+  if(!buf->fill((char)((in >> 16) & 0xFF))) return false;
+  if(!buf->fill((char)((in >>  8) & 0xFF))) return false;
+  if(!buf->fill((char)((in >>  0) & 0xFF))) return false;
   return true;
 }
 
 bool CCSDS::fillfp(fp f) {
   char* fc=(char*)(&f);
-  return buf.fill(fc,sizeof(f));
+  return buf->fill(fc,sizeof(f));
 }
 

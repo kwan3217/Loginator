@@ -54,7 +54,7 @@ static void UARTISR1() {UARTISR(1,Serial1);}
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-HardwareSerial::HardwareSerial(int Lport):port(Lport),txBuf(bufSize,txBuf_loc),rxBuf(bufSize,rxBuf_loc) {
+HardwareSerial::HardwareSerial(int Lport):txBuf(bufSize,txBuf_loc),rxBuf(bufSize,rxBuf_loc),port(Lport) {
 
 }
 

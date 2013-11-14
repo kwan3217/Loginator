@@ -53,10 +53,12 @@ HMC5883 hmc5883(Wire1);
 MPU6050 mpu6050(Wire1,0);
 AD799x ad799x(Wire1);
 const int dumpPktSize=120;
-FileCircular pktStore(f);
-CCSDS ccsds(pktStore);
+FileCircular sdStore(f);
+char measBuf[1024],serialBuf[1024];
+Circular measStore(1024,measBuf),serialStore(1024,serialBuf);
+CCSDS ccsds;
 unsigned short pktseq[32];
-NMEAParser gps;
+GPS gps(Serial);
 
 const char syncMark[]="KwanSync";
 
@@ -100,14 +102,14 @@ int temperatureRaw,pressureRaw;
 int16_t temperature;
 int32_t pressure;
 
-static void writeSdPacket() {
-  ccsds.start(0x11);
+static void writeSdPacket(Circular &buf) {
+  ccsds.start(buf,0x11);
   while(sd.buf.readylen()>0) ccsds.fill(sd.buf.get());
   ccsds.finish(0x11);
 }
 
-static void maybeWriteSdPacket() {
-  if(sd.buf.readylen()>128) writeSdPacket();
+static void maybeWriteSdPacket(Circular& buf) {
+  if(sd.buf.readylen()>128) writeSdPacket(buf);
 }
 
 uint32_t oldOvr;
@@ -122,15 +124,15 @@ void collectData(void* stuff) {
   //Don't bother to read the sensors if we can't store the data
   //this way we yield more time back to the writing routine so 
   //hopefully the buffer becomes empty sooner
-  if(pktStore.isFull()) {
+  if(measStore.isFull()) {
     directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
     return; 
   }
-  if(oldOvr!=pktStore.getBufOverflow()) {
-    ccsds.start(0x15,pktseq,TC);
-    ccsds.fill(pktStore.getBufOverflow());
+  if(oldOvr!=measStore.getBufOverflow()) {
+    ccsds.start(measStore,0x15,pktseq,TC);
+    ccsds.fill(measStore.getBufOverflow());
     ccsds.finish(0x15);
-    oldOvr=pktStore.getBufOverflow();
+    oldOvr=measStore.getBufOverflow();
   }
   hmcPhase++;
   bmpPhase++;
@@ -139,13 +141,13 @@ void collectData(void* stuff) {
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
   ad799x.read(hx);
   TC1=TTC(0);
-  ccsds.start(0x10,pktseq,TC);
+  ccsds.start(measStore,0x10,pktseq,TC);
   ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
   ccsds.fill((char*)hx,8);
   ccsds.fill32(TC1);
   ccsds.finish(0x10);
   if(vbus!=old_vbus) {
-    ccsds.start(0x13,pktseq,TC);
+    ccsds.start(measStore,0x13,pktseq,TC);
     ccsds.fill(old_vbus);
     ccsds.fill(vbus);
     ccsds.finish(0x13);
@@ -155,7 +157,7 @@ void collectData(void* stuff) {
     //Only read the compass once every n times we read the 6DoF
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
-    ccsds.start(0x04,pktseq,TC);
+    ccsds.start(measStore,0x04,pktseq,TC);
     //Sensor registers are in X, Z, Y order, not XYZ. Old code didn't know this,
     //wrote sensor registers in order, therefore wrote xzy order unintentionally.
     //We will keep this order to maintain compatibility with old data, including
@@ -178,7 +180,7 @@ void collectData(void* stuff) {
     pressure=bmp180.getPressure();
     bmp180.ready=false;
     TC1=TTC(0);
-    ccsds.start(0x0A,pktseq,bmpTC);
+    ccsds.start(measStore,0x0A,pktseq,bmpTC);
     ccsds.fill16(temperatureRaw);
     ccsds.fill32(pressureRaw);
     ccsds.fill16(temperature);
@@ -189,14 +191,22 @@ void collectData(void* stuff) {
   //Why here? Because since creation of packets is interrupt driven, and there
   //is only a single buffer, only the interrupt routine is allowed to write
   if(writeDrain) {
-    ccsds.start(0x08,pktseq,drainTC0);
+    ccsds.start(measStore,0x08,pktseq,drainTC0);
     ccsds.fill32(drainTC1);
     ccsds.finish(0x08);
     writeDrain=false;
   }
   if(writeSd) {
-    writeSdPacket();
+    writeSdPacket(measStore);
     writeSd=false;
+  }
+  if(gps.writePPS) {
+    ccsds.start(measStore,0x16,pktseq,gps.lastPPSTC);
+    ccsds.fill32(gps.PPSTC);
+    ccsds.fill(gps.lastPPS);
+    ccsds.fill(gps.PPS);
+    gps.writePPS=false;
+    ccsds.finish(0x16);
   }
   directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
 }
@@ -204,6 +214,12 @@ void collectData(void* stuff) {
 void setup() {
   set_light(1,1);
 //  Serial.begin(230400);
+//  Serial.begin(115200);
+//  Serial.begin(4800);
+//  Serial.println("$PSRF103,8,0,1,1*2D");
+//  delay(500);
+//  Serial.println("$PSRF100,1,115200,8,1,0*05");
+//  Serial.end();
   Serial.begin(115200);
   Serial.println(version_string);
   Wire1.begin();
@@ -229,60 +245,60 @@ void setup() {
 
 
   openLog(resetFileSkip);
-  pktStore.fill(syncMark);
-  pktStore.mark();
+  sdStore.fill(syncMark);
+  sdStore.mark();
   //Dump code to serial port and packet file
   int len=source_end-source_start;
   char* base=source_start;
   while(len>0) {
-    ccsds.start(0x03,pktseq);
+    ccsds.start(sdStore,0x03,pktseq);
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
     ccsds.finish(0x03);
-    pktStore.drain(); 
-    maybeWriteSdPacket();
+    sdStore.drain(); 
+    maybeWriteSdPacket(sdStore);
     base+=dumpPktSize;
     len-=dumpPktSize;
   }
 
-  ccsds.start(0x12,pktseq);
+  ccsds.start(sdStore,0x12,pktseq);
   sdinfo.fill(ccsds);
   ccsds.finish(0x12);
-  pktStore.drain(); 
-  maybeWriteSdPacket();
+  sdStore.drain(); 
+  maybeWriteSdPacket(sdStore);
 
   mpu6050.begin(3,3);
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
-  ccsds.start(0x0F);
+  ccsds.start(sdStore,0x0F);
   mpu6050.fillConfig(ccsds);
   ccsds.finish(0x0F);
-  pktStore.drain();
-  maybeWriteSdPacket();
+  sdStore.drain();
+  maybeWriteSdPacket(sdStore);
 
   hmc5883.begin();
   char HMCid[4];
   hmc5883.whoami(HMCid);
   Serial.print("HMC5883L identifier (should be 'H43'): ");
   Serial.println(HMCid);
-  ccsds.start(0x0E);
+  ccsds.start(sdStore,0x0E);
   hmc5883.fillConfig(ccsds);
   ccsds.finish(0x0E);
-  pktStore.drain();
-  maybeWriteSdPacket();
+  sdStore.drain();
+  maybeWriteSdPacket(sdStore);
 
   char channels=0x0B;
   worked=ad799x.begin(channels);
   Serial.print("ad799x");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
   if(!worked) blinklock(0xAAAA5555);
-  ccsds.start(0x0D);
+  ccsds.start(sdStore,0x0D);
   ccsds.fill(ad799x.getAddress());
   ccsds.fill(channels);
   ccsds.fill(ad799x.getnChannels());
   ccsds.fill((uint8_t)worked);
   ccsds.finish(0x0D);
-  pktStore.drain();
-  maybeWriteSdPacket();
+  sdStore.drain();
+  maybeWriteSdPacket(sdStore);
 
   worked=bmp180.begin(2);
   Serial.print("bmp180");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
@@ -292,15 +308,15 @@ void setup() {
   bmp180.printCalibration(&Serial);
 
   bmp180.ouf=0;
-  ccsds.start(0x02);
+  ccsds.start(sdStore,0x02);
 
   bmp180.fillCalibration(ccsds);
 
   ccsds.finish(0x02);
-  pktStore.drain();
-  maybeWriteSdPacket();
+  sdStore.drain();
+  maybeWriteSdPacket(sdStore);
 
-  ccsds.start(0x0C);
+  ccsds.start(sdStore,0x0C);
   ccsds.fill32(HW_TYPE);
   ccsds.fill32(HW_SERIAL);
   ccsds.fill(MAMCR);
@@ -315,11 +331,12 @@ void setup() {
   ccsds.fill(CCR);
   ccsds.fill(version_string);
   ccsds.finish(0x0C);
-  pktStore.drain();
-  maybeWriteSdPacket();
+  sdStore.drain();
+  maybeWriteSdPacket(sdStore);
 
   //Set USB_ON to GPIO read
   set_pin(23,0,0);
+  gps.begin();
   Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus,ovr");
 //  Serial.println("t,tc,Traw,Praw");
 
@@ -328,8 +345,9 @@ void setup() {
 }
 
 void loop() {
-  drainTC0=TTC(0);  
-  if(pktStore.drain()) {
+  drainTC0=TTC(0);
+  measStore.drain(sdStore);
+  if(sdStore.drain()) {
     flicker();
     writeDrain=true;
     drainTC1=TTC(0);
@@ -339,20 +357,20 @@ void loop() {
     if(logSize>=maxLogSize) {
       closeLog();
       openLog();
-      pktStore.fill(syncMark);
-      pktStore.mark();
+      sdStore.fill(syncMark);
+      sdStore.mark();
     }
   }
-  if(pktStore.errno!=0) {
-    Serial.print("Problem writing file: pktStore.errno=");
-    Serial.println(pktStore.errno);
-    blinklock(pktStore.errno);
+  if(sdStore.errno!=0) {
+    Serial.print("Problem writing file: sdStore.errno=");
+    Serial.println(sdStore.errno);
+    blinklock(sdStore.errno);
   }
   if(wantPrint) {
     Serial.print(RTCHOUR,DEC,2);
     Serial.print(":");Serial.print(RTCMIN,DEC,2);
-    Serial.print(":");Serial.print(((unsigned int)(TC/PCLK)),DEC,2);
-    Serial.print(".");Serial.print(((unsigned int)((TC%PCLK)/(PCLK/1000))),DEC,3);
+    Serial.print(":");Serial.print(RTCSEC,DEC,2);
+    Serial.print(".");Serial.print(CTC,HEX,4);
     Serial.print(",");Serial.print(((unsigned int)(TC)),DEC,10);
     Serial.print(",");Serial.print(bx, DEC); 
     Serial.print(",");Serial.print(by, DEC); 
@@ -372,15 +390,10 @@ void loop() {
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
     Serial.print(",");Serial.print(vbus, DEC); 
-    Serial.print(",");Serial.print((unsigned int)pktStore.getBufOverflow(), DEC); 
-    Serial.print(",");Serial.print((unsigned int)((void*)gps.State), HEX,8); 
     Serial.println();
     wantPrint=false;
   }
-  if(Serial.available()>0) {
-    set_light(0,1);
-    gps.parseNMEA(Serial.read());
-  }
+  gps.process();
 }
 
 

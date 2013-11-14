@@ -2,10 +2,13 @@
 #include <string.h>
 #include "gps.h"
 #include "Stringex.h"
+#include "LPC214x.h"
 #include "Time.h"
+#include "irq.h"
+
 
 //Given a string representing number with a decimal point, return the number multiplied by 10^(shift)
-int NMEAParser::parseNumber(char* in, int& shift) {
+int GPS::parseNumber(char* in, int& shift) {
   char buf[16];
   int len=strlen(in);
   int decimal=0;
@@ -19,9 +22,27 @@ int NMEAParser::parseNumber(char* in, int& shift) {
   return stoi(buf);
 }
 
+static GPS* selectedGPS;
+
+static void handleEINT1() {
+  selectedGPS->handlePPS();
+  EXTINT=(1<<1); //clear EINT1 flag
+  //Acknowledge the VIC
+  VICVectAddr = 0;
+}
+
+void GPS::begin() {
+  selectedGPS=this;
+  EXTMODE=(1 << 1); //EINT1 edge sensitive
+  EXTPOLAR=(1 << 1); //EINT1 on rising edge
+  EXTINT=(1<<1); //clear EINT1 flag
+  IRQHandler::install(IRQHandler::EINT1,handleEINT1);
+  set_pin(14,2,0); //Set BSL (PPS input) to EINT1
+};  
+
 //Given a string representing a number in the form dddmm.mmmm, return
 //an integer representing that number in just degrees multiplied by 10^7
-int NMEAParser::parseMin(char* buf) {
+int GPS::parseMin(char* buf) {
   int shift;
   int num=parseNumber(buf,shift);
   int shift10=1;
@@ -37,88 +58,87 @@ int NMEAParser::parseMin(char* buf) {
   return degpart*10000000+minpart;
 }
 
-void NMEAParser::expectDollar(char in) {
+void GPS::handlePPS() {
+  uint32_t thisPPSTC=TTC(0);
+  time_mark();
+  if(!writePPS) {
+    PPSTC=thisPPSTC;
+    writePPS=true;
+  }
+}
+
+void GPS::process() {
+  if(inf.available()>0) {
+    char in=inf.read();
+    checksum ^= in;
+//      Serial.print(in);
+//      Serial.print(",");Serial.print(nmeaState->num,DEC);
+//      Serial.print(",");Serial.print(pktState,DEC);
+    nmeaState->act(*this,in);
+//      Serial.print(",");Serial.print(nmeaState->num,DEC);
+//      Serial.print(","),Serial.print(pktState,DEC);
+//      Serial.print(",");Serial.println(checksum,HEX,2);
+  }
+}
+
+void ExpectDollar::act(GPS& that, char in) {
   if(in=='$') {
-    checksum=0;
-    nmeaState=&NMEAParser::expectG;
+    that.checksum=0;
+    that.nmeaState=&that.expectG;
   }
 }
 
-void NMEAParser::expectG(char in) {
+void ExpectG::act(GPS& that, char in) {
   if(in=='G') {
-    nmeaState=&NMEAParser::expectP;
+    that.nmeaState=&that.expectP;
     return;
   }
-  nmeaState=&NMEAParser::expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void NMEAParser::expectP(char in) {
+void ExpectP::act(GPS& that, char in) {
   if(in=='P') {
-    nmeaState=&NMEAParser::ThirdLetter;
+    that.nmeaState=&that.thirdLetter;
     return;
   }
-  nmeaState=&NMEAParser::expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void NMEAParser::ThirdLetter(char in) {
+void ThirdLetter::act(GPS& that, char in) {
   if(in=='Z') {
-    nmeaState=&NMEAParser::expectZDA2;
-    return;
-//  } else if(in=='R') {
-//    nmeaState=expectRMC2;
-//    return;
-//  } else if(in=='G') {
-//    nmeaState=expectG4;
-//    return;
-  }
-  nmeaState=&NMEAParser::expectDollar;
-}
-
-/*
-void expectRMC2(char in) {
-  if(in=='M') {
-    nmeaState=expectRMC3;
+    that.nmeaState=&that.expectZDA2;
     return;
   }
-  nmeaState=expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void expectRMC3(char in) {
-  if(in=='C') {
-    nmeaState=expectRMCComma0;
-    return;
-  }
-  state=expectDollar;
-}
-
-*/
-void NMEAParser::expectZDA2(char in) {
+void ExpectZDA2::act(GPS& that, char in) {
   if(in=='D') {
-    nmeaState=&NMEAParser::expectZDA3;
+    that.nmeaState=&that.expectZDA3;
     return;
   }
-  nmeaState=&NMEAParser::expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void NMEAParser::expectZDA3(char in) {
+void ExpectZDA3::act(GPS& that, char in) {
   if(in=='A') {
-    pktState=0;
-    nmeaState=&NMEAParser::parseZDA;
+    that.pktState=0;
+    that.nmeaState=&that.parseZDA;
     return;
   }
-  nmeaState=&NMEAParser::expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void NMEAParser::parseZDA(char in) {
-  static char numBuf[128];
-  static int numPtr=0;
-  switch(pktState) {
+void ParseZDA::act(GPS& that, char in) {
+  switch(that.pktState) {
     case 0:
     case 2:
+    case 4:
+    case 6:
       //waiting for comma
       if(in==',') {
         numPtr=0;
-        pktState++;
+        that.pktState++;
         return;
       }
       break;
@@ -128,9 +148,9 @@ void NMEAParser::parseZDA(char in) {
         //we've seen the whole number
         int shift;
         numBuf[numPtr]=0;
-        zdaHMS=parseNumber(numBuf,shift);
-        for(int i=0;i<shift;i++) zdaHMS/=10;
-        pktState++;
+        that.zdaHMS=that.parseNumber(numBuf,shift);
+        for(int i=0;i<shift;i++) that.zdaHMS/=10;
+        that.pktState+=2;
         return;
       } else if((in>='0' && in<='9') || (in=='.')) {
         numBuf[numPtr]=in;
@@ -143,8 +163,8 @@ void NMEAParser::parseZDA(char in) {
       if(in==',') {
         //we've seen the whole number
         numBuf[numPtr]=0;
-        zdaDD=stoi(numBuf);
-        pktState++;
+        that.zdaDD=stoi(numBuf);
+        that.pktState+=2;
         return;
       } else if((in>='0' && in<='9')) {
         numBuf[numPtr]=in;
@@ -157,8 +177,8 @@ void NMEAParser::parseZDA(char in) {
       if(in==',') {
         //we've seen the whole number
         numBuf[numPtr]=0;
-        zdaMM=stoi(numBuf);
-        pktState++;
+        that.zdaMM=stoi(numBuf);
+        that.pktState+=2;
         return;
       } else if((in>='0' && in<='9')) {
         numBuf[numPtr]=in;
@@ -171,10 +191,10 @@ void NMEAParser::parseZDA(char in) {
       if(in==',') {
         //we've seen the whole number
         numBuf[numPtr]=0;
-        zdaYYYY=stoi(numBuf);
-        pktState=0;
-        nmeaState=&NMEAParser::waitChecksum;
-        finishPacket=&NMEAParser::finishZDA;
+        that.zdaYYYY=stoi(numBuf);
+        that.pktState=0;
+        that.nmeaState=&that.waitChecksum;
+        that.finishPacket=&that.finishZDA;
         return;
       } else if((in>='0' && in<='9')) {
         numBuf[numPtr]=in;
@@ -184,38 +204,44 @@ void NMEAParser::parseZDA(char in) {
       break;
   }
   //Error in packet, ignore packet and go back to start
-  nmeaState=&NMEAParser::expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void NMEAParser::waitChecksum(char in) {
-  switch(pktState) {
+void WaitChecksum::act(GPS& that, char in) {
+  switch(that.pktState) {
     case 0: //waiting for *
       if(in=='*') {
-        checksum^=in; //Don't include this character in the checksum
-        pktState++;
-      }
+        that.checksum^=in; //Don't include this character in the checksum
+        that.pktState++;
+      } else if(in==0x0D) {
+        //No checksum is coming
+        if(that.finishPacket) (that.finishPacket->act(that));
+        that.nmeaState=&that.expectDollar;
+      }  
       return; //no possible error condition here, so get outta here.
     case 1:
-      checksum^=in;
+      that.checksum^=in;
       if((in>='0' && in<='9') || (in>='A' && in<='F')) {
         int digit=(in<='9')?in-'0':in-'A';
-        if((checksum & 0xF0)!=(digit<<4)) break; //If checksum is bad, go directly to the end of the case statement
-        pktState++;
+        if((that.checksum & 0xF0)!=(digit<<4)) break; //If checksum is bad, go directly to the end of the case statement
+        that.pktState++;
       }
       return;
     case 2:
-      checksum^=in;
+      that.checksum^=in;
       if((in>='0' && in<='9') || (in>='A' && in<='F')) {
         int digit=(in<='9')?in-'0':in-'A';
-        if((checksum & 0x0F)!=(digit)) break;
-        if(finishPacket) PTMF(finishPacket)();
+        if((that.checksum & 0x0F)!=(digit)) break;
+        if(that.finishPacket) (that.finishPacket->act(that));
       }
   }
-  nmeaState=&NMEAParser::expectDollar;
+  that.nmeaState=&that.expectDollar;
 }
 
-void NMEAParser::finishZDA() {
-  set_rtc(zdaYYYY,zdaMM,zdaDD,zdaHMS/10000,(zdaHMS%10000)/100,zdaHMS%100);
+void FinishZDA::act(GPS& that) {
+  set_rtc(that.zdaYYYY,that.zdaMM,that.zdaDD,that.zdaHMS/10000,(that.zdaHMS%10000)/100,that.zdaHMS%100);
+  
 }
+
 
 
