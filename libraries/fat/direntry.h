@@ -24,22 +24,22 @@ public:
     struct {
       union {
         struct {
-          char shortBase[8] __attribute__((packed));
-          char shortExt[3]  __attribute__((packed));
+          char shortBase[8] __attribute__((packed));   //0x00
+          char shortExt[3]  __attribute__((packed));   //0x08
         };
-        char shortName[11] __attribute__((packed));
+        char shortName[11] __attribute__((packed));    
       };
-      uint8_t attr      __attribute__((packed));
-      uint8_t reserved1 __attribute__((packed));
-      uint8_t ctenths   __attribute__((packed));
-      uint16_t ctime    __attribute__((packed));
-      uint16_t cdate    __attribute__((packed));
-      uint16_t adate    __attribute__((packed));
-      uint16_t clusterM __attribute__((packed));
-      uint16_t wtime    __attribute__((packed));
-      uint16_t wdate    __attribute__((packed));
-      uint16_t clusterL __attribute__((packed));
-      uint32_t size     __attribute__((packed));
+      uint8_t attr      __attribute__((packed));       //0x0B
+      uint8_t reserved1 __attribute__((packed));       //0x0C
+      uint8_t ctenths   __attribute__((packed));       //0x0D
+      uint16_t ctime    __attribute__((packed));       //0x0E
+      uint16_t cdate    __attribute__((packed));       //0x10
+      uint16_t adate    __attribute__((packed));       //0x12
+      uint16_t clusterM __attribute__((packed));       //0x14
+      uint16_t wtime    __attribute__((packed));       //0x16
+      uint16_t wdate    __attribute__((packed));       //0x18
+      uint16_t clusterL __attribute__((packed));       //0x1A
+      uint32_t size     __attribute__((packed));       //0x1C
     };
     struct {
       uint8_t ordinal       __attribute__((packed));
@@ -62,6 +62,8 @@ public:
   bool find(const char* fn,uint32_t dir_cluster=0);
   bool findEmpty(uint32_t dir_cluster=0);
   bool writeBack();
+  static uint16_t packTime(int h, int n, int s);
+  static uint16_t packDate(int y, int m, int d);
 };
 
  

@@ -1,6 +1,17 @@
 #include <string.h>
 #include "direntry.h"
 
+uint16_t DirEntry::packTime(int h, int n, int s) {
+  return (( h    & ((1 << (5+1))-1)) << 11 |
+         (( n    & ((1 << (6+1))-1)) <<  5 |
+         (((s/2) & ((1 << (5+1))-1)) <<  0 ;
+}
+
+uint16_t DirEntry::packDate(int y, int m, int d) {
+  return (( y+(y>1980?-1980:20) & ((1 << (7+1))-1)) << 9 |
+         (( m                   & ((1 << (4+1))-1)) << 5 |
+         (( d                   & ((1 << (5+1))-1)) << 0 ;
+}
 
 void DirEntry::print(Print& out) {
   if(shortName[0]==0xE5) {
@@ -159,6 +170,7 @@ bool DirEntry::findEmpty(uint32_t dir_cluster) {
 }
 
 bool DirEntry::writeBack() {
+  
   if(!f.read(entryCluster,entrySector,buf)) FAIL(f.errno*100+4);
   char* pentry=(char*)&entry;
   for(unsigned int i=0;i<sizeof(entry);i++) {

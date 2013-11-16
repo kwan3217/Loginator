@@ -105,9 +105,16 @@ void ExpectP::act(GPS& that, char in) {
 }
 
 void ThirdLetter::act(GPS& that, char in) {
-  if(in=='Z') {
-    that.nmeaState=&that.expectZDA2;
-    return;
+  switch(in) {
+    case 'Z':
+      that.nmeaState=&that.expectZDA2;
+      return;
+    case 'G':
+      that.nmeaState=&that.expectGGA2;
+      return;
+    case 'V':
+      that.nmeaState=&that.expectVTG2;
+      return;
   }
   that.nmeaState=&that.expectDollar;
 }
@@ -129,81 +136,197 @@ void ExpectZDA3::act(GPS& that, char in) {
   that.nmeaState=&that.expectDollar;
 }
 
+void ExpectGGA2::act(GPS& that, char in) {
+  if(in=='G') {
+    that.nmeaState=&that.expectGGA3;
+    return;
+  }
+  that.nmeaState=&that.expectDollar;
+}
+
+void ExpectGGA3::act(GPS& that, char in) {
+  if(in=='A') {
+    that.pktState=0;
+    that.nmeaState=&that.parseGGA;
+    return;
+  }
+  that.nmeaState=&that.expectDollar;
+}
+
+void ExpectVTG2::act(GPS& that, char in) {
+  if(in=='T') {
+    that.nmeaState=&that.expectVTG3;
+    return;
+  }
+  that.nmeaState=&that.expectDollar;
+}
+
+void ExpectVTG3::act(GPS& that, char in) {
+  if(in=='G') {
+    that.pktState=0;
+    that.nmeaState=&that.parseVTG;
+    return;
+  }
+  that.nmeaState=&that.expectDollar;
+}
+
+int GPS::handleHMS() {
+  int shift,result;
+  numBuf[numPtr]=0;
+  numPtr=0;
+  result=parseNumber(numBuf,shift);
+  for(int i=0;i<shift;i++) result/=10;
+  pktState++;
+  return result;
+}
+
+int GPS::handlestoi() {
+  int result;
+  numBuf[numPtr]=0;
+  numPtr=0;
+  result=stoi(numBuf);
+  pktState++;
+  return result;
+}
+
+int GPS::handleMin() {
+  int result;
+  numBuf[numPtr]=0;
+  numPtr=0;
+  result=parseMin(numBuf);
+  pktState++;
+  return result;
+}
+
+int GPS::handleNum(int& shift) {
+  int result;
+  numBuf[numPtr]=0;
+  numPtr=0;
+  result=parseNumber(numBuf,shift);
+  pktState++;
+  return result;
+}
+
+void GPS::acc(char in) {
+  numBuf[numPtr]=in;
+  numPtr++;
+}
+
+bool GPS::parseFieldHMS(char in, int& result) {
+  if(in==',') {
+    //we've seen the whole number
+    result=handleHMS();
+    return true;
+  } else if((in>='0' && in<='9') || (in=='.')) {
+    acc(in);
+    return true;
+  }
+  return false;
+}
+
+bool GPS::parseFieldMin(char in, int& result) {
+  if(in==',') {
+    //we've seen the whole number
+    result=handleMin();
+    return true;
+  } else if((in>='0' && in<='9') || (in=='.')) {
+    acc(in);
+    return true;
+  }
+  return false;
+}
+
+bool GPS::parseFieldstoi(char in, int& result) {
+  if(in==',') {
+    //we've seen the whole number
+    result=handlestoi();
+    return true;
+  } else if((in>='0' && in<='9')) {
+    acc(in);
+    return true;
+  }
+  return false;
+}
+
 void ParseZDA::act(GPS& that, char in) {
   switch(that.pktState) {
     case 0:
-    case 2:
-    case 4:
-    case 6:
       //waiting for comma
       if(in==',') {
-        numPtr=0;
+        that.numPtr=0;
         that.pktState++;
         return;
       }
       break;
-    case 1:
-      //in field 1, UTC hhmmss.000
-      if(in==',') {
-        //we've seen the whole number
-        int shift;
-        numBuf[numPtr]=0;
-        that.zdaHMS=that.parseNumber(numBuf,shift);
-        for(int i=0;i<shift;i++) that.zdaHMS/=10;
-        that.pktState+=2;
-        return;
-      } else if((in>='0' && in<='9') || (in=='.')) {
-        numBuf[numPtr]=in;
-        numPtr++;
-        return;
-      }
+    case 1: //HHNNSS.###
+      if(that.parseFieldHMS(in,that.zdaHMS)) return;
+      break;
+    case 2: //DD
+      if(that.parseFieldstoi(in,that.zdaDD)) return;
       break;
     case 3:
-      //in field 2, day of month
-      if(in==',') {
-        //we've seen the whole number
-        numBuf[numPtr]=0;
-        that.zdaDD=stoi(numBuf);
-        that.pktState+=2;
-        return;
-      } else if((in>='0' && in<='9')) {
-        numBuf[numPtr]=in;
-        numPtr++;
-        return;
-      }
+      if(that.parseFieldstoi(in,that.zdaMM)) return;
       break;
-    case 5:
-      //in field 3, month number
-      if(in==',') {
-        //we've seen the whole number
-        numBuf[numPtr]=0;
-        that.zdaMM=stoi(numBuf);
-        that.pktState+=2;
-        return;
-      } else if((in>='0' && in<='9')) {
-        numBuf[numPtr]=in;
-        numPtr++;
-        return;
-      }
-      break;
-    case 7:
+    case 4:
       //in field 4, year number
       if(in==',') {
-        //we've seen the whole number
-        numBuf[numPtr]=0;
-        that.zdaYYYY=stoi(numBuf);
+        that.zdaYYYY=that.handlestoi();
         that.pktState=0;
         that.nmeaState=&that.waitChecksum;
         that.finishPacket=&that.finishZDA;
         return;
       } else if((in>='0' && in<='9')) {
-        numBuf[numPtr]=in;
-        numPtr++;
+        that.acc(in);
         return;
       }
       break;
   }
   //Error in packet, ignore packet and go back to start
+  that.nmeaState=&that.expectDollar;
+}
+
+void ParseGGA::act(GPS& that, char in) {
+  switch(that.pktState) {
+    case 0:
+    case 4:
+    case 7:
+      //waiting for comma
+      if(in==',') {
+        that.numPtr=0;
+        that.pktState++;
+        return;
+      }
+      break;
+    case 1: //UTC hhmmss.000
+      if(that.parseFieldHMS(in,that.zdaHMS)) return;
+      break;
+    case 2: //Latitude
+      if(that.parseFieldMin(in,that.ggaLat)) return;
+      break;
+    case 3: //in field 3, N/S hemisphere
+      if((in=='N' || in=='S')) {
+        if(in=='S') that.ggaLat=-that.ggaLat;
+        that.pktState++;
+        return;
+      }
+      break;
+    case 5: //Longitude
+      if(that.parseFieldMin(in,that.ggaLon)) return;
+      break;
+    case 6: //in field 3, E/W hemisphere
+      if((in=='E' || in=='W')) {
+        if(in=='W') that.ggaLon=-that.ggaLon;
+        that.pktState++;
+        return;
+      }
+      break;
+  }
+  //Error, ignore packet
+  that.nmeaState=&that.expectDollar;
+}
+
+void ParseVTG::act(GPS& that, char in) {
+  //We don't handle vtg packets yet
   that.nmeaState=&that.expectDollar;
 }
 
@@ -240,7 +363,17 @@ void WaitChecksum::act(GPS& that, char in) {
 
 void FinishZDA::act(GPS& that) {
   set_rtc(that.zdaYYYY,that.zdaMM,that.zdaDD,that.zdaHMS/10000,(that.zdaHMS%10000)/100,that.zdaHMS%100);
-  
+}
+
+void FinishVTG::act(GPS& that) {
+
+}
+
+void FinishGGA::act(GPS& that) {
+  that.lat=that.ggaLat;
+  that.lon=that.ggaLon;
+  that.alt=that.ggaAlt;
+  that.altScale=that.ggaAltScale;
 }
 
 
