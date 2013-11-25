@@ -1,5 +1,5 @@
 #include "file.h"
-#include "time.h"
+#include "LPC214x.h"
 
 bool File::openr(const char* filename,uint32_t dir_cluster) {
   if(!de.find(filename,dir_cluster)) FAIL(100*de.errno+1);
@@ -72,7 +72,7 @@ bool File::append(char* buf) {
   sector++;
   de.size+=c.sectorSize();
   de.wtime=de.packTime(RTCHOUR,RTCMIN,RTCSEC);
-  de.wtime=de.packDate(RTCYEAR,RTCMONTH,RTCDAY);
+  de.wtime=de.packDate(RTCYEAR,RTCMONTH,RTCDOM);
   if(!de.writeBack()) FAIL(de.errno*100+15);
   return true;
 }

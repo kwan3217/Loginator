@@ -201,12 +201,36 @@ void collectData(void* stuff) {
     writeSd=false;
   }
   if(gps.writePPS) {
-    ccsds.start(measStore,0x16,pktseq,gps.lastPPSTC);
-    ccsds.fill32(gps.PPSTC);
-    ccsds.fill(gps.lastPPS);
-    ccsds.fill(gps.PPS);
+    ccsds.start(measStore,0x16,pktseq,gps.PPSTC);
     gps.writePPS=false;
     ccsds.finish(0x16);
+  }
+  if(gps.writeZDA) {
+    ccsds.start(measStore,0x17,pktseq,TTC(0));
+    ccsds.fill32(gps.zdaHMS);
+    ccsds.fill(gps.zdaDD);
+    ccsds.fill(gps.zdaMM);
+    ccsds.fill(gps.zdaYYYY-2000);
+    gps.writeZDA=false;
+    ccsds.finish(0x17);
+  }
+  if(gps.writeGGA) {
+    ccsds.start(measStore,0x18,pktseq,TTC(0));
+    ccsds.fill32(gps.lat);
+    ccsds.fill32(gps.lon);
+    ccsds.fill32(gps.alt);
+    ccsds.fill(gps.altScale);
+    gps.writeGGA=false;
+    ccsds.finish(0x18);
+  }
+  if(gps.writeVTG) {
+    ccsds.start(measStore,0x19,pktseq,TTC(0));
+    ccsds.fill32(gps.vtgCourse);
+    ccsds.fill(gps.vtgCourseScale);
+    ccsds.fill32(gps.vtgSpeedKt);
+    ccsds.fill(gps.vtgSpeedKtScale);
+    gps.writeVTG=false;
+    ccsds.finish(0x19);
   }
   directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
 }
@@ -370,7 +394,7 @@ void loop() {
     Serial.print(RTCHOUR,DEC,2);
     Serial.print(":");Serial.print(RTCMIN,DEC,2);
     Serial.print(":");Serial.print(RTCSEC,DEC,2);
-    Serial.print(".");Serial.print(CTC,HEX,4);
+    Serial.print(".");Serial.print(CTC&0x7FFF,HEX,4);
     Serial.print(",");Serial.print(((unsigned int)(TC)),DEC,10);
     Serial.print(",");Serial.print(bx, DEC); 
     Serial.print(",");Serial.print(by, DEC); 

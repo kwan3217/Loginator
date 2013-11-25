@@ -37,7 +37,7 @@ void set_rtc(int y, int m, int d, int h, int n, int s) {
 //This is called by something like a PPS detector. If the PPS is in the top half
 //of the second, 
 void time_mark() {
-  bool botOfSecond=(CTC& 0x7FFF)>=(1<<14);
+  bool botOfSecond=(CTC& 0xFFFF)>=(1<<15);
   //Reset the subsecond counter
   CCR|=(1<<1);
   CCR&=~(1<<1);

@@ -34,7 +34,6 @@ class FinishGGA   :public Finish{                                    void act(GP
 class FinishVTG   :public Finish{                                    void act(GPS&     ); };
 class GPS {
   private:
-    int zdaHMS, zdaHMSScale, zdaDD, zdaMM, zdaYYYY;
     char numBuf[128]; 
     int numPtr;
     int ggaLat,ggaLon,ggaAlt,ggaAltScale;
@@ -71,10 +70,12 @@ class GPS {
 //Alt in scaled meters
     State* nmeaState;
     int lat,lon,alt,altScale;
-    int PPS,lastPPS;
-    uint32_t lastPPSTC,PPSTC;
-    bool writePPS;
-    GPS(Stream& Linf):finishPacket(0),pktState(0),checksum(0),inf(Linf),nmeaState(&expectDollar),lastPPS(0),writePPS(false) {};
+    int zdaHMS, zdaHMSScale, zdaDD, zdaMM, zdaYYYY;
+    int vtgCourse,vtgCourseScale,vtgSpeedKt,vtgSpeedKtScale;
+    uint32_t PPSTC;
+    bool writePPS,writeZDA,writeGGA,writeVTG;
+    GPS(Stream& Linf):finishPacket(0),pktState(0),checksum(0),inf(Linf),
+      nmeaState(&expectDollar),writePPS(false),writeZDA(false),writeGGA(false),writeVTG(false) {};
     void begin();
     void handlePPS();
     void process();
@@ -84,6 +85,7 @@ class GPS {
     int handleMin();
     bool parseFieldHMS(char in,int& result);
     bool parseFieldstoi(char in, int& result);
+    bool parseFieldstoi(char in);
     bool parseFieldNum(char in, int& result, int& shift);
     bool parseFieldMin(char in, int& result);
     void acc(char in);

@@ -71,13 +71,13 @@ void GPS::process() {
   if(inf.available()>0) {
     char in=inf.read();
     checksum ^= in;
-//      Serial.print(in);
-//      Serial.print(",");Serial.print(nmeaState->num,DEC);
-//      Serial.print(",");Serial.print(pktState,DEC);
+//    Serial.print(in);
+//    Serial.print(",");Serial.print(nmeaState->num,DEC);
+//    Serial.print(",");Serial.print(pktState,DEC);
     nmeaState->act(*this,in);
-//      Serial.print(",");Serial.print(nmeaState->num,DEC);
-//      Serial.print(","),Serial.print(pktState,DEC);
-//      Serial.print(",");Serial.println(checksum,HEX,2);
+//    Serial.print(",");Serial.print(nmeaState->num,DEC);
+//    Serial.print(","),Serial.print(pktState,DEC);
+//    Serial.print(",");Serial.println(checksum,HEX,2);
   }
 }
 
@@ -248,6 +248,29 @@ bool GPS::parseFieldstoi(char in, int& result) {
   return false;
 }
 
+bool GPS::parseFieldNum(char in, int& result, int& scale) {
+  if(in==',') {
+    //we've seen the whole number
+    result=handleNum(scale);
+    return true;
+  } else if((in>='0' && in<='9')||in=='.') {
+    acc(in);
+    return true;
+  }
+  return false;
+}
+
+bool GPS::parseFieldstoi(char in) {
+  if(in==',') {
+    //we've seen the whole number
+    return true;
+  } else if((in>='0' && in<='9')) {
+    acc(in);
+    return true;
+  }
+  return false;
+}
+
 void ParseZDA::act(GPS& that, char in) {
   switch(that.pktState) {
     case 0:
@@ -320,13 +343,79 @@ void ParseGGA::act(GPS& that, char in) {
         return;
       }
       break;
+    case 8: //Fix quality
+      //in field 4, year number
+      if(in==',') {
+        if(that.handlestoi()==0) break;
+        that.pktState++;
+        return;
+      } else if((in>='0' && in<='9')) {
+        that.acc(in);
+        return;
+      }
+      break;
+    case 9: //HDOP
+      if(that.parseFieldstoi(in)) return;
+      break;
+    case 10: //MSL Altitude
+      //in field 4, year number
+      if(in==',') {
+        that.ggaAlt=that.handleNum(that.ggaAltScale);
+        that.pktState=0;
+        that.nmeaState=&that.waitChecksum;
+        that.finishPacket=&that.finishGGA;
+        return;
+      } else if((in>='0' && in<='9')||in=='.') {
+        that.acc(in);
+        return;
+      }
+      break;
   }
   //Error, ignore packet
   that.nmeaState=&that.expectDollar;
 }
 
 void ParseVTG::act(GPS& that, char in) {
-  //We don't handle vtg packets yet
+  switch(that.pktState) {
+    case 0:
+    case 3:
+    case 4:
+      //waiting for comma
+      if(in==',') {
+        that.numPtr=0;
+        that.pktState++;
+        return;
+      }
+      break;
+    case 1: //Course
+      if(that.parseFieldNum(in,that.vtgCourse,that.vtgCourseScale)) return;
+      break;
+    case 2: //Course unit marker
+      if(in=='T') {
+        that.pktState++;
+        return;
+      }
+      break;
+    case 5: //Course unit marker
+      if(in=='M') {
+        that.pktState++;
+        return;
+      }
+      break;
+    case 6: //Speed
+      if(in==',') {
+        that.vtgSpeedKt=that.handleNum(that.vtgSpeedKtScale);
+        that.pktState=0;
+        that.nmeaState=&that.waitChecksum;
+        that.finishPacket=&that.finishVTG;
+        return;
+      } else if((in>='0' && in<='9')) {
+        that.acc(in);
+        return;
+      }
+      break;
+  }
+  //Error, ignore packet
   that.nmeaState=&that.expectDollar;
 }
 
@@ -363,17 +452,21 @@ void WaitChecksum::act(GPS& that, char in) {
 
 void FinishZDA::act(GPS& that) {
   set_rtc(that.zdaYYYY,that.zdaMM,that.zdaDD,that.zdaHMS/10000,(that.zdaHMS%10000)/100,that.zdaHMS%100);
+  that.writeGGA=true;
 }
 
 void FinishVTG::act(GPS& that) {
-
+  that.writeVTG=true;
 }
 
 void FinishGGA::act(GPS& that) {
-  that.lat=that.ggaLat;
-  that.lon=that.ggaLon;
-  that.alt=that.ggaAlt;
-  that.altScale=that.ggaAltScale;
+  if(!that.writeGGA) {
+    that.lat=that.ggaLat;
+    that.lon=that.ggaLon;
+    that.alt=that.ggaAlt;
+    that.altScale=that.ggaAltScale;
+    that.writeGGA=true;
+  }
 }
 
 

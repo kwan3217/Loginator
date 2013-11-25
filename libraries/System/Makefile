@@ -193,15 +193,16 @@ LDFLAGS += -T$(LD_SCRIPT)
 # Settings and variables:
 #LPC21ISP = lpc21isp
 LPC21ISP = lpc21isp
-LPC21ISP_PORT = /dev/ttyUSB0
+LPC21ISP_PORT = /dev/ttyUSB1
 LPC21ISP_BAUD = 38400
 LPC21ISP_XTAL = 12000
 LPC21ISP_FLASHFILE = $(TARGET).hex
+LPC21ISP_OPTIONS = -donotstart
 # verbose output:
 #LPC21ISP_DEBUG = -debug
 # enter bootloader via RS232 DTR/RTS (only if hardware supports this
 # feature - see Philips AppNote):
-LPC21ISP_CONTROL = -control
+#LPC21ISP_CONTROL = -control
 # ---------------------------------------------------------------------------
 
 
@@ -323,6 +324,7 @@ gccversion :
 program: $(LPC21ISP_FLASHFILE)
 	@echo
 	@echo $(MSG_LPC21_RESETREMINDER)
+	read junk
 	$(LPC21ISP) $(LPC21ISP_OPTIONS) $(LPC21ISP_DEBUG) $(LPC21ISP_FLASHFILE) $(LPC21ISP_PORT) $(LPC21ISP_BAUD) $(LPC21ISP_XTAL)
 
 TAR_EXT = max.zpaq
