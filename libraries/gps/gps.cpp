@@ -452,7 +452,7 @@ void WaitChecksum::act(GPS& that, char in) {
 
 void FinishZDA::act(GPS& that) {
   set_rtc(that.zdaYYYY,that.zdaMM,that.zdaDD,that.zdaHMS/10000,(that.zdaHMS%10000)/100,that.zdaHMS%100);
-  that.writeGGA=true;
+  that.writeZDA=true;
 }
 
 void FinishVTG::act(GPS& that) {

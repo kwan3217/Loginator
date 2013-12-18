@@ -414,6 +414,8 @@ void loop() {
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
     Serial.print(",");Serial.print(vbus, DEC); 
+    Serial.print(",");Serial.print(DirEntry::packTime(RTCHOUR,RTCMIN,RTCSEC),HEX,4); 
+    Serial.print(",");Serial.print(DirEntry::packDate(RTCYEAR,RTCMONTH,RTCDOM),HEX,4); 
     Serial.println();
     wantPrint=false;
   }
