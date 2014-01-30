@@ -1,5 +1,5 @@
 MEDIA="/media/MICROSD 8GB"
-#EAGLE=Rocketometer.brd Rocketometer.sch Rocketometer.bom Rocketometer.docx Apid.ods
+EAGLE=Rocketometer.brd Rocketometer.sch Rocketometer.bom Rocketometer.docx Apid.ods
 
 include ../libraries/Serial/Makefile
 include ../libraries/Task/Makefile
