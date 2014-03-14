@@ -93,6 +93,8 @@ static const char version_string[]="Loginator Pinewood 1.0 " __DATE__ " " __TIME
 int16_t max,may,maz; //ADXL345 acc
 int16_t mgx,mgy,mgz; //L3G4200D gyro
 uint8_t mt,ms;       //L3G4200D temperature and status
+uint16_t aft,fwd;    //aft and fwd analog data
+uint16_t old_aft,old_fwd;    //aft and fwd analog data
 int16_t bx,by,bz;    //compass (bfld)
 bool wantPrint;
 uint32_t TC,TC1;
@@ -138,18 +140,13 @@ void collectData(void* stuff) {
   vbus=gpio_read(23);
   adxl345.read(max,may,maz);
   l3g4200d.read(mgx,mgy,mgz,mt,ms);
+  aft=analogRead(5);
+  fwd=analogRead(6);
   TC1=TTC(0);
   ccsds.start(measStore,0x30,pktseq,TC);
-  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
+  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt); ccsds.fill16(aft); ccsds.fill16(fwd);
   ccsds.fill32(TC1);
   ccsds.finish(0x30);
-  if(vbus!=old_vbus) {
-    ccsds.start(measStore,0x13,pktseq,TC);
-    ccsds.fill(old_vbus);
-    ccsds.fill(vbus);
-    ccsds.finish(0x13);
-    old_vbus=vbus;
-  }
   if(hmcPhase>=hmcMaxPhase) {
     //Only read the compass once every n times we read the 6DoF
     TC=TTC(0);
