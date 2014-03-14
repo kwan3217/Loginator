@@ -1,5 +1,5 @@
 HARDWARE=LOGINATOR
-PROJECT_BRIEF="Blank sketch, suitable for copying, pasting, and modifying"
+ATTACH=Loginator1.1.brd Loginator1.1.sch 11DoF.brd 11Dof.sch Apid.ods
 include ../libraries/LPCduino/Makefile
 include ../libraries/Serial/Makefile
 include ../libraries/Task/Makefile
