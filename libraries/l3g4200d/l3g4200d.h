@@ -2,6 +2,7 @@
 #define l3g4200d_h
 
 #include "spi_user.h"
+#include "packet.h"
 
 class L3G4200D:public spi_user {
 public:
