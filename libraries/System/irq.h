@@ -1,4 +1,4 @@
-#ifndef IRQ_H 
+#ifndef IRQ_H
 #define IRQ_H
 
 typedef void (*irqHandler)(void);
@@ -6,9 +6,9 @@ typedef void (*irqHandler)(void);
 class IRQHandler {
 private:
   static void DefaultVICHandler(void);
-  static const int IRQ_SLOT_EN=(1 << 5); ///< bit 5 in Vector control register 
+  static const int IRQ_SLOT_EN=(1 << 5); ///< bit 5 in Vector control register
   static const int VIC_SIZE	=16; ///<Number of VIC slots
-public:  
+public:
   static void begin( void );
   static bool install(unsigned int IntNumber, irqHandler HandlerAddr );
   static bool uninstall(unsigned int IntNumber );

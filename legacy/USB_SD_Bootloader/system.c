@@ -21,7 +21,7 @@ void IRQ_Routine (void)
 {
 }
 
-void FIQ_Routine (void)   __attribute__ ((interrupt("FIQ")));
+void FIQ_Routine (void)   __attribute__ ((interrupt("IRQ")));
 void FIQ_Routine (void)
 {
 }

@@ -4,6 +4,12 @@
 #include "LPC214x.h"
 #include "Time.h"
 
+#define ON   1
+#define OFF  0
+
+#define LOW 0
+#define HIGH 1
+
 inline void set_pin(int pin, int mode) {
   int mask=~(0x3 << ((pin & 0x0F)<<1));
   int val=mode << ((pin & 0x0F)<<1);

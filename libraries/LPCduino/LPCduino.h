@@ -7,14 +7,8 @@
    Arduino library -- mostly GPIO and analog read.
 */
 
-#define ON   1
-#define OFF  0
-
 #define OUTPUT 0
 #define INPUT  1
-
-#define LOW 0
-#define HIGH 1
 
 
 void pinMode(int pin, int mode);

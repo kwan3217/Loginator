@@ -6,15 +6,15 @@
 /*
 There are two reasons that Startup has to be in asm:
 
-1. Registers CPSR and SP are not directly available to C code.
+1. Registers CPSR and SP are not directly available to C/C++ code.
      So, we write a crumb of inline asm to access these registers,
-     then write the rest in C(++).
+     then write the rest in C/C++.
 2. Exact control of the interrupt table is needed
-     So, we use more inline asm 
+     So, we use more inline asm, with calls to symbols defined in C/C++
 
 Other complications: Setting up the stack before the stack is available (use naked)
                      IRQ wrapper proper return (use interrupt("IRQ"))
-                     Vector table can have any name, but must be in section 
+                     Vector table can have any name, but must be in section
 		       called .vectors so that it will link to the right place
 
 This is tightly integrated with the linker script [lo|hi]mem_arm_eabi_cpp.ld and
@@ -29,8 +29,8 @@ static const int Mode_SVC=0x13;
 static const int Mode_ABT=0x17;
 static const int Mode_UND=0x1B;
 static const int Mode_SYS=0x1F;
-static const int I_Bit=0x80;    // when I bit is set, IRQ is disabled 
-static const int F_Bit=0x40;    // when F bit is set, FIQ is disabled 
+static const int I_Bit=0x80;    // when I bit is set, IRQ is disabled
+static const int F_Bit=0x40;    // when F bit is set, FIQ is disabled
 
 //Modes as used by Loginator-type code:
 //Normal code runs in system mode, so no restricted instructions. Fine, since there is no OS.
@@ -52,7 +52,7 @@ extern int bss_end[];
 extern int bdata[];
 extern int data[];
 extern int edata[];
-//ctors_start actually points to a proper array, so we can actually use 
+//ctors_start actually points to a proper array, so we can actually use
 //the mechanism as intended. It is an array of pointers to void functions.
 typedef void (*fvoid)(void);
 extern fvoid ctors_start[];
@@ -61,33 +61,30 @@ extern fvoid ctors_end[];
 //Handlers for various exceptions, defined as weak so that they may be replaced
 //by user code. These default handlers just go into infinite loops. Reset and
 //IRQ are handled by real (strong) functions, as they do the right thing and
-//it doesn't make sense for user code to replace them.  
+//it doesn't make sense for user code to replace them.
 void __attribute__ ((weak)) __attribute__ ((noreturn)) Undef_Handler(void) {for(;;);}
 void __attribute__ ((weak)) __attribute__ ((noreturn)) SWI_Handler(void) {for(;;);}
 void __attribute__ ((weak)) __attribute__ ((noreturn)) PAbt_Handler(void) {for(;;);}
 void __attribute__ ((weak)) __attribute__ ((noreturn)) DAbt_Handler(void) {for(;;);}
 void __attribute__ ((weak)) __attribute__ ((noreturn)) FIQ_Handler(void) {for(;;);}
-/**This fills the vtable slots of a class where the method is abstract. Why not 
+/**This fills the vtable slots of a class where the method is abstract. Why not
 just zero? That would cause a spontaneous reset on an ARM processor, and "Thou
-shalt not follow the NULL pointer, for chaos and madness await thee at its 
+shalt not follow the NULL pointer, for chaos and madness await thee at its
 end." But, if you call an abstract method, you get what you deserve.
-Defined as weak so that if you want to write a function that beats the 
+Defined as weak so that if you want to write a function that beats the
 programmer about the head when called, you can. */
 extern "C" void __attribute__ ((weak)) __attribute__ ((noreturn)) __cxa_pure_virtual() { for(;;); }
 
-//Sketch main routines. We actually put the symbol weakness to work here - we
-//expect to replace these functions.
-//void __attribute__ ((weak)) setup(void) {}
-//void __attribute__ ((weak)) loop(void) {}
+//Sketch main routines
 void setup();
 void loop();
 
 //No setup code because stack isn't available yet
 //No cleanup code because function won't return (what would it return to?)
-void __attribute__ ((naked))            Reset_Handler(void); 
+void __attribute__ ((naked))            Reset_Handler(void);
 
-void __attribute__ ((naked)) 
-__attribute__ ((section(".vectors"))) 
+void __attribute__ ((naked))
+__attribute__ ((section(".vectors")))
 vectorg(void) {
   asm("ldr pc,[pc,#24]\n\t"
       "ldr pc,[pc,#24]\n\t"
@@ -114,7 +111,7 @@ void setup_mam(void) {
   MAMTIM=0x4; //Original
 }
 
-#define __set_cpsr_c(val) asm volatile (" msr  cpsr_c, %0" : /* no outputs */ : "r" (val)  );	
+#define __set_cpsr_c(val) asm volatile (" msr  cpsr_c, %0" : /* no outputs */ : "r" (val))
 #define __set_sp(val) asm volatile (" mov  sp, %0" : : "r" (val))
 #define setModeStack(tag,iflags) \
   __set_cpsr_c(Mode_##tag | iflags); \
@@ -130,12 +127,12 @@ void Reset_Handler() {
   setModeStack(SVC,I_Bit | F_Bit);  //...for Supervisor mode
   setModeStack(USR,0);  //...for User and System mode
 
-//Now stay in system mode for good                
+//Now stay in system mode for good
 
 // Relocate .data section (initialized variables)
   for(int i=0;i<(edata-data);i++) data[i]=bdata[i];
 
-//Initialize .bss section 
+//Initialize .bss section
   for(int i=0;i<(bss_end-bss_start);i++) bss_start[i]=0;
 
   //Set up system peripherals
@@ -145,7 +142,7 @@ void Reset_Handler() {
 
 // call C++ constructors of global objects
 //Each pointer is the pointer to a short block of code, and appears to be a static
-//function which which constructs all the global objects in the same compilation unit.
+//function which constructs all the global objects in the same compilation unit.
 //This code is free to call constructors and/or perform inline constructors directly.
 //As a static function, the pointee code uses BX lr to return
   for(int i=0;i<ctors_end-ctors_start;i++) ctors_start[i]();
