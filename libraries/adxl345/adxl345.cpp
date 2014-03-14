@@ -23,6 +23,13 @@ bool ADXL345::begin() {
   return true;
 }
 
+bool ADXL345::fillConfig(Packet& ccsds) {
+  char buf[2];
+  s->rx_block(p0,0x80 | 0x31,buf,2);//Read (0x80) single byte at address 0x31
+  if(!ccsds.fill(buf+1,1))    return false; 
+  return true;
+}
+
 void ADXL345::read(int16_t& x, int16_t& y, int16_t& z) {
   char buf[7];
 

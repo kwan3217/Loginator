@@ -9,6 +9,7 @@ public:
   virtual uint8_t begin(char sens=3);
   uint8_t whoami();
   void read(int16_t& x, int16_t& y, int16_t& z, uint8_t& t, uint8_t& status);
+  bool fillConfig(Packet& ccsds);
 };
 
 #endif

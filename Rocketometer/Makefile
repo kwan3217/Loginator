@@ -7,8 +7,6 @@ include ../libraries/Wire/StateTwoWire/Makefile
 include ../libraries/bmp180/Makefile
 include ../libraries/ad799x/Makefile
 include ../libraries/hmc5883/Makefile
-include ../libraries/adxl345/Makefile
-include ../libraries/l3g4200d/Makefile
 include ../libraries/mpu60x0/Makefile
 include ../libraries/gps/Makefile
 include ../libraries/dump/Makefile

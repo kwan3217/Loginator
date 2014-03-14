@@ -19,6 +19,13 @@ uint8_t L3G4200D::begin(char sens) {
   return 1;
 }
 
+bool L3G4200D::fillConfig(Packet& ccsds) {
+  char buf[6];
+  s->rx_block(p0,0x80 | 0x40 | 0x20,buf,6);//Read (0x80) multiple bytes (0x40) starting at address 0x20
+  if(!ccsds.fill(buf+1,5))    return false; 
+  return true;
+}
+
 void L3G4200D::read(int16_t& x, int16_t& y, int16_t& z, uint8_t& t, uint8_t& status) {
   char buf[9];
 
