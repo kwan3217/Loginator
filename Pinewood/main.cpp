@@ -137,15 +137,12 @@ void collectData(void* stuff) {
   TC=TTC(0);
   vbus=gpio_read(23);
   adxl345.read(max,may,maz);
-  uint8_t
-  l3g4200d.read(mgx,mgy,mgz,mt,status);
-  ad799x.read(hx);
+  l3g4200d.read(mgx,mgy,mgz,mt,ms);
   TC1=TTC(0);
-  ccsds.start(measStore,0x10,pktseq,TC);
+  ccsds.start(measStore,0x30,pktseq,TC);
   ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
-  ccsds.fill((char*)hx,8);
   ccsds.fill32(TC1);
-  ccsds.finish(0x10);
+  ccsds.finish(0x30);
   if(vbus!=old_vbus) {
     ccsds.start(measStore,0x13,pktseq,TC);
     ccsds.fill(old_vbus);
@@ -322,7 +319,7 @@ void setup() {
   sdStore.drain();
   maybeWriteSdPacket(sdStore);
 
-  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus,ovr");
+  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,T,P,vbus,ovr");
 //  Serial.println("t,tc,Traw,Praw");
 
   directTaskManager.begin();
@@ -367,10 +364,6 @@ void loop() {
     Serial.print(",");Serial.print(mgy, DEC);
     Serial.print(",");Serial.print(mgz, DEC);
     Serial.print(",");Serial.print(mt, DEC);
-    Serial.print(",");Serial.print(hx[0], HEX,4); 
-    Serial.print(",");Serial.print(hx[1], HEX,4); 
-    Serial.print(",");Serial.print(hx[2], HEX,4); 
-    Serial.print(",");Serial.print(hx[3], HEX,4); 
     Serial.print(",");Serial.print(temperature/10, DEC);    
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
@@ -380,7 +373,6 @@ void loop() {
     Serial.println();
     wantPrint=false;
   }
-  gps.process();
 }
 
 
