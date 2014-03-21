@@ -1,5 +1,5 @@
 HARDWARE=LOGINATOR
-ATTACH=Loginator1.1.brd Loginator1.1.sch 11DoF.brd 11Dof.sch Apid.ods
+ATTACH=Loginator1.1.brd Loginator1.1.sch 11Dof.brd 11Dof.sch Apid.ods
 include ../libraries/LPCduino/Makefile
 include ../libraries/Serial/Makefile
 include ../libraries/Task/Makefile

@@ -20,17 +20,15 @@
 static const int blockSize=SDHC::BLOCK_SIZE;
 #include "FileCircular.h"
 #include "gps.h"
+#include "LPCduino.h"
 
 //Once the log becomes greater or equal to this length, cycle the log file
 //This way we don't violate the FAT file size limit, and don't choke our processing
 //program with data.
 //Set to 128MiB so that we can test the feature
 const unsigned int maxLogSize=1024U*1024U*1024U;
-const uint16_t resetFileSkip=10;
+const uint16_t resetFileSkip=1;
 
-//int temperature, pressure;
-//int temperatureRaw, pressureRaw;
-char vbus;
 volatile bool writeDrain=false;
 volatile bool writeSd=false;
 volatile unsigned int drainTC0,drainTC1;
@@ -48,18 +46,46 @@ Partition p(sd);
 Cluster fs(p);
 File f(fs);
 Hd sector(Serial);
-BMP180 bmp180(Wire1);
-HMC5883 hmc5883(Wire1);
+#undef HAS_SPI
+#ifdef HAS_SPI
 ADXL345 adxl345(&SPI1,20);
 L3G4200D l3g4200d(&SPI1,25);
+#endif
+#undef HAS_I2C
+#ifdef HAS_I2C
+BMP180 bmp180(Wire1);
+HMC5883 hmc5883(Wire1);
+int16_t bx,by,bz;    //compass (bfld)
+int temperatureRaw,pressureRaw;
+int16_t temperature;
+int32_t pressure;
+uint32_t bmpTC;
+#endif
+int bmpPhase=0;
+int hmcPhase=0;
+const int bmpMaxPhase=150;
+const int hmcMaxPhase=10;
+int16_t max,may,maz; //ADXL345 acc
+int16_t mgx,mgy,mgz; //L3G4200D gyro
+uint8_t mt,ms;       //L3G4200D temperature and status
+uint16_t aft,fwd;    //aft and fwd analog data
+uint16_t minAft=1024,minFwd=1024;    
+uint16_t maxAft,maxFwd;    
+uint16_t aftThreshold,fwdThreshold;    
+bool old_aft,old_fwd;    //aft and fwd analog data
+uint32_t TC,TC1;
+uint32_t oldOvr;
 const int dumpPktSize=120;
 FileCircular sdStore(f);
 char measBuf[1024],serialBuf[1024];
 Circular measStore(1024,measBuf),serialStore(1024,serialBuf);
 CCSDS ccsds;
-unsigned short pktseq[32];
+unsigned short pktseq[80];
+bool avgLight=true;
+bool wantPrint=false;
 
-const char syncMark[]="KwanSync";
+static const char syncMark[]="KwanSync";
+static const char version_string[]="Loginator Pinewood 1.0 " __DATE__ " " __TIME__;
 
 static uint16_t log_i=0;
 
@@ -88,20 +114,6 @@ void closeLog() {
                //object on a new file.
 }
 
-static const char version_string[]="Loginator Pinewood 1.0 " __DATE__ " " __TIME__;
-
-int16_t max,may,maz; //ADXL345 acc
-int16_t mgx,mgy,mgz; //L3G4200D gyro
-uint8_t mt,ms;       //L3G4200D temperature and status
-uint16_t aft,fwd;    //aft and fwd analog data
-uint16_t old_aft,old_fwd;    //aft and fwd analog data
-int16_t bx,by,bz;    //compass (bfld)
-bool wantPrint;
-uint32_t TC,TC1;
-int temperatureRaw,pressureRaw;
-int16_t temperature;
-int32_t pressure;
-
 static void writeSdPacket(Circular &buf) {
   ccsds.start(buf,0x11);
   while(sd.buf.readylen()>0) ccsds.fill(sd.buf.get());
@@ -112,15 +124,93 @@ static void maybeWriteSdPacket(Circular& buf) {
   if(sd.buf.readylen()>128) writeSdPacket(buf);
 }
 
-uint32_t oldOvr;
-int bmpPhase=0;
-int hmcPhase=0;
-const int bmpMaxPhase=150;
-const int hmcMaxPhase=10;
-uint32_t bmpTC;
-char old_vbus=0;
+int wheelrev=0;
+bool aftOver,oldAft=false;
+bool fwdOver,oldFwd=false;
+unsigned long t,old_t=0,t0=0;
+float wheelRad=0.015; //wheel radius in m, 1.5cm
+const float PI=3.14159265358;
+float wheelCirc=wheelRad*2*PI;
+float dist=0;
+float spd=0,maxspd=0;
+
+void checkSpeed() {
+  TC=TTC(0);
+  aft=analogRead(5);
+  fwd=analogRead(6);
+  aftOver=(aft>aftThreshold);
+  fwdOver=(fwd>fwdThreshold);
+  if (fwdOver!=oldFwd) {
+    t=TTC(0);
+    if(t0==0) t0=t;
+    if(aftOver) {
+      wheelrev+=(fwdOver?1:-1);
+      dist=wheelrev*wheelCirc;
+      if(old_t!=0) {
+        spd=wheelCirc/(((float)(t-old_t))/((float)PCLK));
+        if(maxspd<spd) maxspd=spd;
+        ccsds.start(measStore,0x41,pktseq,TC);
+        ccsds.fill(wheelrev);
+        ccsds.fill(dist);
+        ccsds.fill(spd);
+        ccsds.fill(maxspd);
+        ccsds.finish(0x40);
+        wantPrint=true;
+      } else {
+        old_t=t;
+      }
+    }
+    oldAft=aftOver;
+    oldFwd=fwdOver;
+    old_t=t;
+  }
+}
 
 void collectData(void* stuff) {
+  if(avgLight) {
+    aft=analogRead(5);
+    fwd=analogRead(6);
+    if(aft<minAft) minAft=aft;
+    if(aft>maxAft) maxAft=aft;
+    if(fwd<minFwd) minFwd=fwd;
+    if(fwd>maxFwd) maxFwd=fwd;
+    directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
+    if(TTC(0)>20*PCLK) {
+      aftThreshold=(minAft+maxAft)/2;
+      fwdThreshold=(minFwd+maxFwd)/2;
+      avgLight=false;
+      set_light(0,OFF);
+      set_light(1,OFF);
+      set_light(2,OFF);
+      Serial.begin(57600);
+      Serial.print("Self cal - Aft min/mid/max:");Serial.print(minAft,DEC);
+      Serial.print("/");Serial.print(aftThreshold,DEC);
+      Serial.print("/");Serial.print(maxAft,DEC);
+      Serial.print(" Fwd min/mid/max:");Serial.print(minFwd,DEC);
+      Serial.print("/");Serial.print(fwdThreshold,DEC);
+      Serial.print("/");Serial.println(maxFwd,DEC);
+      ccsds.start(measStore,0x41,pktseq,TC);
+      ccsds.fill16(minAft);ccsds.fill16(aftThreshold); ccsds.fill16(maxAft);
+      ccsds.fill16(minFwd);ccsds.fill16(fwdThreshold); ccsds.fill16(maxFwd);
+      ccsds.fill32(TC1);
+      ccsds.finish(0x41);
+      Serial.print("t,tc");
+#ifdef HAS_I2C
+      Serial.print(",bx,by,bz");
+#endif
+#ifdef HAS_SPI
+      Serial.print(",max,may,maz,mgx,mgy,mgz,mt");
+#endif
+#ifdef HAS_I2C
+      Serial.print(",T,P");
+#endif
+      Serial.println(",rev,dist,spd,maxspd");
+      //Serial write takes a long time, maybe more than scheduled. Reschedule
+      //(by using schedule, not reschedule) one period in the future
+      directTaskManager.schedule(1,readPeriodMs,0,collectData,0); 
+    }
+    return;
+  }
   //Don't bother to read the sensors if we can't store the data
   //this way we yield more time back to the writing routine so 
   //hopefully the buffer becomes empty sooner
@@ -136,18 +226,20 @@ void collectData(void* stuff) {
   }
   hmcPhase++;
   bmpPhase++;
+#ifdef HAS_SPI
   TC=TTC(0);
-  vbus=gpio_read(23);
   adxl345.read(max,may,maz);
   l3g4200d.read(mgx,mgy,mgz,mt,ms);
-  aft=analogRead(5);
-  fwd=analogRead(6);
   TC1=TTC(0);
-  ccsds.start(measStore,0x30,pktseq,TC);
-  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt); ccsds.fill16(aft); ccsds.fill16(fwd);
+  ccsds.start(measStore,0x40,pktseq,TC);
+  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
   ccsds.fill32(TC1);
-  ccsds.finish(0x30);
+  ccsds.finish(0x40);
+#endif
+  checkSpeed();
+
   if(hmcPhase>=hmcMaxPhase) {
+    #ifdef HAS_I2C
     //Only read the compass once every n times we read the 6DoF
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
@@ -158,15 +250,19 @@ void collectData(void* stuff) {
     //flight 36.290
     ccsds.fill16(bx);  ccsds.fill16(bz);  ccsds.fill16(by);
     ccsds.finish(0x04);
+    #endif
     hmcPhase=0;
   }
   if(bmpPhase>=bmpMaxPhase) {
+  #ifdef HAS_I2C
     //Only read the pressure sensor once every n times we read the 6DoF
     bmpTC=TTC(0);  
     bmp180.startMeasurement();
+  #endif
     wantPrint=true;
     bmpPhase=0;
   }
+  #ifdef HAS_I2C
   if(bmp180.ready) {
     temperatureRaw=bmp180.getTemperatureRaw();
     pressureRaw=bmp180.getPressureRaw();
@@ -182,6 +278,7 @@ void collectData(void* stuff) {
     ccsds.fill32(TC1);
     ccsds.finish(0x0A);
   }
+#endif
   //Why here? Because since creation of packets is interrupt driven, and there
   //is only a single buffer, only the interrupt routine is allowed to write
   if(writeDrain) {
@@ -198,20 +295,15 @@ void collectData(void* stuff) {
 }
 
 void setup() {
-  set_light(1,1);
-//  Serial.begin(230400);
-//  Serial.begin(115200);
-//  Serial.begin(4800);
-//  Serial.println("$PSRF103,8,0,1,1*2D");
-//  delay(500);
-//  Serial.println("$PSRF100,1,115200,8,1,0*05");
-//  Serial.end();
   Serial.begin(57600);
   Serial.println(version_string);
-  Wire1.begin();
   //SPI0 is under control of SD driver, since it needs to start low speed and change to high speed during begin()
+#ifdef HAS_I2C
+  Wire1.begin();
+#endif
+#ifdef HAS_SPI
   SPI1.begin(1000000,1,1); 
-
+#endif
   bool worked;
   worked=sd.begin();
 
@@ -230,7 +322,6 @@ void setup() {
 //  sector.begin();
   fs.print(Serial);//,sector);
   if(!worked) blinklock(fs.errno);
-
 
   openLog(resetFileSkip);
   sdStore.fill(syncMark);
@@ -255,6 +346,7 @@ void setup() {
   sdStore.drain(); 
   maybeWriteSdPacket(sdStore);
 
+#ifdef HAS_SPI
   adxl345.begin();
   Serial.print("ADXL345 identifier (should be 0o345): 0o");
   Serial.println(adxl345.whoami(),OCT);
@@ -272,7 +364,9 @@ void setup() {
   ccsds.finish(0x21);
   sdStore.drain();
   maybeWriteSdPacket(sdStore);
+#endif
 
+#ifdef HAS_I2C
   hmc5883.begin();
   char HMCid[4];
   hmc5883.whoami(HMCid);
@@ -297,7 +391,7 @@ void setup() {
   ccsds.finish(0x02);
   sdStore.drain();
   maybeWriteSdPacket(sdStore);
-
+#endif
   ccsds.start(sdStore,0x0C);
   ccsds.fill32(HW_TYPE);
   ccsds.fill32(HW_SERIAL);
@@ -316,18 +410,17 @@ void setup() {
   sdStore.drain();
   maybeWriteSdPacket(sdStore);
 
-  Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,T,P,vbus,ovr");
-//  Serial.println("t,tc,Traw,Praw");
-
   directTaskManager.begin();
   directTaskManager.schedule(1,readPeriodMs,0,collectData,0); 
+  set_light(0,ON);
+  set_light(1,ON);
+  set_light(2,ON);
 }
 
 void loop() {
   drainTC0=TTC(0);
   measStore.drain(sdStore);
   if(sdStore.drain()) {
-    flicker();
     writeDrain=true;
     drainTC1=TTC(0);
     if(sd.buf.readylen()>128) writeSd=true;
@@ -351,9 +444,12 @@ void loop() {
     Serial.print(":");Serial.print(RTCSEC,DEC,2);
     Serial.print(".");Serial.print(CTC&0x7FFF,HEX,4);
     Serial.print(",");Serial.print(((unsigned int)(TC)),DEC,10);
+#ifdef HAS_I2C
     Serial.print(",");Serial.print(bx, DEC); 
     Serial.print(",");Serial.print(by, DEC); 
     Serial.print(",");Serial.print(bz, DEC); 
+#endif
+#ifdef HAS_SPI
     Serial.print(",");Serial.print(max, DEC);
     Serial.print(",");Serial.print(may, DEC);
     Serial.print(",");Serial.print(maz, DEC);
@@ -361,12 +457,16 @@ void loop() {
     Serial.print(",");Serial.print(mgy, DEC);
     Serial.print(",");Serial.print(mgz, DEC);
     Serial.print(",");Serial.print(mt, DEC);
+#endif
+#ifdef HAS_I2C
     Serial.print(",");Serial.print(temperature/10, DEC);    
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
-    Serial.print(",");Serial.print(vbus, DEC); 
-    Serial.print(",");Serial.print(DirEntry::packTime(RTCHOUR,RTCMIN,RTCSEC),HEX,4); 
-    Serial.print(",");Serial.print(DirEntry::packDate(RTCYEAR,RTCMONTH,RTCDOM),HEX,4); 
+#endif
+    Serial.print(",");Serial.print(wheelrev,DEC);
+    Serial.print(",");Serial.print(dist/0.3048); //Print distance in feet
+    Serial.print(",");Serial.print(spd*2.23694); //Print speed in mph
+    Serial.print(",");Serial.print(maxspd*2.23694); //Print max speed in mph
     Serial.println();
     wantPrint=false;
   }
