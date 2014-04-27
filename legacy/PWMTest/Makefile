@@ -235,12 +235,13 @@ LPC21ISP_CONTROL = -control
 
 # Define programs and commands.
 SHELL = sh
-CC = arm-elf-gcc
-CPP = arm-elf-g++
-OBJCOPY = arm-elf-objcopy
-OBJDUMP = arm-elf-objdump
-SIZE = arm-elf-size
-NM = arm-elf-nm
+ARCH = arm-none-eabi
+CC = $(ARCH)-gcc
+CPP = $(ARCH)-g++
+OBJCOPY = $(ARCH)-objcopy
+OBJDUMP = $(ARCH)-objdump
+SIZE = $(ARCH)-size
+NM = $(ARCH)-nm
 REMOVE = rm -f
 COPY = cp
 

@@ -85,7 +85,7 @@ THUMB_IW = -mthumb-interwork
 # Optimization level, can be [0, 1, 2, 3, s]. 
 # 0 = turn off optimization. s = optimize for size.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = -O3 -fomit-frame-pointer
+OPT = -O0 -fomit-frame-pointer
 
 ## Using the Atmel AT91_lib produces warning with
 ## the default warning-levels. 
@@ -290,8 +290,8 @@ all: begin gccversion sizebefore build sizeafter finished end
 build: elf bin lss hex FW.SFE html
 
 bin: $(TARGET).nosource.bin $(TARGET).bin
-hex: $(TARGET).hex
-elf: $(TARGET).elf
+hex: $(TARGET).nosource.hex $(TARGET).hex
+elf: $(TARGET).nosource.elf $(TARGET).elf
 lss: $(TARGET).lss 
 
 # Eye candy.
@@ -397,6 +397,12 @@ $(TARBALL).o: $(TARBALL)
 
 # Create final output file (.hex) from ELF output file.
 %.hex: FW.SFE
+	@echo
+	@echo $(MSG_FLASH) $@
+	srec_cat -O $@ -I $< -bin
+
+# Create final output file (.hex) from ELF output file.
+$(TARGET).nosource.hex: $(TARGET).nosource.bin
 	@echo
 	@echo $(MSG_FLASH) $@
 	srec_cat -O $@ -I $< -bin

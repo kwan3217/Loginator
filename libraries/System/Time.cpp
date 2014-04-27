@@ -88,15 +88,6 @@ void setup_clock(void) {
   TMR0(0) = timerInterval;  //Reset when timer equals PCLK rate, effectively once per timerSec seconds
   TPR(0) = 0;  //No prescale, 1 timer tick equals 1 PCLK tick
 
-  //Set up PWM timer to support analogWrite(). Ticks at 1MHz, resets every 1024 ticks. 
-  PWMPR    = PCLK/1000000-1;      /* Load prescaler  */
-  PWMPCR = (1 << 13);             /* Enable PWM5 and no others, single sided */
-  PWMMCR = (1 <<  1);             /* On match with timer reset the counter   */
-  PWMMR0 = 0x400;                 /* set cycle rate to 1024 ticks            */
-  PWMMR5 = 0x200;                 /* set edge of PWM5 to 512 ticks           */
-  PWMLER = (1 <<  0) | (1 << 5);  /* enable shadow latch for match 0 and 5   */
-  PWMTCR = 0x00000002;            /* Reset counter and prescaler             */
-
   //Turn off the real-time clock
   CCR=0;
   //Set the PCLK prescaler and set the real-time clock to use it, so as to run in sync with everything else.
@@ -119,7 +110,6 @@ void setup_clock(void) {
   //These are close together so that Timer0, RTC, and PWM are as near in-phase as possible
   TTCR(0) = (1 << 0); // start timer
   CCR|=(1<<0); //Turn the real-time clock on
-  PWMTCR = 0x00000009;            /* enable counter and PWM, release counter from reset */
 }
 
 /**accurate delay. Relies on Timer0 running without pause at PCLK and resetting
@@ -190,5 +180,4 @@ void setup_pll(unsigned int channel, unsigned int M) {
 
 }
 
- 
-                                              
+
