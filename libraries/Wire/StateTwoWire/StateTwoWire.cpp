@@ -14,7 +14,6 @@ StateTwoWire::StateTwoWire(int Lport):port(Lport) {
 
 StateTwoWire *StateTwoWire::thisPtr[2];
 
-
 void StateTwoWire::IntHandler0() {
   thisPtr[0]->stateDriver();
 }

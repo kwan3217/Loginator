@@ -11,8 +11,9 @@
 #define HIGH 1
 
 inline void set_pin(int pin, int mode) {
-  int mask=~(0x3 << ((pin & 0x0F)<<1));
-  int val=mode << ((pin & 0x0F)<<1);
+  int shift=((pin & 0x0F)<<1);
+  int mask=~(0x3 << shift);
+  int val=   mode << shift;
   if(pin>=16) {
     PINSEL1=(PINSEL1 & mask) | val;
   } else {
