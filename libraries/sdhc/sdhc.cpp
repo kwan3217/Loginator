@@ -128,7 +128,9 @@ bool SDHC::begin() {
 
   // switch to higher SPI frequency 
   s->setfreq(5000000);  
+#ifdef SDHC_PKT
   buf.empty();
+#endif
   return true;
 }
 

@@ -9,7 +9,7 @@ const int light_pin[3]={
   8,7,9
 #else
   #ifdef LOGINATOR
-    //stat0 is red,   P0.8
+    //stat0 is red,   P0.8 (Shared with TX1)
     //stat1 is green  P0.1 (shared with RX0)
     //stat2 is blue   P0.0 (shared with TX0)
     8,1,0
@@ -41,13 +41,13 @@ void blinklock(int blinkcode) {
   }
 }
 
-static int flickerLight;            
+static int flickerLight=0;            
 
 void flicker(int on) {
   set_light(flickerLight,on);       
   if(on==0) {             
-    flickerLight++;        
-    if(flickerLight>=3) flickerLight=1;
+;    flickerLight++;        
+;    if(flickerLight>=3) flickerLight=1;
   }
 }
 

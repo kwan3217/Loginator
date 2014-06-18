@@ -100,7 +100,7 @@ int Circular::readylen() {
   return m-t;
 }
 
-bool Circular::drain(Circular& to) {
+bool Circular::drainPartial(Circular& to) {
   while(readylen()>0) {
     if(to.isFull()) {
       return false;
@@ -109,6 +109,11 @@ bool Circular::drain(Circular& to) {
     to.fill(get());
   }
   fullState=false;
+  return true;
+}
+
+bool Circular::drain(Circular& to) {
+  if(!drainPartial(to)) return false;
   to.mark();
   return true;
 }

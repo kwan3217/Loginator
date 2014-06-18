@@ -14,6 +14,8 @@ const int left=1;
 void setup() {
 //  initPWM(); //Initialize PWM
   initPWM(channelMask); 
+  setServo(channelThrottle,0);
+/*
   set_pin(0,0);
   gpio_set_write(0);
   set_pin(1,0);
@@ -39,7 +41,8 @@ void setup() {
   delay(2000);
   setServo(channelThrottle,0);
   gpio_write(1,1);
-  for(;;);
+  */
+//  for(;;);
 }
 
 void loop() {
@@ -47,35 +50,43 @@ void loop() {
     setServo(channelSteer,i);
     delay(10);
   }
+/*
   for(signed char i=0;i<127;i++) {
     setServo(channelThrottle,i);
     delay(10);
   }
+*/
   for(signed char i=127;i>0;i--) {
     setServo(channelSteer,i);
     delay(10);
   }
+/*
   for(signed char i=127;i>0;i--) {
     setServo(channelThrottle,i);
     delay(10);
   }
+*/
   delay(2000);
   for(signed char i=0;i>-128;i--) {
     setServo(channelSteer,i);
     delay(10);
   }
+/*
   for(signed char i=0;i>-128;i--) {
     setServo(channelThrottle,i);
     delay(10);
   }
+*/
   for(signed char i=-128;i<0;i++) {
     setServo(channelSteer,i);
     delay(10);
   }
+/*
   for(signed char i=-128;i<0;i++) {
     setServo(channelThrottle,i);
     delay(10);
   }
+*/
 }
 
 

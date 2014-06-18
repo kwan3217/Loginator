@@ -9,7 +9,7 @@
 
 #include "spi_user.h"
 #include "Print.h"
-#define SDHC_PKT
+//#define SDHC_PKT
 #ifdef SDHC_PKT
 #include "Circular.h"
 #define FAILREC(x) {errno=(x);buf.fill32BE(errno);buf.mark();return false;}
@@ -154,7 +154,11 @@ public:
 #endif
   static const int BLOCK_SIZE=512;
   unsigned int errno;
-  SDHC(HardSPI *Ls, int Lp0):spi_user(Ls,Lp0),buf(sizeof(buf_data),buf_data),errno(0) {};
+  SDHC(HardSPI *Ls, int Lp0):spi_user(Ls,Lp0)
+#ifdef SDHC_PKT
+,buf(sizeof(buf_data),buf_data)
+#endif
+,errno(0) {};
   bool begin(void);
   bool available(void);
 

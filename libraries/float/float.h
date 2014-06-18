@@ -1,8 +1,17 @@
 #ifndef FLOAT_H
 #define FLOAT_H
 
-typedef float fp;
+#include <math.h>
 
+#ifdef DOUBLE
+typedef double fp;
+#else
+typedef float fp;
+#define sin sinf
+#define cos cosf
+#define atan2 atan2f
+#define sqrt sqrtf
+#endif
 fp poly(fp x, const fp* p, int order);
 
 //Avoid trig-land! Use trig identities!

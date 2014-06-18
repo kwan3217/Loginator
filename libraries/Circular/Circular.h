@@ -11,7 +11,6 @@
 //The buffer gets written to by the generic fill() function. 
 //A special drain() function empties data out of the buffer somehow and
 //moves the head ptr up.
-//All circular buffers are 1024 characters.
 class Circular {
 protected:
   uint32_t N;
@@ -63,6 +62,7 @@ public:
   //Get the next character ready to be flushed
   char get();
   //Get all ready data from one buffer and copy it to another (as ready also)
+  bool drainPartial(Circular& to);
   bool drain(Circular& to);
   //Get the number of characters which aren't ready yet
   int unreadylen();

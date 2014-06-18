@@ -7,6 +7,7 @@ CPPSRC += ../libraries/System/Startup.cpp
 CPPSRC += ../libraries/System/hardware_stack.cpp
 CPPSRC += ../libraries/System/Time.cpp
 CPPSRC += ../libraries/System/irq.cpp
+#SRC += ../libraries/System/syscalls.c
 
 LIBMAKE+=Makefile ../libraries/System/Makefile
 
@@ -85,7 +86,7 @@ THUMB_IW = -mthumb-interwork
 # Optimization level, can be [0, 1, 2, 3, s]. 
 # 0 = turn off optimization. s = optimize for size.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = -O0 -fomit-frame-pointer
+OPT = -O3 -fomit-frame-pointer
 
 ## Using the Atmel AT91_lib produces warning with
 ## the default warning-levels. 
@@ -508,12 +509,11 @@ clean: begin clean_list finished end
 clean_list :
 	@echo
 	@echo $(MSG_CLEANING)
-	$(REMOVE) ../Common_WinARM/$(TARGET).hex
 	$(REMOVE) Doxyfile
 	$(REMOVE) sinShort.h
 	$(REMOVE) -r html
 	$(REMOVE) -r latex
-	$(REMOVE) $(TARGET).hex
+	$(REMOVE) $(TARGET).hex $(TARGET).nosource.hex
 	$(REMOVE) $(TARGET).bin $(TARGET).nosource.bin
 	$(REMOVE) $(TARGET).obj
 	$(REMOVE) $(TARGET).elf $(TARGET).nosource.elf
@@ -532,7 +532,7 @@ clean_list :
 	$(REMOVE) $(COBJARM)
 	$(REMOVE) $(CPPOBJARM)
 	$(REMOVE) $(AOBJARM)
-	@echo $(REMOVE) $(BACKUP)
+	$(REMOVE) $(BACKUP)
 	$(REMOVE) $(LST)
 	$(REMOVE) $(SRC:.c=.s)
 	$(REMOVE) $(SRC:.c=.d)

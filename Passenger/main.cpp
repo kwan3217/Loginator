@@ -14,8 +14,12 @@
 #include "FileCircular.h"
 #include "dump.h"
 #include "nmea.h"
+#include "config.h"
+#include "compass.h"
+#include "pwm.h"
+
 const char syncMark[]="KwanSync";
-static const char version_string[]="Project Yukari v0.0 " __DATE__ " " __TIME__;
+static const char version_string[]="Project Yukari Passenger v0.0 " __DATE__ " " __TIME__;
 const int dumpPktSize=120;
 
 StateTwoWire Wire1(1);
@@ -31,6 +35,14 @@ char serialBuf[1024];
 Circular serialStore(1024,serialBuf);
 CCSDS ccsds;
 NMEA gps;
+Config config(fs,ccsds);
+Compass compass;
+
+const unsigned char channelSteer=4;
+const unsigned char channelThrottle=6;
+const int right=-1;
+const int left=1;
+const unsigned char channelMask=(1<<channelSteer)|(1<<channelThrottle);
 
 uint16_t log_i=0;
 
@@ -59,12 +71,11 @@ bool collectGyroData() {
     uint8_t t,status;
     gyro.read(gx,gy,gz,t,status);
     unsigned int gTC1=TTC(0);
-//    if(status!=0) {
-      ccsds.start(sdStore,0x21,0,gTC);
-      ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz); ccsds.fill(t); ccsds.fill(status); ccsds.fill32(gTC1);
-      ccsds.finish(0x21);
-      return true;
-//    }
+    compass.handleGyro(gTC,gx,gy,gz);
+    ccsds.start(sdStore,0x21,0,gTC);
+    ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz); ccsds.fill(t); ccsds.fill(status); ccsds.fill32(gTC1);
+    ccsds.finish(0x21);
+    return true;
   }
   return false;
 }
@@ -134,7 +145,8 @@ void initHMC5883() {
 }
 
 void initGyro() {
-  gyro.begin(); //Use default sensitivity
+  gyro.begin(config.gyroSens,config.gyroODR,config.gyroBW); //Use sensitivity specified in config file. Actual
+                               //sensitivity is 250*2^config.gyroSens deg/s full scale
   Serial.println("L3G4200D started");
   uint8_t gyroId=gyro.whoami();
   Serial.print("L3G4200D identifier (should be 'D3'): ");
@@ -144,7 +156,6 @@ void initGyro() {
   ccsds.finish(0x20);
   sdStore.drain();
   //Priming read, not written anywhere but clears INT2
-  int16_t gx,gy,gz;
   uint8_t t,status;
   gyro.read(gx,gy,gz,t,status);
   //set up CAP0.3 on pin P0.29 (Loginator AD2, 11DoF IG) to capture (read) gyro INT2
@@ -154,10 +165,43 @@ void initGyro() {
   TCCR(0)=(0x01 << (3*3)); //channel 3, 3 control bits per channel, capture on rising, not falling, no interrupt
 }
 
+void writeVersion() {
+  ccsds.start(sdStore,0x0C);
+  ccsds.fill32(HW_TYPE);
+  ccsds.fill32(HW_SERIAL);
+  ccsds.fill(MAMCR);
+  ccsds.fill(MAMTIM);
+  ccsds.fill16(PLL0STAT);
+  ccsds.fill(VPBDIV);
+  ccsds.fill32(FOSC);                   //Crystal frequency, Hz
+  ccsds.fill32(CCLK);                   //Core Clock rate, Hz
+  ccsds.fill32(PCLK);                   //Peripheral Clock rate, Hz
+  ccsds.fill32(PREINT);
+  ccsds.fill32(PREFRAC);
+  ccsds.fill(CCR);
+  ccsds.fill(version_string);
+  ccsds.finish(0x0C);
+  sdStore.drain();
+}
+
 void setup() {
   Serial.begin(4800);
   Serial.println(version_string);
   initSD();
+
+  //Write processor config and firmware version
+  writeVersion();
+  sdStore.drain(); 
+
+  //Read system config
+  bool worked;
+  ccsds.start(sdStore,0x22);
+  worked=config.begin();
+  ccsds.finish(0x22);
+  sdStore.drain(); 
+
+  Serial.print("config");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(config.errno);
+  if(!worked) blinklock(config.errno);
 
   //Dump code to serial port and packet file
   int len=source_end-source_start;
@@ -189,6 +233,9 @@ void setup() {
   Serial.println("SPI1 started");
 
   initGyro();
+
+  //Init PWM
+  initPWM(channelMask); 
 
   Serial.flush();
 }
@@ -232,7 +279,9 @@ void collectGPS() {
     gps.writeGGA=false;
     Serial.write('g');
   } else if(gps.writeRMC) {
-    ccsds.start(sdStore,0x19,0,TTC(0));
+    uint32_t TC=TTC(0);
+    compass.handleRMC(TC,gps.HMS,gps.lat,gps.lon,gps.spd,gps.spdScale,gps.hdg,gps.hdgScale,gps.DMY);
+    ccsds.start(sdStore,0x19,0,TC);
     ccsds.fill32(gps.HMS);
     ccsds.fill32(gps.lat);
     ccsds.fill32(gps.lon);
@@ -244,6 +293,18 @@ void collectGPS() {
     ccsds.finish(0x19);
     Serial.write('r');
     gps.writeRMC=false;
+  }
+}
+
+void steer() {
+  const fp desiredHdg=0;
+  fp hdgError=compass.hdg-desiredHdg;
+  while(hdgError>180) hdgError-=360;
+  while(hdgError<-180) hdgError+=360;
+  if(hdgError<-5 || hdgError>5) {
+    setServo(channelSteer,hdgError);
+  } else {
+    setServo(channelSteer,0);
   }
 }
 
@@ -260,4 +321,5 @@ void loop() {
   flushPackets();
   collectGPS();
   flushPackets();
+  steer();
 }

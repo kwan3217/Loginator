@@ -24,17 +24,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include "LPC214x.h"
 
 #include "Serial.h"
 #include "Time.h"
 #include "gpio.h"
+#ifndef NOINT
 #include "irq.h"
 
 //Actual hardware interaction
 
 static void UARTISR(int n, HardwareSerial& port) {
-  if((0x01<<1) & UIIR(n)) {//If it's a THRE int...
+  int iir=(UIIR(n)>>1) & 0x07;
+  if(0x01==iir) {//If it's a THRE int...
     int i=0;
     while(i<16 && port.txBuf.readylen()>0) {
       UTHR(0)=port.txBuf.get();
@@ -51,10 +52,15 @@ static void UARTISR(int n, HardwareSerial& port) {
 static void UARTISR0() {UARTISR(0,Serial);}
 static void UARTISR1() {UARTISR(1,Serial1);}
 
+#endif
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-HardwareSerial::HardwareSerial(int Lport):txBuf(bufSize,txBuf_loc),rxBuf(bufSize,rxBuf_loc),port(Lport) {
+HardwareSerial::HardwareSerial(int Lport):
+#ifndef NOINT
+txBuf(bufSize,txBuf_loc),rxBuf(bufSize,rxBuf_loc),
+#endif
+port(Lport) {
 
 }
 
@@ -96,7 +102,9 @@ void HardwareSerial::begin(unsigned int baud) {
                (1 << 2) |  //Clear tx FIFO
                (3 << 6);   //Rx watermark=14 bytes
   ULCR(port) = ULCR(port) & ~(1<<7); //Turn of DLAB - FIFOs accessable
-
+#ifdef NOINT
+  UIER(port)=0;
+#else
   if(port==0) {
     IRQHandler::install(IRQHandler::UART0,UARTISR0);
   } else {
@@ -109,6 +117,7 @@ void HardwareSerial::begin(unsigned int baud) {
                (0 << 2) | //No int on line status
                (0 << 8) | //No int on autobaud timeout
                (0 << 9);  //No int on end of autobaud
+#endif
 }
 
 void HardwareSerial::end() {
@@ -127,6 +136,10 @@ void HardwareSerial::end() {
 }
 
 void HardwareSerial::write(uint8_t c) {
+#ifdef NOINT
+  while (!(ULSR(port) & (1<<5))); //do nothing, wait for Tx FIFO to become empty;
+  UTHR(port)=c;
+#else
   if(!txBuf.fill(c)) blinklock(1);
   txBuf.mark();
 #ifdef NOBLOCK_TX  
@@ -136,6 +149,7 @@ void HardwareSerial::write(uint8_t c) {
     while (!(ULSR(port) & (1<<5))); //do nothing, wait for Tx FIFO to become empty;
     UTHR(port)=txBuf.get();
   }
+#endif
 #endif
 }
 
