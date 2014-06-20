@@ -163,6 +163,9 @@ void Compass::filterGyro(fp dGyroHdg, fp dt) {
   mm(H,S,Gamma); 
 //  Gamma[0][0]+=Rgyro;
   
+  //K=S # Gamma^-1, but Gamma is scalar, so K=S/Gamma
+  K[0][0]/=Gamma[0][0];
+  K[0][1]/=Gamma[0][0];
 }
 
 void Compass::filterRMC(fp rmcHdg) {
