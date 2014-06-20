@@ -21,6 +21,7 @@ public:
   fp avgGx, avgGy, avgGz;
   fp calGx, calGy, calGz;
   fp lat,lon,firstLat,firstLon,dLat,dLon;
+  fp Rgyro;
   bool hasHdg,hasInit;
   static const fp clat;
   static const int yscl=37564;

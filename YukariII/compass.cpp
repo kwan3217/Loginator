@@ -91,22 +91,24 @@ void Compass::initFilter() {
   hasInit=true;
 }
 
-inline void mm2(fp (&a)[2][2], fp (&b)[2][2], fp (&ab)[2][2]) {
-  for(int i=0;i<2;i++) {
-    for(int j=0;j<2;j++) {
+template<int m,int n,int p>
+inline void mm(fp (&a)[m][n], fp (&b)[n][p], fp (&ab)[m][p]) {
+  for(int i=0;i<m;i++) {
+    for(int j=0;j<p;j++) {
       ab[i][j]=0;
-      for(int k=0;k<2;k++) {
+      for(int k=0;k<n;k++) {
         ab[i][j]+=a[i][k]*b[k][j];
       }
     }
   }
 }
 
-inline void mmt2(fp (&a)[2][2], fp (&bt)[2][2], fp (&abt)[2][2]) {
-  for(int i=0;i<2;i++) {
-    for(int j=0;j<2;j++) {
+template<int m,int n,int p>
+inline void mmt(fp (&a)[m][n], fp (&bt)[p][n], fp (&abt)[m][p]) {
+  for(int i=0;i<m;i++) {
+    for(int j=0;j<p;j++) {
       abt[i][j]=0;
-      for(int k=0;k<2;k++) {
+      for(int k=0;k<n;k++) {
         abt[i][j]+=a[i][k]*bt[j][k];
       }
     }
@@ -114,9 +116,10 @@ inline void mmt2(fp (&a)[2][2], fp (&bt)[2][2], fp (&abt)[2][2]) {
 }
 
 //equivalent to a+=b
-inline void mpm(fp (&a)[2][2], fp (&b)[2][2]) {
-  for(int i=0;i<2;i++) {
-    for(int j=0;j<2;j++) {
+template<int m,int n>
+inline void mpm(fp (&a)[m][n], fp (&b)[m][n]) {
+  for(int i=0;i<m;i++) {
+    for(int j=0;j<n;j++) {
       a[i][j]+=b[i][j];
     }
   }
@@ -125,29 +128,40 @@ inline void mpm(fp (&a)[2][2], fp (&b)[2][2]) {
 void Compass::filterGyro(fp dGyroHdg, fp dt) {
   //This requires propagating the state
   fp A[2][2];
+  fp scratch[2][2];
   A[0][0]=1;A[0][1]=dt;
   A[1][0]=0;A[1][1]=1;
   //Time update of estimate
-  fp xi[2];
-  xi[0]=A[0][0]*hdg+A[1][0]*hdgRate;
-  xi[1]=A[0][1]*hdg+A[1][1]*hdgRate;
+  fp xi[2][1];
+  xi[0][0]=A[0][0]*hdg+A[1][0]*hdgRate;
+  xi[1][0]=A[0][1]*hdg+A[1][1]*hdgRate;
   //Predicted measurement
-  fp H[2];
-  H[0]=0;H[1]=1;
-  fp zi;
-  zi=H[0]*hdg+H[1]*hdgRate;
+  fp H[1][2];
+  H[0][0]=0;H[0][1]=1;
+  fp zi[1][1];
+  zi[0][0]=H[0][0]*hdg+H[0][1]*hdgRate;
   //Process noise
   fp Q[2][2];
   Q[0][0]=dt*dt*dt*dt/4*sigv2;Q[1][0]=dt*dt*dt/2*sigv2;
   Q[0][1]=Q[1][0];            Q[1][1]=dt*dt*sigv2;
   //Time update of covariance
-  {
-    fp Palt[2][2];
-    //P=[A][P_i-1][A]
-    mm2(A,P,Palt);
-    mmt2(Palt,A,P);
-  }
+  //P=[A][P_i-1][A]
+  fp (&AP)[2][2]=scratch;
+  mm(A,P,AP);
+  mmt(AP,A,P);
   mpm(P,Q); //P is now [P^-]
+
+  //Calculate Kalman gain
+  //S: P(2x2)#H^T(2x1)=S(2x1)
+  fp K[2][1]; 
+  fp (&S)[2][1]=K;
+  mmt(P,H,S);
+
+  //gamma: H(1x2)#S(2x1)=Gamma'(1x1)
+  fp Gamma[1][1];
+  //Gamma'(1x1)+R(1x1)=Gamma(1x1)
+  mm(H,S,Gamma); 
+//  Gamma[0][0]+=Rgyro;
   
 }
 
