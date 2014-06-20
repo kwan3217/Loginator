@@ -101,7 +101,6 @@ Quaternion Quaternion::b2r(Quaternion& vb) {
   return vr;
 }
 
-
 void Compass::handleRMC(uint32_t TC, uint32_t hms, int32_t Llat, int32_t Llon, int32_t spd, int32_t spdScale, int32_t hdg, int32_t hdgScale, int32_t dmy) {
   int h=hms/10000;
   int ms=hms % 10000;

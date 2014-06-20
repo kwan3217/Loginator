@@ -36,8 +36,8 @@ public:
   uint32_t gyroPktCount;
   fp avgGx, avgGy, avgGz;
   fp calGx, calGy, calGz;
-  fp lat,lon;
-  bool hasHdg;
+  fp lat,lon,firstLat,firstLon,dLat,dLon;
+  bool hasHdg,hasFirstLatLon;
   static const fp clat;
   static const int yscl=37564;
   static const int avgGMin=200;

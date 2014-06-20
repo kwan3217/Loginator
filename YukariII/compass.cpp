@@ -88,7 +88,7 @@ Quaternion Quaternion::r2b(Quaternion& vr) {
 /** Implement inverse (body to reference) rotation with quaternions using the convention documented
     in the Kwan Hypertext Library:
 
-v_r=q'*v_b*q
+v_r=q*v_b*q'
 
     @param vr Vector in reference frame. Must be a quaternion with zero scalar part
     @return same vector but transformed into body frame. Will be a quaternion
@@ -114,6 +114,14 @@ void Compass::handleRMC(uint32_t TC, uint32_t hms, int32_t Llat, int32_t Llon, i
   for(int i=0;i<spdScale;i++) rmcSpd/=10.0;
   lat=((float)Llat)/1e7;
   lon=((float)Llon)/1e7;
+  if(hasFirstLatLon) {
+    firstLat=lat;
+    firstLon=lon;
+    hasFirstLatLon=true;
+  } else {
+    dlat=lat-firstLat;
+    dlon=(lon-firstLon)*clat;
+  }
 }
 
 void Compass::setSens(uint8_t fs) {
