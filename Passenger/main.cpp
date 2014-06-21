@@ -113,7 +113,7 @@ void initSD() {
   if(!worked) blinklock(sd.errno);
 
   sd.get_info(sdinfo);
-  sdinfo.print(Serial);
+//  sdinfo.print(Serial);
   worked=p.begin(1);
   Serial.print("p");     Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errno);
   p.print(Serial);
@@ -122,7 +122,7 @@ void initSD() {
   worked=fs.begin();  
   Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
 //  sector.begin();
-  fs.print(Serial);//,sector);
+//  fs.print(Serial);//,sector);
   if(!worked) blinklock(fs.errno);
 
   openLog();
@@ -211,7 +211,7 @@ void setup() {
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
     ccsds.finish(0x03);
-    Serial.print(".");
+//    Serial.print(".");
     sdStore.drain(); 
     base+=dumpPktSize;
     len-=dumpPktSize;
@@ -297,7 +297,7 @@ void collectGPS() {
 }
 
 void steer() {
-  const fp desiredHdg=0;
+  const fp desiredHdg=36.8;
   fp hdgError=compass.hdg-desiredHdg;
   while(hdgError>180) hdgError-=360;
   while(hdgError<-180) hdgError+=360;

@@ -42,9 +42,11 @@ void trim(char* s) {
 int dtoi(char* d) {
   int result=0;
   int len=strlen(d);
-  for(int i=0;i<len;i++) {
+  bool sign=(d[0]=='-');
+  for(int i=sign?1:0;i<len;i++) {
     result=result*10+(d[i]-'0');
   }
+  if(sign) result=-result;
   return result;
 }
 //get the integer value of a hex number string, signified by starting with 0x, case-insensitive

@@ -1,12 +1,14 @@
 #include "config.h"
 #include "Stringex.h"
 #include <string.h>
-#define DEBUG
+#undef DEBUG
 #ifdef DEBUG
 #include "Serial.h"
 #endif
+#include "navigate.h" //for clat
 
 const char Config::configFilename[]="CONFIG.TXT";
+#ifdef LPC2148
 
 bool Config::begin() {
   //Config file is in the form:
@@ -24,11 +26,24 @@ bool Config::begin() {
   char buf[512]; //Put this on the stack, we are called early in the processing
                  //before much stack is used, and don't want to hold it
                  //permanently.
+#else
+#include <stdio.h>
+#define FAIL(x) {printf("Failed, code %d\n",(x));return false;}
+bool Config::begin() {
+  FILE* inf=fopen(configFilename,"r");
+  char buf[512];
+  int len=fread(buf,1,512,inf);
+  fclose(inf);
+  return begin(buf,len);
+}
+bool Config::begin(char* buf, int size) {
+#endif
   char tag[11];  //Storage for the tag
   int tagp=0;
   int partindata=0;
   int datastart=0;
   int tagid=0;
+#ifdef LPC2148
   if(!f.openr(configFilename)) FAIL(100*f.errno+21);
   int size=f.size()>512?512:f.size();
   if(!f.read(buf)) FAIL(100*f.errno+22);
@@ -37,6 +52,7 @@ bool Config::begin() {
   //handle it if the calling function calls dump right after
   ccsds.fill(f.de.entry,sizeof(f.de.entry));
   ccsds.fill(buf,size);
+#endif
   for(int i=0;i<size;i++) {
 #ifdef DEBUG
     Serial.print("Parsing char ");
@@ -55,6 +71,7 @@ bool Config::begin() {
           Serial.println("Found comment start");
 #endif
           partindata=4;
+          break;
         } else if(buf[i]>=33) {
 #ifdef DEBUG
           Serial.println("Found the tag start");
@@ -86,23 +103,29 @@ bool Config::begin() {
 #endif
           //Identify the tag, assign a number for easier case handling below
           if(strcmp(tag,"GSENS")==0) {
-            tagid=1;            
+            tagid= 1;            
           } else if(strcmp(tag,"GODR")==0) {
-            tagid=2;            
+            tagid= 2;            
           } else if(strcmp(tag,"GBW")==0) {
-            tagid=3;            
+            tagid= 3;            
           } else if(strcmp(tag,"P")==0) {
-            tagid=4;            
+            tagid= 4;            
           } else if(strcmp(tag,"PS")==0) {
-            tagid=5;            
+            tagid= 5;            
           } else if(strcmp(tag,"I")==0) {
-            tagid=6;            
+            tagid= 6;            
           } else if(strcmp(tag,"IS")==0) {
-            tagid=7;            
+            tagid= 7;            
           } else if(strcmp(tag,"D")==0) {
-            tagid=8;            
+            tagid= 8;            
           } else if(strcmp(tag,"DS")==0) {
-            tagid=9;            
+            tagid= 9;            
+          } else if(strcmp(tag,"WPDLAT")==0) {
+            tagid=10;            
+          } else if(strcmp(tag,"WPDLON")==0) {
+            tagid=11;            
+          } else if(strcmp(tag,"THR")==0) {
+            tagid=12;
           } else {
 #ifdef DEBUG
             Serial.print("Unrecognized tag");
@@ -166,6 +189,15 @@ bool Config::handleData(int tagid, char* buf) {
     case 9:
       if(!handleInt(buf,Ds)) return false;
       break;
+    case 10:
+      if(!handleWaypoint(buf,dlatWaypoint,1)) return false;
+      break;
+    case 11:
+      if(!handleWaypoint(buf,dlonWaypoint,clat)) return false;
+      break;
+    case 12:
+      if(!handleInt(buf,throttle)) return false;
+      break;
     default:
       FAIL(24);
   }
@@ -187,3 +219,21 @@ bool Config::handleInt(char* buf, int& out) {
   return true;
 }
 
+bool Config::handleWaypoint(char* buf, fp* out, fp scale) {
+  trim(buf);
+  nWaypoints=0;
+  int n=strlen(buf);
+  int bp=0;
+  for(int i=0;i<n;i++) {
+    if(buf[i]==' ') {
+      buf[i]=0;
+      out[nWaypoints]=stoi(buf+bp)*scale/1e7;
+      bp=i+1;
+      nWaypoints++;
+    }
+  }
+  out[nWaypoints]=stoi(buf+bp)*scale/1e7;
+  nWaypoints++;
+  out[nWaypoints]=out[0]; //close the loop
+  return true;
+}

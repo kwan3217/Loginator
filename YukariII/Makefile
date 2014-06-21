@@ -1,7 +1,7 @@
 PROJECT_BRIEF="Connect with and communicate with 11DoF sensors"
 HARDWARE=LOGINATOR
-ATTACH=Loginator.brd Loginator.sch 11Dof.brd 11Dof.sch Optoisolator-v12.brd Optoisolator-v12.sch GP-2106_Eval-v11.brd GP-2106_Eval-v11.sch gpl-3.0.html
-CPPSRC+=config.cpp compass.cpp
+#ATTACH=Loginator.brd Loginator.sch 11Dof.brd 11Dof.sch Optoisolator-v12.brd Optoisolator-v12.sch GP-2106_Eval-v11.brd GP-2106_Eval-v11.sch gpl-3.0.html
+CPPSRC+=config.cpp navigate.cpp guide.cpp control.cpp
 include ../libraries/LPCduino/Makefile
 include ../libraries/PWM/Makefile
 include ../libraries/hmc5883/Makefile

@@ -29,9 +29,21 @@ bool Config::begin() {
   int partindata=0;
   int datastart=0;
   int tagid=0;
-  if(!f.openr(configFilename)) FAIL(100*f.errno+21);
+  if(!f.openr(configFilename)) {
+#ifdef DEBUG
+    Serial.print("Couldn't open file: ");
+    Serial.println(configFilename);
+#endif
+    FAIL(100*f.errno+21);
+  }
   int size=f.size()>512?512:f.size();
-  if(!f.read(buf)) FAIL(100*f.errno+22);
+  if(!f.read(buf)) {
+#ifdef DEBUG
+    Serial.print("Couldn't read file: ");
+    Serial.println(100*f.errno+22);
+#endif
+    FAIL(100*f.errno+22);
+  }
   //Dump the whole file into a packet, including its direntry. This will capture
   //the file name, date and size. The FileCircular buffer is big enough to 
   //handle it if the calling function calls dump right after

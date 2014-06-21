@@ -1,0 +1,112 @@
+#include "navigate.h"
+
+void Navigate::handleRMC(uint32_t TC, uint32_t hms, int32_t Llat, int32_t Llon, int32_t spd, int32_t spdScale, int32_t Lhdg, int32_t hdgScale, int32_t dmy) {
+  hasRMC=true;
+  int h=hms/10000;
+  int ms=hms % 10000;
+  int m=ms/100;
+  int s=ms%100;
+  sod=h*3600+m*60+s;
+  rmcHdg=Lhdg;
+  for(int i=0;i<hdgScale;i++) rmcHdg/=10.0;
+  rmcSpd=spd;
+  for(int i=0;i<spdScale;i++) rmcSpd/=10.0;
+  lat=((float)Llat)/1e7;
+  lon=((float)Llon)/1e7;
+  if(firstLat==0) {
+	firstLat=lat;
+	firstLon=lon;
+  }
+  if(hasInit) {
+    fp ddLat=-dLat;
+    fp ddLon=-dLon;
+    dLat=lat-firstLat;
+    dLon=(lon-firstLon)*clat;
+    ddLat=dLat+ddLat;
+    ddLon=dLon+ddLon;
+    if((compassCountdown<0) && rmcSpd>3) {
+      if((ddLat!=0)|(ddLon!=0)) {
+        dHdg=atan2(ddLon,ddLat)*180.0/PI;
+        coerceHeading(dHdg);
+        hdg=dHdg;
+        hdgOfs=hdg-gyroHdg;
+        coercedHeading(hdgOfs);
+      }
+    }
+  }
+}
+
+void Navigate::setSens(uint8_t fs) {
+  fp FS=((fp)(250 << fs));
+  sens=FS/360.0; //rotations per second full scale
+  sens*=2*PI;   //radians per second full scale
+  sens/=32768;  //radians per second per DN
+  sens*=yscl/32768; //include calibration scale factor
+}
+
+void Navigate::handleGyroCfg(uint8_t ctrl4) {
+  uint8_t fs=(ctrl4>>4) & 0x03;
+  setSens(fs);
+} 
+
+void Navigate::handleGyro(uint32_t TC, int16_t gx, int16_t gy, int16_t gz) {
+  //Gyro packet
+  gyroT=TC/60e6;
+  if(gyroT<lastT) {
+    deltaT=(gyroT-lastT)+60;
+    minuteofs++;
+  } else {
+    deltaT=(gyroT-lastT);
+  }
+  lastT=gyroT;
+  gyroT+=(minuteofs*60);
+  if (!hasInit) {
+    //Collect average G data
+    avgGsample[0][head]=gx;
+    avgGsample[1][head]=gy;
+    avgGsample[2][head]=gz;
+    head++;
+    if(head>=navgG*2) {
+      head=0;
+      initFilter();
+    }
+  } else {
+    //propagate the quaternion
+    calGx=sens*(((fp)gx)-avgGx);
+    calGy=sens*(((fp)gy)-avgGy);
+    calGz=sens*(((fp)gz)-avgGz);
+    e.integrate(calGx,calGy,calGz,deltaT);
+    if((calGy>0.8)||(calGy<-0.8)) {
+      compassCountdown=400;
+    } else {
+      compassCountdown--;
+    }
+    //Figure the nose vector
+    nose_r=e.b2r(nose);
+    gyroHdg=atan2(nose_r.z,nose_r.x)*180.0/PI+90;
+    coerceHeading(gyroHdg);
+    hdg=gyroHdg+hdgOfs;
+    coerceHeading(hdg);
+  }
+  gyroPktCount++;
+}
+
+void Navigate::initFilter() {
+  firstLat=lat;
+  firstLon=lon;
+  for(int i=0;i<navgG;i++) {
+    int j=head+i-navgG;
+    if(j<0) j+=navgG*2;
+    avgGx+=avgGsample[0][j];
+    avgGy+=avgGsample[1][j];
+    avgGz+=avgGsample[2][j];
+  }
+  avgGx/=navgG;
+  avgGy/=navgG;
+  avgGz/=navgG;
+  hdg=startHdg;
+  hdgOfs=startHdg;
+  hasInit=true;
+}
+
+

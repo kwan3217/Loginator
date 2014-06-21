@@ -15,11 +15,13 @@
 #include "dump.h"
 #include "nmea.h"
 #include "config.h"
-#include "compass.h"
+#include "navigate.h"
+#include "guide.h"
+#include "control.h"
 #include "pwm.h"
 
 const char syncMark[]="KwanSync";
-static const char version_string[]="Project Yukari v0.9 " __DATE__ " " __TIME__;
+static const char version_string[]="Project Yukari v1.0 " __DATE__ " " __TIME__;
 const int dumpPktSize=120;
 
 StateTwoWire Wire1(1);
@@ -36,12 +38,12 @@ Circular serialStore(1024,serialBuf);
 CCSDS ccsds;
 NMEA gps;
 Config config(fs,ccsds);
-Compass compass;
+Navigate nav(config);
+Guide guide(nav,config);
+Control control(nav,guide,config);
 
-fp P,I,D;
-
-const unsigned char channelSteer=4;
-const unsigned char channelThrottle=6;
+const unsigned char channelSteer=6;
+const unsigned char channelThrottle=4;
 const int right=-1;
 const int left=1;
 const unsigned char channelMask=(1<<channelSteer)|(1<<channelThrottle);
@@ -52,16 +54,36 @@ const uint32_t readPeriodMs=100;
 unsigned int bTC,gTC;
 int16_t bx,by,bz,gx,gy,gz;
 
+void flushPackets() {
+//  static int flickerState=0;
+  if(sdStore.drain()) {
+//    flickerState=1-flickerState;
+//    set_pin(8,0,1);
+//    gpio_write(8,flickerState);
+  }
+  if(sdStore.errno!=0) { 
+    Serial.print("Problem writing file: sdStore.errno=");
+    Serial.println(sdStore.errno);
+    blinklock(sdStore.errno);
+  }
+}
+
 void collectMagData() {
-  bTC=TTC(0);
-  hmc5883.read(bx,by,bz);
-  ccsds.start(sdStore,0x04,0,bTC);
-  //Sensor registers are in X, Z, Y order, not XYZ. Old code didn't know this,
-  //wrote sensor registers in order, therefore wrote xzy order unintentionally.
-  //We will keep this order to maintain compatibility with old data, including
-  //flight 36.290
-  ccsds.fill16(bx);  ccsds.fill16(bz);  ccsds.fill16(by);
-  ccsds.finish(0x04);
+  static unsigned int magPhase=0;
+  const unsigned int magMaxPhase=10;
+  if(magPhase>=magMaxPhase) {
+    bTC=TTC(0);
+    hmc5883.read(bx,by,bz);
+    ccsds.start(sdStore,0x04,0,bTC);
+    //Sensor registers are in X, Z, Y order, not XYZ. Old code didn't know this,
+    //wrote sensor registers in order, therefore wrote xzy order unintentionally.
+    //We will keep this order to maintain compatibility with old data, including
+    //flight 36.290
+    ccsds.fill16(bx);  ccsds.fill16(bz);  ccsds.fill16(by);
+    ccsds.finish(0x04);
+    magPhase=0;
+  }
+  magPhase++;
 }
 
 //return true if sensor has updated the heading
@@ -72,11 +94,20 @@ bool collectGyroData() {
     uint8_t t,status;
     gyro.read(gx,gy,gz,t,status);
     unsigned int gTC1=TTC(0);
-    compass.handleGyro(gTC,gx,gy,gz);
+    nav.handleGyro(gTC,gx,gy,gz);
     ccsds.start(sdStore,0x21,0,gTC);
     ccsds.fill16(gx);  ccsds.fill16(gy);  ccsds.fill16(gz); ccsds.fill(t); ccsds.fill(status); ccsds.fill32(gTC1);
     ccsds.finish(0x21);
-    return compass.hasHdg;
+    ccsds.start(sdStore,0x24,0,gTC);
+    ccsds.fillfp(nav.gyroT);   ccsds.fillfp(nav.lastT);   ccsds.fillfp(nav.deltaT); ccsds.fillfp(nav.sens);
+    ccsds.fillfp(nav.calGx);   ccsds.fillfp(nav.calGy);   ccsds.fillfp(nav.calGz);
+    ccsds.fillfp(nav.e.x);     ccsds.fillfp(nav.e.y);     ccsds.fillfp(nav.e.z);     ccsds.fillfp(nav.e.w);
+    ccsds.fillfp(nav.nose_r.x);ccsds.fillfp(nav.nose_r.y);ccsds.fillfp(nav.nose_r.z);ccsds.fillfp(nav.nose_r.w);
+    ccsds.fillfp(nav.gyroHdg);
+    ccsds.fillfp(nav.hdg);
+    ccsds.finish(0x24);
+    flushPackets();
+    return nav.hasInit;
   }
   return false;
 }
@@ -113,17 +144,17 @@ void initSD() {
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
   if(!worked) blinklock(sd.errno);
 
-  sd.get_info(sdinfo);
-  sdinfo.print(Serial);
+//  sd.get_info(sdinfo);
+//  sdinfo.print(Serial);
   worked=p.begin(1);
   Serial.print("p");     Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errno);
-  p.print(Serial);
+//  p.print(Serial);
   if(!worked) blinklock(p.errno);
 
   worked=fs.begin();  
   Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
 //  sector.begin();
-  fs.print(Serial);//,sector);
+//  fs.print(Serial);//,sector);
   if(!worked) blinklock(fs.errno);
 
   openLog();
@@ -152,7 +183,7 @@ void initGyro() {
   uint8_t gyroId=gyro.whoami();
   Serial.print("L3G4200D identifier (should be 'D3'): ");
   Serial.println(gyroId,HEX,2);
-  compass.setSens(config.gyroSens);
+  nav.setSens(config.gyroSens);
   ccsds.start(sdStore,0x20);
   gyro.fillConfig(ccsds);
   ccsds.finish(0x20);
@@ -186,6 +217,28 @@ void writeVersion() {
   sdStore.drain();
 }
 
+void setupWaypointPacket() {
+  ccsds.start(sdStore,0x27,0,TTC(0));
+  ccsds.fill(guide.currentBaseWaypoint);
+  ccsds.fill(guide.target);
+  ccsds.fillfp(config.dlatWaypoint[guide.currentBaseWaypoint]);
+  ccsds.fillfp(config.dlonWaypoint[guide.currentBaseWaypoint]);
+  ccsds.fillfp(config.dlatWaypoint[guide.target]);
+  ccsds.fillfp(config.dlonWaypoint[guide.target]);
+  ccsds.fillfp(guide.ddlatBasepath);
+  ccsds.fillfp(guide.ddlonBasepath);
+  ccsds.fillfp(guide.distBasepath);
+  ccsds.fillfp(guide.nlatBasepath);
+  ccsds.fillfp(guide.nlonBasepath);
+  ccsds.fillfp(guide.dlatSteerTo);
+  ccsds.fillfp(guide.dlonSteerTo);
+  ccsds.finish(0x27);
+  flushPackets();
+}
+
+void GyroPacket() {
+}
+
 void setup() {
   Serial.begin(4800);
   Serial.println(version_string);
@@ -201,14 +254,29 @@ void setup() {
   worked=config.begin();
   ccsds.finish(0x22);
   sdStore.drain(); 
-
+  ccsds.start(sdStore,0x28);
+  ccsds.fill32(config.gyroSens);
+  ccsds.fill32(config.gyroODR);
+  ccsds.fill32(config.gyroBW);
+  ccsds.fill32(config.P);
+  ccsds.fill32(config.Ps);
+  ccsds.fill32(config.I);
+  ccsds.fill32(config.Is);
+  ccsds.fill32(config.D);
+  ccsds.fill32(config.Ds);
+  ccsds.fill32(config.nWaypoints);
+  for(int i=0;i<=config.nWaypoints;i++) {
+    ccsds.fillfp(config.dlatWaypoint[i]);
+    ccsds.fillfp(config.dlonWaypoint[i]);
+  }
+  ccsds.finish(0x28);
   Serial.print("config");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(config.errno);
   if(!worked) blinklock(config.errno);
 
   //Convert PID coefficients into real values
-  P=config.P;for(int i=0;i<config.Ps;i++) P/=10;
-  I=config.I;for(int i=0;i<config.Is;i++) I/=10;
-  D=config.D;for(int i=0;i<config.Ds;i++) D/=10;
+  guide.begin();
+  setupWaypointPacket();
+  control.begin();
 
   //Dump code to serial port and packet file
   int len=source_end-source_start;
@@ -218,7 +286,7 @@ void setup() {
     ccsds.fill16(base-source_start);
     ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
     ccsds.finish(0x03);
-    Serial.print(".");
+//    Serial.print(".");
     sdStore.drain(); 
     base+=dumpPktSize;
     len-=dumpPktSize;
@@ -245,20 +313,6 @@ void setup() {
   initPWM(channelMask); 
 
   Serial.flush();
-}
-
-void flushPackets() {
-//  static int flickerState=0;
-  if(sdStore.drain()) {
-//    flickerState=1-flickerState;
-//    set_pin(8,0,1);
-//    gpio_write(8,flickerState);
-  }
-  if(sdStore.errno!=0) { 
-    Serial.print("Problem writing file: sdStore.errno=");
-    Serial.println(sdStore.errno);
-    blinklock(sdStore.errno);
-  }
 }
 
 bool collectGPS() {
@@ -288,7 +342,7 @@ bool collectGPS() {
     Serial.write('g');
   } else if(gps.writeRMC) {
     uint32_t TC=TTC(0);
-    compass.handleRMC(TC,gps.HMS,gps.lat,gps.lon,gps.spd,gps.spdScale,gps.hdg,gps.hdgScale,gps.DMY);
+    nav.handleRMC(TC,gps.HMS,gps.lat,gps.lon,gps.spd,gps.spdScale,gps.hdg,gps.hdgScale,gps.DMY);
     ccsds.start(sdStore,0x19,0,TC);
     ccsds.fill32(gps.HMS);
     ccsds.fill32(gps.lat);
@@ -306,70 +360,72 @@ bool collectGPS() {
   return hasGuide;
 }
 
-//Read the sensors and use them to update the vehicle state. Return true if 
-//a sensor affecting the vehicle state has updated
-bool navigate() {
-  static unsigned int magPhase=0;
-  const unsigned int magMaxPhase=10;
-  bool hasNav=collectGyroData();
-  if(hasNav) {
-    ccsds.start(sdStore,0x24,0,gTC);
-    ccsds.fillfp(compass.gyroT);   ccsds.fillfp(compass.lastT);   ccsds.fillfp(compass.deltaT); ccsds.fillfp(compass.sens);
-    ccsds.fillfp(compass.calGx);   ccsds.fillfp(compass.calGy);   ccsds.fillfp(compass.calGz);
-    ccsds.fillfp(compass.e.x);     ccsds.fillfp(compass.e.y);     ccsds.fillfp(compass.e.z);     ccsds.fillfp(compass.e.w);
-    ccsds.fillfp(compass.nose_r.x);ccsds.fillfp(compass.nose_r.y);ccsds.fillfp(compass.nose_r.z);ccsds.fillfp(compass.nose_r.w);
-    ccsds.fillfp(compass.gyroHdg);
-    ccsds.fillfp(compass.hdg);
-    ccsds.finish(0x24);
-    if(magPhase>=magMaxPhase) {
-      collectMagData();
-      magPhase=0;
-    }
-    magPhase++;
-  }
+void navigatePacket() {
+  ccsds.start(sdStore,0x25,0,gTC);
+  ccsds.fillfp(nav.gyroT);   ccsds.fillfp(nav.deltaT); 
+  ccsds.fillfp(nav.gyroHdg);
+  ccsds.fillfp(nav.rmcHdg);
+  ccsds.fillfp(nav.dHdg);
+  ccsds.fillfp(nav.hdgOfs);
+  ccsds.fillfp(nav.hdg);
+  ccsds.fillfp(nav.rmcSpd);
+  ccsds.finish(0x25);
   flushPackets();
-  hasNav|=collectGPS();
-  flushPackets();
-  return hasNav;
 }
 
-//From the vehicle state, figure out the desired heading
-void guide() {
-
+void guidePacket() {
+  ccsds.start(sdStore,0x26,0,TTC(0));
+  ccsds.fillfp(nav.firstLat);
+  ccsds.fillfp(nav.firstLon);
+  ccsds.fillfp(nav.lat);
+  ccsds.fillfp(nav.lon);
+  ccsds.fillfp(nav.dLat);
+  ccsds.fillfp(nav.dLon);
+  ccsds.fillfp(guide.dlatSteerTo);
+  ccsds.fillfp(guide.dlonSteerTo);
+  ccsds.fillfp(guide.ddlatSteerTo);
+  ccsds.fillfp(guide.ddlonSteerTo);
+  ccsds.fillfp(guide.desiredHdg);
+  ccsds.fillfp(guide.dotp);
+  ccsds.fillfp(guide.ddlatToGo);
+  ccsds.fillfp(guide.ddlonToGo);
+  ccsds.finish(0x26);
+  flushPackets();
 }
 
-//From the vehicle state and desired heading, steer toward the target
-void control() {
-  const fp desiredHdg=0;
-  fp hdgError=compass.hdg-desiredHdg;
-  while(hdgError>180) hdgError-=360;
-  while(hdgError<-180) hdgError+=360;
-  const fp hdgRate=0;
-  const fp hdgIntError=0;
-  fp ufsteerCmd=P*hdgError;
-  fp fsteerCmd=ufsteerCmd;
-  if(fsteerCmd> 100) fsteerCmd= 100;
-  if(fsteerCmd<-100) fsteerCmd=-100;
-  if(fsteerCmd>-5 && fsteerCmd<5) fsteerCmd=0;
-  signed char steerCmd=fsteerCmd;
-  setServo(channelSteer,-steerCmd);
+void controlPacket() {
   ccsds.start(sdStore,0x23,0,TTC(0));
-  ccsds.fillfp(compass.hdg);
-  ccsds.fillfp(desiredHdg);
-  ccsds.fillfp(hdgError);
-  ccsds.fillfp(hdgRate); 
-  ccsds.fillfp(hdgIntError);
-  ccsds.fillfp(P);
-  ccsds.fillfp(I);
-  ccsds.fillfp(D);
-  ccsds.fillfp(ufsteerCmd);
-  ccsds.fill(steerCmd);
+  ccsds.fillfp(nav.hdg);
+  ccsds.fillfp(guide.desiredHdg);
+  ccsds.fillfp(control.hdgError);
+  ccsds.fillfp(control.hdgRate); 
+  ccsds.fillfp(control.hdgIntError);
+  ccsds.fillfp(control.P);
+  ccsds.fillfp(control.I);
+  ccsds.fillfp(control.D);
+  ccsds.fillfp(control.ufsteerCmd);
+  ccsds.fill(control.steerCmd);
   ccsds.finish(0x23);
+  flushPackets();
+}
+
+void steer() {
+  setServo(channelSteer,-control.steerCmd);
+  if(nav.hasInit) setServo(channelThrottle,guide.runFinished?0:config.throttle); //Stomp the gas or hit the brakes
 }
 
 void loop() {
-  if(navigate()) {
-    guide();
-    control();
+  bool hasNav=collectGyroData();
+  hasNav|=collectGPS();
+  if(hasNav) {
+    collectMagData();
+    navigatePacket();
+    if(nav.hasRMC) {
+      guide.guide();
+      guidePacket();
+    }
+    control.control();
+    steer();
+    controlPacket();
   }
 }

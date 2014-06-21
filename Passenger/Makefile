@@ -12,6 +12,7 @@ include ../libraries/fat/Makefile
 include ../libraries/FileCircular/Makefile
 include ../libraries/Wire/StateTwoWire/Makefile
 include ../libraries/gps/nmea/Makefile
+include ../libraries/quaternion/Makefile
 include ../libraries/System/Makefile
 
 format:
