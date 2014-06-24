@@ -22,6 +22,7 @@ inline void coercedHeading(fp& dhdg) {
 
 class Navigate {
 public:
+  Config& config;
   Quaternion e;
   Quaternion nose,nose_r;
   fp sens; //Gyro sensitivity in rad/s/DN
@@ -41,12 +42,12 @@ public:
   fp hdgOfs; //Difference between gyro heading and RMC heading, hdgOfs=gyroHdg-Hdg, so Hdg=gyroHdg+hdgOfs
   fp startHdg;
   bool hasInit,hasRMC;
-  static const int yscl=37564;
+//  static const int yscl=37564;
   //static const int yscl=32768;
   static const int navgG=50;
   int16_t avgGsample[3][navgG*2];
   int head;
-  Navigate(Config& Lconfig):nose(0,0,-1,0) {};
+  Navigate(Config& Lconfig):config(Lconfig),nose(0,0,-1,0) {};
   void handleRMC(uint32_t TC, uint32_t hms, int32_t lat, int32_t lon, int32_t spd, int32_t spdScale, int32_t hdg, int32_t hdgScale, int32_t dmy);
   void handleGyroCfg(uint8_t ctrl4);
   void setSens(uint8_t fs);

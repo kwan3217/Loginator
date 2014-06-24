@@ -41,7 +41,8 @@ void Navigate::setSens(uint8_t fs) {
   sens=FS/360.0; //rotations per second full scale
   sens*=2*PI;   //radians per second full scale
   sens/=32768;  //radians per second per DN
-  sens*=yscl/32768; //include calibration scale factor
+  sens*=config.yscl;//Higher yscl means more rad/s per DN, makes it underturn
+  sens/=32768; //include calibration scale factor
 }
 
 void Navigate::handleGyroCfg(uint8_t ctrl4) {

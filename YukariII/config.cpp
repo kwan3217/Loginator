@@ -126,6 +126,8 @@ bool Config::begin(char* buf, int size) {
             tagid=11;            
           } else if(strcmp(tag,"THR")==0) {
             tagid=12;
+          } else if(strcmp(tag,"YSCL")==0) {
+            tagid=13;
           } else {
 #ifdef DEBUG
             Serial.print("Unrecognized tag");
@@ -197,6 +199,9 @@ bool Config::handleData(int tagid, char* buf) {
       break;
     case 12:
       if(!handleInt(buf,throttle)) return false;
+      break;
+    case 13:
+      if(!handleInt(buf,yscl)) return false;
       break;
     default:
       FAIL(24);

@@ -23,6 +23,7 @@ public:
   fp dlatWaypoint[maxWaypoints];
   fp dlonWaypoint[maxWaypoints];
   int throttle;
+  int yscl;
   static const char configFilename[];
 #ifdef LPC2148
   Cluster& fs;
@@ -32,7 +33,7 @@ public:
                                       P(-1),Ps(0),
                                       I( 0),Is(0),
                                       D( 0),Ds(0),
-                                      throttle(20),
+                                      throttle(20),yscl(32768),
                                       fs(Lfs),f(fs),ccsds(Lccsds) {};
   bool begin();
 #else
@@ -40,7 +41,7 @@ public:
            P(-1),Ps(0),
            I( 0),Is(0),
            D( 0),Ds(0),
-           throttle(20) {};
+           throttle(20),yscl(32768) {};
   bool begin();
   bool begin(char* buf, int size);
 #endif
