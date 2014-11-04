@@ -9,27 +9,27 @@
 class BMP180 {
   private:
     // Calibration values
-    short  ac1;
-    short  ac2; 
-    short  ac3; 
-    unsigned short ac4;
-    unsigned short ac5;
-    unsigned short ac6;
-    short  b1; 
-    short  b2;
-    short  mb;
-    short  mc;
-    short  md;
+    int16_t  ac1;
+    int16_t  ac2; 
+    int16_t  ac3; 
+    uint16_t ac4;
+    uint16_t ac5;
+    uint16_t ac6;
+    int16_t  b1; 
+    int16_t  b2;
+    int16_t  mb;
+    int16_t  mc;
+    int16_t  md;
     // b5 is calculated in getTemperature(...), this variable is also used in getPressure(...)
     // so ...Temperature(...) must be called before ...Pressure(...).
-    int  b5; 
+    int32_t b5; 
     TwoWire &port;
     void print(const char* tag, int arg) {
       if(!ouf) return;
       ouf->print(tag);
       ouf->println(arg,DEC);
     };
-    volatile int UT,UP;
+    volatile int32_t UT,UP;
     volatile bool start;
     int8_t read(uint8_t address);
     int16_t read_int16(uint8_t address);

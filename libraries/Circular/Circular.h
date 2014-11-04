@@ -59,6 +59,8 @@ public:
 
   //Mark all current unready data as ready
   void mark();
+  //Forget all current unready data
+  void forget();
   //Get the next character ready to be flushed
   char get();
   //Get all ready data from one buffer and copy it to another (as ready also)

@@ -86,6 +86,10 @@ void Circular::mark() {
   mid=head;
 }
 
+void Circular::forget() {
+  head=mid;
+}
+
 int Circular::unreadylen() {
   int h=head;
   int m=mid;

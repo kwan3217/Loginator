@@ -331,28 +331,25 @@ bool collectGPS() {
     gps.process(in);
   }
   if(gps.writeGGA) {
-    ccsds.start(sdStore,0x18,0,TTC(0));
-    ccsds.fill32(gps.HMS);
-    ccsds.fill32(gps.lat);
-    ccsds.fill32(gps.lon);
-    ccsds.fill32(gps.alt);
-    ccsds.fill32(gps.altScale);
-    ccsds.finish(0x18);
+    ccsds.start(sdStore,0x38,0,TTC(0));
+    ccsds.fillfp(gps.HMS);
+    ccsds.fillfp(gps.lat);
+    ccsds.fillfp(gps.lon);
+    ccsds.fillfp(gps.alt);
+    ccsds.finish(0x38);
     gps.writeGGA=false;
     Serial.write('g');
   } else if(gps.writeRMC) {
     uint32_t TC=TTC(0);
-    nav.handleRMC(TC,gps.HMS,gps.lat,gps.lon,gps.spd,gps.spdScale,gps.hdg,gps.hdgScale,gps.DMY);
-    ccsds.start(sdStore,0x19,0,TC);
-    ccsds.fill32(gps.HMS);
-    ccsds.fill32(gps.lat);
-    ccsds.fill32(gps.lon);
-    ccsds.fill32(gps.spd);
-    ccsds.fill32(gps.spdScale);
-    ccsds.fill32(gps.hdg);
-    ccsds.fill32(gps.hdgScale);
+    nav.handleRMC(TC,gps.lat,gps.lon,gps.spd,gps.hdg);
+    ccsds.start(sdStore,0x39,0,TC);
+    ccsds.fillfp(gps.HMS);
+    ccsds.fillfp(gps.lat);
+    ccsds.fillfp(gps.lon);
+    ccsds.fillfp(gps.spd);
+    ccsds.fillfp(gps.hdg);
     ccsds.fill32(gps.DMY);
-    ccsds.finish(0x19);
+    ccsds.finish(0x39);
     Serial.write('r');
     gps.writeRMC=false;
     hasGuide=true;
@@ -362,7 +359,8 @@ bool collectGPS() {
 
 void navigatePacket() {
   ccsds.start(sdStore,0x25,0,gTC);
-  ccsds.fillfp(nav.gyroT);   ccsds.fillfp(nav.deltaT); 
+  ccsds.fillfp(nav.gyroT);   
+  ccsds.fillfp(nav.deltaT); 
   ccsds.fillfp(nav.gyroHdg);
   ccsds.fillfp(nav.rmcHdg);
   ccsds.fillfp(nav.dHdg);

@@ -3,37 +3,31 @@
 #include "nmea.h"
 #include "Stringex.h"
 
-//Given a string representing number with a decimal point, return the number multiplied by 10^(shift)
-int NMEA::parseNumber(char* in, int& shift) {
+//Given a string representing number with a decimal point, return the number
+fp NMEA::parseNumber(char* in) {
   char buf[16];
   int len=strlen(in);
   int decimal=0;
   while(in[decimal]!='.' && in[decimal]!=0) decimal++;
   in[decimal]=0;
   int fraclen=len-decimal-1;
-  shift=fraclen;
+  int shift=fraclen;
   for(int i=0;i<decimal;i++) buf[i]=in[i];
   for(int i=decimal+1;i<len;i++) buf[i-1]=in[i];
   buf[len-1]=0;
-  return stoi(buf);
+  fp result=stoi(buf);
+  for(int i=0;i<shift;i++) result/=10;
+  return result;
 }
 
 //Given a string representing a number in the form dddmm.mmmm, return
-//an integer representing that number in just degrees multiplied by 10^7
-int NMEA::parseMin(char* buf) {
-  int shift;
-  int num=parseNumber(buf,shift);
-  int shift10=1;
-  for(int i=0;i<shift;i++) shift10*=10;
-  int rshift=7-shift;
-  int rshift10=1;
-  for(int i=0;i<rshift;i++) rshift10*=10;
-  int intpart=num/shift10;
-  int fracpart=num%shift10;
-  int degpart=intpart/100;
-  int minintpart=intpart%100;
-  int minpart=(minintpart*shift10+fracpart)*rshift10/60;
-  return degpart*10000000+minpart;
+//an integer representing that number in just degrees
+fp NMEA::parseMin(char* buf, int junk) {
+  fp num=parseNumber(buf);
+  int degpart=num/100;
+  fp minpart=num-degpart*100;
+  fp result=degpart+minpart/60;
+  return result;
 }
 
 void NMEA::process(const char in) {
@@ -156,12 +150,11 @@ void ExpectRMC3::act(NMEA& that, char in) {
   that.nmeaState=&that.expectDollar;
 }
 
-int NMEA::handleHMS() {
-  int shift,result;
+fp NMEA::handleHMS() {
+  int result;
   numBuf[numPtr]=0;
   numPtr=0;
-  result=parseNumber(numBuf,shift);
-  for(int i=0;i<shift;i++) result/=10;
+  result=parseNumber(numBuf);
   pktState++;
   return result;
 }
@@ -175,20 +168,20 @@ int NMEA::handlestoi() {
   return result;
 }
 
-int NMEA::handleMin() {
-  int result;
+fp NMEA::handleMin() {
+  fp result;
   numBuf[numPtr]=0;
   numPtr=0;
-  result=parseMin(numBuf);
+  result=parseMin(numBuf,0);
   pktState++;
   return result;
 }
 
-int NMEA::handleNum(int& shift) {
-  int result;
+fp NMEA::handleNum() {
+  fp result;
   numBuf[numPtr]=0;
   numPtr=0;
-  result=parseNumber(numBuf,shift);
+  result=parseNumber(numBuf);
   pktState++;
   return result;
 }
@@ -198,7 +191,7 @@ void NMEA::acc(char in) {
   numPtr++;
 }
 
-bool NMEA::parseFieldHMS(char in, int& result) {
+bool NMEA::parseFieldHMS(char in, fp& result) {
   if(in==',') {
     //we've seen the whole number
     result=handleHMS();
@@ -210,7 +203,7 @@ bool NMEA::parseFieldHMS(char in, int& result) {
   return false;
 }
 
-bool NMEA::parseFieldMin(char in, int& result) {
+bool NMEA::parseFieldMin(char in, fp& result) {
   if(in==',') {
     //we've seen the whole number
     result=handleMin();
@@ -234,10 +227,10 @@ bool NMEA::parseFieldstoi(char in, int& result) {
   return false;
 }
 
-bool NMEA::parseFieldNum(char in, int& result, int& scale) {
+bool NMEA::parseFieldNum(char in, fp& result) {
   if(in==',') {
     //we've seen the whole number
-    result=handleNum(scale);
+    result=handleNum();
     return true;
   } else if((in>='0' && in<='9')||in=='.') {
     acc(in);
@@ -346,7 +339,7 @@ void ParseGGA::act(NMEA& that, char in) {
     case 10: //MSL Altitude
       //in field 4, year number
       if(in==',') {
-        that.ggaAlt=that.handleNum(that.ggaAltScale);
+        that.ggaAlt=that.handleNum();
         that.pktState=0;
         that.nmeaState=&that.waitChecksum;
         that.finishPacket=&that.finishGGA;
@@ -403,10 +396,10 @@ void ParseRMC::act(NMEA& that, char in) {
       }
       break;
     case 10: //Speed in knots
-      if(that.parseFieldNum(in,that.rmcSpd,that.rmcSpdScale)) return;
+      if(that.parseFieldNum(in,that.rmcSpd)) return;
       break;
     case 11: //Heading in deg true
-      if(that.parseFieldNum(in,that.rmcHdg,that.rmcHdgScale)) return;
+      if(that.parseFieldNum(in,that.rmcHdg)) return;
       break;
     case 12: //UTC DDMMYY
       if(in==',') {
@@ -438,7 +431,7 @@ void ParseVTG::act(NMEA& that, char in) {
       }
       break;
     case 1: //Course
-      if(that.parseFieldNum(in,that.vtgCourse,that.vtgCourseScale)) return;
+      if(that.parseFieldNum(in,that.vtgCourse)) return;
       break;
     case 2: //Course unit marker
       if(in=='T') {
@@ -454,7 +447,7 @@ void ParseVTG::act(NMEA& that, char in) {
       break;
     case 6: //Speed
       if(in==',') {
-        that.vtgSpeedKt=that.handleNum(that.vtgSpeedKtScale);
+        that.vtgSpeedKt=that.handleNum();
         that.pktState=0;
         that.nmeaState=&that.waitChecksum;
         that.finishPacket=&that.finishVTG;
@@ -515,7 +508,6 @@ void FinishGGA::act(NMEA& that) {
     that.lat=that.ggaLat;
     that.lon=that.ggaLon;
     that.alt=that.ggaAlt;
-    that.altScale=that.ggaAltScale;
     that.writeGGA=true;
   }
 }
@@ -527,9 +519,7 @@ void FinishRMC::act(NMEA& that) {
     that.lat=that.rmcLat;
     that.lon=that.rmcLon;
     that.spd=that.rmcSpd;
-    that.spdScale=that.rmcSpdScale;
     that.hdg=that.rmcHdg;
-    that.hdgScale=that.rmcHdgScale;
     that.DMY=that.rmcDMY;
     that.writeRMC=true;
   }

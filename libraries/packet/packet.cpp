@@ -18,6 +18,15 @@ bool Packet::fill(const char* in, uint32_t length) {
   return true;
 }
 
+void Packet::forget() {
+  buf->forget();
+}
+
+void CCSDS::forget() {
+  Packet::forget();
+  lock_apid=0;
+}
+
 bool CCSDS::start(Circular &Lbuf, uint16_t apid, uint16_t* seq, uint32_t TC) {
   if(lock_apid>0) {
     Serial.print("Tried to start a packet when one already in process: old: 0x");
@@ -52,7 +61,7 @@ bool CCSDS::finish(uint16_t tag) {
   }
   int len=buf->unreadylen()-7;
   if(len<0) {
-    Serial.print("Bad packet finish: 0x");Serial.println(tag,HEX);
+    Serial.print("Bad packet length for tag 0x");Serial.print(tag,HEX,2);Serial.print(": ");Serial.print(len);
     blinklock(tag);
   }
   buf->pokeMid(4,(len >> 8) & 0xFF);

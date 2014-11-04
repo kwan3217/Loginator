@@ -1,6 +1,10 @@
 #ifndef nmea_h
 #define nmea_h
 
+//We are from now on going to use floating point numbers without embarassment
+//  -- No more separate "scale" part for certain variables
+//  -- No more factor of 10^7 in lat and lon
+#include "float.h"
 class NMEA;
 class State {
   public:
@@ -37,13 +41,16 @@ class NMEA {
 public:
     char numBuf[128]; 
     int numPtr;
-    int ggaHMS, ggaLat,ggaLon,ggaAlt,ggaAltScale;
-    int rmcHMS, rmcLat,rmcLon,rmcSpd,rmcSpdScale,rmcHdg,rmcHdgScale,rmcDMY;
-//Given a string representing number with a decimal point, return the number multiplied by 10^(shift)
-    static int parseNumber(char* in, int& shift);
+    fp ggaHMS;
+    fp ggaLat,ggaLon,ggaAlt;
+    fp rmcHMS;
+    int rmcDMY; 
+    fp rmcLat,rmcLon,rmcSpd,rmcHdg;
+//Given a string representing number with a decimal point, return the number 
+    static fp parseNumber(char* in);
 //Given a string representing a number in the form dddmm.mmmm, return
-//an integer representing that number in just degrees multiplied by 10^7
-    static int parseMin(char* buf);
+//an integer representing that number in just degrees
+    static fp parseMin(char* buf, int dummy);
     ExpectDollar expectDollar; friend class ExpectDollar;
     ExpectG expectG;           friend class ExpectG;
     ExpectP expectP;           friend class ExpectP;
@@ -70,23 +77,25 @@ public:
     int pktState;
     char checksum;
     void acc(char in);
-    int handleHMS();
+    fp handleHMS();
     int handlestoi();
-    int handleNum(int& shift);
-    int handleMin();
-    bool parseFieldHMS(char in,int& result);
+    fp handleNum();
+    fp handleMin();
+    bool parseFieldHMS(char in, fp& result);
     bool parseFieldstoi(char in, int& result);
     bool discardFieldstoi(char in);
-    bool parseFieldNum(char in, int& result, int& shift);
-    bool parseFieldMin(char in, int& result);
-    int zdaHMS, zdaHMSScale, zdaDD, zdaMM, zdaYYYY;
-    int vtgCourse,vtgCourseScale,vtgSpeedKt,vtgSpeedKtScale;
+    bool parseFieldNum(char in, fp& result);
+    bool parseFieldMin(char in, fp& result);
+    fp zdaHMS;
+    int zdaDD, zdaMM, zdaYYYY;
+    fp vtgCourse,vtgSpeedKt;
   public:
     bool hasPos;
-//Latitude and longitude in 100ndeg (1e7 ndeg in 1 deg)
-//Alt in scaled meters
+//Latitude and longitude in deg
+//Alt in meters
     State* nmeaState;
-    int HMS, DMY,lat,lon,alt,altScale,hdg,hdgScale,spd,spdScale;
+    int HMS, DMY;
+    fp lat,lon,alt,hdg,spd;
     bool writeZDA,writeGGA,writeVTG,writeRMC;
     NMEA():finishPacket(0),pktState(0),checksum(0),
       nmeaState(&expectDollar),writeZDA(false),writeGGA(false),writeVTG(false) {};

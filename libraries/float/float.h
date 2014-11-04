@@ -2,6 +2,7 @@
 #define FLOAT_H
 
 #include <math.h>
+#include <inttypes.h>
 
 #ifdef DOUBLE
 typedef double fp;
@@ -46,6 +47,29 @@ static inline fp sint(int angle) {
 
 static inline fp cost(int angle) {
   return sint(900-angle);
+}
+
+
+union floatint {
+  float f;
+  int32_t i;
+};
+
+//From Wikipedia:Fast inverse square root. Must be float, not fp. Edited
+//to use correct types and avoid strict-aliasing warning on conversion from float to int
+static inline float Q_rsqrt( float number ) {
+	floatint i;
+	float x2, y;
+	const float threehalfs = 1.5F;
+ 
+	x2 = number * 0.5F;
+	i.f  = number;        // evil floating point bit level hacking
+	i.i  = 0x5f3759df - ( i.i >> 1 );               // what the...?
+	y  = i.f;
+	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
+//      y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+ 
+	return y;
 }
 
 #endif

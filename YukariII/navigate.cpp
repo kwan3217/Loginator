@@ -1,18 +1,11 @@
 #include "navigate.h"
 
-void Navigate::handleRMC(uint32_t TC, uint32_t hms, int32_t Llat, int32_t Llon, int32_t spd, int32_t spdScale, int32_t Lhdg, int32_t hdgScale, int32_t dmy) {
+void Navigate::handleRMC(uint32_t TC, fp Llat, fp Llon, fp spd, fp Lhdg) {
   hasRMC=true;
-  int h=hms/10000;
-  int ms=hms % 10000;
-  int m=ms/100;
-  int s=ms%100;
-  sod=h*3600+m*60+s;
   rmcHdg=Lhdg;
-  for(int i=0;i<hdgScale;i++) rmcHdg/=10.0;
   rmcSpd=spd;
-  for(int i=0;i<spdScale;i++) rmcSpd/=10.0;
-  lat=((float)Llat)/1e7;
-  lon=((float)Llon)/1e7;
+  lat=Llat;
+  lon=Llon;
   if(firstLat==0) {
 	firstLat=lat;
 	firstLon=lon;

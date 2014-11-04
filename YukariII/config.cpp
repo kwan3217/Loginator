@@ -13,9 +13,9 @@ const char Config::configFilename[]="CONFIG.TXT";
 bool Config::begin() {
   //Config file is in the form:
   //0) Zero or more non-printables <34 (takes care of remainder of 0D0A line ending)
-  //1) One or more non-space printables of a tag
+  //1) One or more non-space printables of a tag, or a # which makes the rest of the line (to nonprintable <32) a comment
   //2) One space
-  //3) One or more characters of data, ended by a nonprintable <33 (intended to be 0A or 0D0A)
+  //3) One or more characters of data, ended by a nonprintable <32 (intended to be 0A or 0D0A)
   //data structure is determined by the tag. The tag is not case
   //sensitive (converted to uppercase internally). Total config file size is
   //limited to 1 sector (512 bytes). Tags have a maximum of 10 characters.

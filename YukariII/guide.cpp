@@ -1,5 +1,7 @@
 #include "guide.h"
 
+//#define SLOW_SQRT
+
 #define dOvershoot 1000*1e-7 //Doesn't really matter, this is about 11 m
 
 //From the vehicle state, figure out the desired heading
@@ -31,11 +33,21 @@ void Guide::setupNextWaypoint() {
   target=currentBaseWaypoint+1;
   ddlatBasepath=config.dlatWaypoint[target]-config.dlatWaypoint[currentBaseWaypoint];
   ddlonBasepath=config.dlonWaypoint[target]-config.dlonWaypoint[currentBaseWaypoint];
-  distBasepath=sqrt(ddlatBasepath*ddlatBasepath+ddlonBasepath*ddlonBasepath);
+  fp distBasepath2=ddlatBasepath*ddlatBasepath+ddlonBasepath*ddlonBasepath;
+#ifdef SLOW_SQRT
+  distBasepath=sqrt(distBasepath2);
   nlatBasepath=ddlatBasepath/distBasepath;
   nlonBasepath=ddlonBasepath/distBasepath;
   dlatSteerTo=config.dlatWaypoint[currentBaseWaypoint]+nlatBasepath*(distBasepath+dOvershoot);
   dlonSteerTo=config.dlonWaypoint[currentBaseWaypoint]+nlonBasepath*(distBasepath+dOvershoot);
+#else
+  fp rdistBasepath=Q_rsqrt(distBasepath2);
+  distBasepath=rdistBasepath*distBasepath2;
+  nlatBasepath=ddlatBasepath*rdistBasepath;
+  nlonBasepath=ddlonBasepath*rdistBasepath;
+  dlatSteerTo=config.dlatWaypoint[currentBaseWaypoint]+nlatBasepath/rdistBasepath+nlatBasepath*dOvershoot;
+  dlonSteerTo=config.dlonWaypoint[currentBaseWaypoint]+nlonBasepath/rdistBasepath+nlonBasepath*dOvershoot;
+#endif
 }
 
 void Guide::begin() {

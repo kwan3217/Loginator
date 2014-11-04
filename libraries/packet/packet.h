@@ -17,6 +17,7 @@ public:
   virtual bool fillfp(fp f)=0;
   virtual bool fill(const char* in);
   virtual bool fill(const char* in, uint32_t length);
+  virtual void forget();
 };
 
 class CCSDS: public Packet{
@@ -30,6 +31,7 @@ public:
   virtual bool fill32(uint32_t in);
   virtual bool fill64(uint64_t in);
   virtual bool fillfp(fp f);
+  virtual void forget();
 };
 
 #endif

@@ -16,8 +16,8 @@ public:
   void negate();
   void conjugate(); //Good night, everybody!
   void integrate(fp wx, fp wy, fp wz, fp dt, int steps=1); 
-  fp length() {return sqrt(x*x+y*y+z*z+w*w);};
-  void normalize() {mul(1.0/length());};
+  fp rlength() {return Q_rsqrt(x*x+y*y+z*z+w*w);};
+  void normalize() {mul(rlength());};
   Quaternion r2b(Quaternion& vr);
   Quaternion b2r(Quaternion& vb);
 };

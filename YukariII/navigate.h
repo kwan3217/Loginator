@@ -18,7 +18,8 @@ inline void coercedHeading(fp& dhdg) {
 }
 
 //Handles sensor input and manages vehicle state. If we had a sophisticated 
-//Kalman filter, it would live here. We have an ad-hoc heading estimator instead.
+//Kalman filter, it would live here. We have an ad-hoc heading 
+//estimator instead.
 
 class Navigate {
 public:
@@ -47,8 +48,8 @@ public:
   static const int navgG=50;
   int16_t avgGsample[3][navgG*2];
   int head;
-  Navigate(Config& Lconfig):config(Lconfig),nose(0,0,-1,0) {};
-  void handleRMC(uint32_t TC, uint32_t hms, int32_t lat, int32_t lon, int32_t spd, int32_t spdScale, int32_t hdg, int32_t hdgScale, int32_t dmy);
+  Navigate(Config& Lconfig):config(Lconfig),nose(0,1,0,0) {};
+  void handleRMC(uint32_t TC, fp lat, fp lon, fp spd,  fp hdg);
   void handleGyroCfg(uint8_t ctrl4);
   void setSens(uint8_t fs);
   void handleGyro(uint32_t TC, int16_t gx, int16_t gy, int16_t gz);
