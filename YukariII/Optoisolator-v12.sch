@@ -1,1 +1,0 @@
-../../eagle/Sparkfun/Optoisolator-v12.sch
