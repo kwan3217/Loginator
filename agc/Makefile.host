@@ -1,0 +1,54 @@
+PROJECT_BRIEF="Blank sketch, suitable for copying, pasting, and modifying"
+
+BFDB=i386:x86-64
+BFDO=elf64-x86-64
+OBJCOPY=objcopy
+OBJDUMP=objdump
+
+default: agc.lss
+
+TESTCPIOOBJ=agc.exe
+OBJEXT=o64
+ROPEEXT=$(OBJEXT)
+ROPE=Validation
+ROPEROOT=Validation
+TARGETBASE=agc
+#ROPE=Luminary131
+#ROPEROOT=MAIN
+LIBMAKE+=Makefile.host
+CPPSRC+=host_agc_t.cpp 
+include ../libraries/agc/Makefile
+include ../libraries/tarball/Makefile
+OBJ=$(CPPSRC:.cpp=.$(OBJEXT)) $(SOURCEOBJ) rope.bin.$(ROPEEXT) rope.fullmap.$(OBJEXT)
+
+agc.exe: $(OBJ)
+	@echo Objects: $(OBJ)
+	@echo Objects: $^
+	g++ -o $@ $(OBJ) -lncurses
+
+rope.fullmap.$(OBJEXT): rope.fullmap
+	$(OBJCOPY) -I binary -B $(BFDB) -O $(BFDO) --rename-section .data=.fullmap $< $@
+
+%.$(OBJEXT): %.cpp
+	g++ -E -O0 -I ../libraries/agc -o $(<:.cpp=.e) $< -std=c++11 
+	g++ -c -O0 -I ../libraries/agc -o $@           $< -std=c++11 -g -fverbose-asm -Wa,-adhln=$(<:.cpp=.s) -MMD -MP -MF .dep/$(@F).d
+
+# Create extended listing file from ELF output file.
+# testing: option -C
+%.lss: %.exe
+	$(OBJDUMP) -h $< > $@
+	$(OBJDUMP) -S -j .text $< >> $@
+	$(OBJDUMP) -s -j .vtable -j .rodata  -j .ctors $< >> $@
+	$(OBJCOPY) -O binary -j .rope $< $<.tmp
+	if [ -s $<.tmp ] ;then  echo "Disassembly of section .rope:" >> $@ ; perl ../libraries/agc/agc_disasm.pl $<.tmp `$(OBJDUMP) -s -j .rope $< | head -n 5 | tail -n 1` >> $@ ; rm -f $<.tmp ; fi
+	$(OBJDUMP) -s                       -j .source  -j .data $< | tail -n +4 >> $@
+	$(OBJDUMP) -t $< | grep ^[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f] | sort >> $@
+
+clean: 
+	$(RM) $(CPPSRC:.cpp=.e) $(CPPSRC:.cpp=.s) $(CPPSRC:.cpp=.cpp~) $(OBJ) agc.exe agc.lss $(EXTRACLEAN)
+
+# Include the dependency files.
+-include $(shell mkdir .dep 2>/dev/null) $(ALLDEP)
+
+
+

@@ -1,0 +1,1 @@
+../../eagle/Sparkfun/mpu9150/mpu-9150_breakout.sch

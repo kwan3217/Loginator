@@ -1,0 +1,17 @@
+The Memory project is a demo program for the Keil MCB2140
+Board using the Philips LPC2148 Microcontroller.
+
+It demonstrates an USB Memory based on USB Mass Storage Class.
+
+LEDs are used to display the following:
+  - P1.16: LED_RD is on when USB Device is performing Read access
+  - P1.17: LED_WR is on when USB Device is performing Write access
+  - P1.22: LED_CFG is on when USB Device is configured
+  - P1.23: LED_SUSP is on when USB Device is suspended
+
+The USB Memory is automatically recognized by the host PC
+running Windows which will load a generic Mass Storage driver.
+
+The Memory program is available for the following targets:
+  MCB2140 Board: configured for on-chip Flash ROM
+                 (used for production or target debugging)

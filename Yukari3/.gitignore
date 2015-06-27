@@ -1,0 +1,11 @@
+*.o64
+*.csv
+*.nmea
+*.zpaq
+*.cpio
+*.tar
+simhost
+extractPacket
+*.inc
+CONFIG.TXT
+
