@@ -6,6 +6,8 @@
 *.tar
 simhost
 extractPacket
+test_nmea
+FW.*SFE
 *.inc
 CONFIG.TXT
 

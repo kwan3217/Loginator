@@ -29,7 +29,20 @@ tarball: $(CTARBALL)
 sourceobj: $(SOURCEOBJ)
 
 gccversion.txt:
-	$(CC) --version --verbose > $@ 2>&1
+	echo == C compiler version == > $@
+	$(CC) --version --verbose >> $@ 2>&1
+	echo >> $@
+	echo == C++ compiler version == >> $@
+	$(CPP) --version --verbose >> $@ 2>&1
+	echo >> $@
+	echo == Perl version == >> $@
+	perl --version -v >> $@
+	echo >> $@
+	echo == ragel version == >> $@
+	ragel --version >> $@
+	echo >> $@
+	echo == ssconvert version == >> $@
+	DISPLAY= ssconvert --version >> $@
 
 source.tar: $(SATTACH)
 	tar chvf $@ -C .. $(DDATTACH)

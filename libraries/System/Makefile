@@ -1,3 +1,9 @@
+#This file is included last, so it takes advantage of any variables defined before this point. Such variables include:
+
+#GENCPP - Generated C++ source files, for instance made by ragel from a .rl 
+#         file. These files are not included in the tarball. They should 
+#         have the extension .CPP
+
 # List C++ source files here.
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
@@ -11,6 +17,8 @@ ifndef OBJEXT
 OBJEXT=o
 endif
 ATTACH+=../libraries/System/gnuarm_summon.sh
+ATTACH+=$(RAGEL)
+GENCPP+=$(RAGEL:.rl=.CPP)
 TARGETPATH:=$(CURDIR)
 TARGETBASE=$(notdir $(TARGETPATH))
 ifndef TARGET
@@ -274,6 +282,7 @@ AOBJ      = $(ASRC:.S=.$(OBJEXT))
 COBJARM   = $(SRCARM:.c=.$(OBJEXT))
 AOBJARM   = $(ASRCARM:.S=.$(OBJEXT))
 CPPOBJ    = $(CPPSRC:.cpp=.$(OBJEXT)) 
+GENCPPOBJ = $(GENCPP:.CPP=.$(OBJEXT)) 
 CPPOBJARM = $(CPPSRCARM:.cpp=.$(OBJEXT))
 
 
@@ -409,7 +418,7 @@ FW.SFE: $(TARGET).bin
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM)
 
-ALLOBJ=$(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM) $(EXTRAO)
+ALLOBJ=$(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(GENCPPOBJ) $(CPPOBJARM) $(EXTRAO)
 
 
 $(TARGET).elf: $(ALLOBJ) $(SOURCEOBJ) $(TARGET).nosource.elf 
@@ -443,6 +452,14 @@ $(CPPOBJ) : %.$(OBJEXT) : %.cpp
 	@echo $(MSG_COMPILINGCPP) $<
 	$(CPP) -E $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.cpp=.e)
 	$(CPP) -S $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.cpp=.s)
+	$(CPP) -c $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $@
+
+# Compile: create object files from generated C++ source files. ARM/Thumb
+$(GENCPPOBJ) : %.$(OBJEXT) : %.CPP
+	@echo
+	@echo $(MSG_COMPILINGCPP) $<
+	$(CPP) -E $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.CPP=.e)
+	$(CPP) -S $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.CPP=.s)
 	$(CPP) -c $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $@
 
 # Compile: create object files from C++ source files. ARM-only
@@ -494,6 +511,7 @@ clean_list :
 	$(REMOVE) $(TEST_ARCHIVE)
 	$(REMOVE) $(COBJ)
 	$(REMOVE) $(CPPOBJ)
+	$(REMOVE) $(GENCPPOBJ)
 	$(REMOVE) $(AOBJ)
 	$(REMOVE) $(COBJARM)
 	$(REMOVE) $(CPPOBJARM)
@@ -513,6 +531,13 @@ clean_list :
 	$(REMOVE) $(CPPSRCARM:.cpp=.s) 
 	$(REMOVE) $(CPPSRCARM:.cpp=.d)
 	$(REMOVE) $(CPPSRCARM:.cpp=.e)
+	$(REMOVE) $(GENCPP)
+	$(REMOVE) $(GENCPP:.CPP=.s) 
+	$(REMOVE) $(GENCPP:.CPP=.d)
+	$(REMOVE) $(GENCPP:.CPP=.e)
+	$(REMOVE) $(GENCPP:.CPP=.svg)
+	$(REMOVE) $(GENCPP:.CPP=.unfix.dot)
+	$(REMOVE) $(GENCPP:.CPP=.dot)
 	$(REMOVE) FW.SFE
 	$(REMOVE) gccversion.txt
 	$(REMOVE) .dep/*

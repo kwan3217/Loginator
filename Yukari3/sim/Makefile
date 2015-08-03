@@ -3,7 +3,7 @@ CPPSRC+=sim/robot.cpp
 #Robot code used directly
 CPPSRC+=main.cpp navigate.cpp guide.cpp control.cpp 
 #Sim replacements for library code
-CPPSRC+=sim/sim_Serial.cpp sim/sim_gpio.cpp sim/sim_LPC214x.cpp sim/sim_pwm.cpp sim/sim_Time.cpp
+CPPSRC+=sim/sim_Serial.cpp sim/sim_gpio.cpp sim/sim_LPC214x.cpp sim/sim_pwm.cpp sim/sim_LPCduino.cpp sim/sim_Time.cpp
 CPPSRC+=sim/sim_hmc5883.cpp sim/sim_l3g4200d.cpp 
 CPPSRC+=sim/sim_HardSPI.cpp sim/sim_sdhc.cpp
 CPPSRC+=sim/sim_StateTwoWire.cpp sim/sim_Wire.cpp
@@ -12,7 +12,7 @@ CPPSRC+=../libraries/packet/packet.cpp
 CPPSRC+=../libraries/Partition/Partition.cpp ../libraries/fat/cluster.cpp ../libraries/fat/file.cpp ../libraries/fat/direntry.cpp
 CPPSRC+=../libraries/Print/Print.cpp
 CPPSRC+=../libraries/Circular/Circular.cpp
-CPPSRC+=../libraries/gps/nmea/nmea.cpp
+CPPSRC+=../libraries/gps/ragel_nmea/nmea.cpp
 CPPSRC+=../libraries/System/Stringex.cpp
 CPPSRC+=../libraries/quaternion/Quaternion.cpp
 CPPSRC+=../libraries/FileCircular/FileCircular.cpp
@@ -32,7 +32,7 @@ INCLUDE+=../libraries/FileCircular
 INCLUDE+=../libraries/dump
 INCLUDE+=../libraries/tarball
 INCLUDE+=../libraries/config
-INCLUDE+=../libraries/gps/nmea
+INCLUDE+=../libraries/gps/ragel_nmea
 INCLUDE+=../libraries/quaternion
 INCLUDE+=../libraries/PWM
 INCLUDE+=../libraries/float
@@ -55,10 +55,14 @@ OBJDUMP=objdump
 
 include ../libraries/tarball/Makefile
 include ../libraries/packet/Makefile
+include ../libraries/gps/ragel_nmea/Makefile
 
 main.cpp: extract_str.inc 
 
 sim/playback.cpp: extract_str.inc
+
+../libraries/gps/ragel_nmea/nmea.o64: ../libraries/gps/ragel_nmea/nmea.CPP
+	clang++ -g -O0 -std=c++1y -c -o $@ $< $(addprefix -I ,$(INCLUDE)) -Wno-ignored-attributes
 
 %.o64: %.cpp
 	clang++ -g -O0 -std=c++1y -c -o $@ $< $(addprefix -I ,$(INCLUDE)) -Wno-ignored-attributes
@@ -72,8 +76,11 @@ simhost: sim/sim.o64 $(OBJ) source.o64
 playback: sim/playback.o64 $(OBJ) source.o64
 	clang++ -g -O0 -o $@ -lm $^ -L/usr/lib/gcc/x86_64-linux-gnu/4.8.2/ -Wno-ignored-attributes
 
+test_nmea: sim/test_nmea.o64 ../libraries/gps/ragel_nmea/nmea.o64 ../libraries/System/Stringex.o64 ../libraries/float/float.o64
+	clang++ -g -O0 -o $@ -lm $^ -L/usr/lib/gcc/x86_64-linux-gnu/4.8.2/ -Wno-ignored-attributes
+
 clean:
-	$(RM) $(OBJ) simhost playback source.o64 sim/sim.064 sim/playback.o64 *~
+	$(RM) $(OBJ) simhost playback source.o64 sim/sim.064 sim/playback.o64 sim/test_nmea.o64 ../libraries/gps/ragel_nmea/nmea.CPP *~
 
 sim/sdcard:
 	dd if=/dev/zero of=$@ bs=1M count=4096

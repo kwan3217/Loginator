@@ -321,13 +321,13 @@ bool collectGPS() {
     gps.process(in);
   }
   if(gps.writeGGA) {
-    #include "write_packet_gga.inc"
+//    #include "write_packet_gga.inc"
     gps.writeGGA=false;
     Serial.write('g');
   } else if(gps.writeRMC) {
     uint32_t TC=TTC(0);
     nav.handleRMC(TC,gps.lat,gps.lon,gps.spd,gps.hdg);
-    #include "write_packet_rmc.inc"
+//    #include "write_packet_rmc.inc"
     Serial.write('r');
     gps.writeRMC=false;
     hasGuide=true;

@@ -27,3 +27,6 @@ sinShort.h
 gccversion.txt
 *.cpio
 *.zpaq
+*.CPP
+*.dot
+

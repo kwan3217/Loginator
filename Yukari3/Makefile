@@ -1,14 +1,14 @@
 PROJECT_BRIEF="Project Yukari 3.0, entry into AVC 2015"
 HARDWARE=LOGINATOR
-#ATTACH=Loginator.brd Loginator.sch
-#ATTACH+=11Dof.brd 11Dof.sch
-#ATTACH+=GP-2106_Eval-v11.brd GP-2106_Eval-v11.sch
-#ATTACH+=gpl-3.0.html
-#ATTACH+=CONFIG.TXT.head
-#ATTACH+=sim/Makefile $(wildcard sim/*.cpp) $(wildcard sim/*.h) 
-#ATTACH+=Yukari3.fzz
-#ATTACH+=AVC2015.kml
-#ATTACH+=parsekml.pl
+ATTACH=Loginator.brd Loginator.sch
+ATTACH+=11Dof.brd 11Dof.sch
+ATTACH+=GP-2106_Eval-v11.brd GP-2106_Eval-v11.sch
+ATTACH+=gpl-3.0.html
+ATTACH+=CONFIG.TXT.head
+ATTACH+=sim/Makefile $(wildcard sim/*.cpp) $(wildcard sim/*.h) 
+ATTACH+=Yukari3.fzz
+ATTACH+=AVC2015.kml
+ATTACH+=parsekml.pl
 CPPSRC+=navigate.cpp guide.cpp control.cpp
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile
@@ -20,7 +20,7 @@ include ../libraries/sdhc/Makefile
 include ../libraries/fat/Makefile
 include ../libraries/FileCircular/Makefile
 include ../libraries/Wire/StateTwoWire/Makefile
-include ../libraries/gps/nmea/Makefile
+include ../libraries/gps/ragel_nmea/Makefile
 include ../libraries/config/Makefile
 include ../libraries/quaternion/Makefile
 include ../libraries/System/Makefile
