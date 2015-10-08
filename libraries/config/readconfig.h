@@ -82,9 +82,9 @@ private:
 
 private:
   Cluster& fs;
-  CCSDS& ccsds;
+  Packet& packet;
 public:
-  ReadConfig(Cluster& Lfs, CCSDS& Lccsds):fs(Lfs),ccsds(Lccsds) {};
+  ReadConfig(Cluster& Lfs, Packet& Lpacket):fs(Lfs),packet(Lpacket) {};
   bool begin();
   static const int typeInt=0;
   static const int typeFp=1;

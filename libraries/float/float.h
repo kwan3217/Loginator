@@ -66,15 +66,7 @@ static inline constexpr fp sin(const fp x) {
   return poly(x,sinPoly,sizeof(sinPoly)/sizeof(fp)-1);
 }
 
-#define makeSinTableA(x) makeSinTableB(x) makeSinTableB(x + 450)
-#define makeSinTableB(x) makeSinTableC(x) makeSinTableC(x + 225)
-#define makeSinTableC(x) makeSinTableD(x) makeSinTableD(x +  75) makeSinTableD(x+150)
-#define makeSinTableD(x) makeSinTableE(x) makeSinTableE(x +  25) makeSinTableE(x+ 50)
-#define makeSinTableE(x) makeSinTableF(x) makeSinTableF(x +   5) makeSinTableF(x+ 10) makeSinTableF(x+ 15) makeSinTableF(x+ 20)
-#define makeSinTableF(x) makeSinTableG(x) makeSinTableG(x +   1) makeSinTableG(x+  2) makeSinTableG(x+  3) makeSinTableG(x+  4)
-#define makeSinTableG(x) sin(fp(x)/fp(10.0)*PI/fp(180.0)) ,
-
-constexpr fp sinTable[] = { makeSinTableA(0) 1.0 };
+extern const fp sinTable[];
 
 //Angle is measured in tenths of a degree, so a full circle has 3600 parts
 //Angle must be between 0 and 3599 or else Bad Things happen
@@ -101,30 +93,18 @@ static inline float Q_rsqrt( float number ) {
 	floatint i;
 	float x2, y;
 	const float threehalfs = 1.5F;
- 
+
 	x2 = number * 0.5F;
 	i.f  = number;        // evil floating point bit level hacking
 	i.i  = 0x5f3759df - ( i.i >> 1 );               // what the...?
 	y  = i.f;
 	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
 //      y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
- 
+
 	return y;
 }
 
-//#include "sinShort.h"
-// Old makeSinShort.pl
-//printf("const fp sinTable[]={\n");
-//my $pi=3.1415926535897932385;
-//for(my $i=0;$i<=900;$i++) {
-//  printf("/*%05.1f*/  %20.18f%s\n",$i/10.0,sin($i/10.0*$pi/180.0),$i==900?"":",");
-//}
-//printf("};\n")
-
-
 fp stof(char* s);
-
-
 
 #endif
 

@@ -22,7 +22,7 @@ my @coords=split(/\s+/,$coordsS);
 
 my $initcoords=$coords[0];
 my ($lon0,$lat0,$alt0)=split(/\s*,\s*/,$initcoords);
-my @wp=(0);
+my @wp=(0,0);
 for(my $i=1;$i<scalar @coords;$i++) {
   my ($lon,$lat,$alt)=split(/\s*,\s*/,$coords[$i]);
   my $x=($lon-$lon0)*1e7*cos(40*$PI/180);

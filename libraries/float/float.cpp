@@ -2,18 +2,15 @@
 #include <string.h>
 #include "Stringex.h"
 
-// Generate an entry to the CRC lookup table
-//template <int c> struct gen_sin_table{enum {value = sin(fp(c)/10.0*PI/180.0)};};
+#define makeSinTableA(x) makeSinTableB(x) makeSinTableB(x + 450)
+#define makeSinTableB(x) makeSinTableC(x) makeSinTableC(x + 225)
+#define makeSinTableC(x) makeSinTableD(x) makeSinTableD(x +  75) makeSinTableD(x+150)
+#define makeSinTableD(x) makeSinTableE(x) makeSinTableE(x +  25) makeSinTableE(x+ 50)
+#define makeSinTableE(x) makeSinTableF(x) makeSinTableF(x +   5) makeSinTableF(x+ 10) makeSinTableF(x+ 15) makeSinTableF(x+ 20)
+#define makeSinTableF(x) makeSinTableG(x) makeSinTableG(x +   1) makeSinTableG(x+  2) makeSinTableG(x+  3) makeSinTableG(x+  4)
+#define makeSinTableG(x) sin(fp(x)/fp(10.0)*PI/fp(180.0)) ,
 
-
-//#include "sinShort.h"
-// Old makeSinShort.pl
-//printf("const fp sinTable[]={\n");
-//my $pi=3.1415926535897932385;
-//for(my $i=0;$i<=900;$i++) {
-//  printf("/*%05.1f*/  %20.18f%s\n",$i/10.0,sin($i/10.0*$pi/180.0),$i==900?"":",");
-//}
-//printf("};\n")
+const fp sinTable[] = { makeSinTableA(0) 1.0 };
 
 //Given a string representing number with a decimal point, return the number
 fp stof(char* in) {

@@ -348,6 +348,7 @@ static inline volatile unsigned int& HW_SERIAL() {return AbsRef(HW_ID_BASE_ADDR,
 const unsigned int HW_TYPE_LOGOMATIC   =0;
 const unsigned int HW_TYPE_LOGINATOR   =1;
 const unsigned int HW_TYPE_ROCKETOMETER=2;
+const unsigned int HW_TYPE_SIMULATOR   =3;
 /* Watchdog */
 const unsigned int WDG_BASE_ADDR=0xE0000000;
 static inline volatile unsigned int& WDMOD () {return AbsRef(WDG_BASE_ADDR,0x00);}
@@ -405,7 +406,7 @@ static inline volatile unsigned int& NDD_REQ_INT_CLR () {return AbsRef(USB_BASE_
 static inline volatile unsigned int& NDD_REQ_INT_SET () {return AbsRef(USB_BASE_ADDR,0xB4);}
 static inline volatile unsigned int& SYS_ERR_INT_STAT() {return AbsRef(USB_BASE_ADDR,0xB8);}
 static inline volatile unsigned int& SYS_ERR_INT_CLR () {return AbsRef(USB_BASE_ADDR,0xBC);}
-static inline volatile unsigned int& SYS_ERR_INT_SET () {return AbsRef(USB_BASE_ADDR,0xC0);}    
+static inline volatile unsigned int& SYS_ERR_INT_SET () {return AbsRef(USB_BASE_ADDR,0xC0);}
 static inline volatile unsigned int& MODULE_ID       () {return AbsRef(USB_BASE_ADDR,0xFC);}
 
 #endif  // __LPC214x_H

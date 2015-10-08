@@ -148,7 +148,7 @@ CFLAGS += -fverbose-asm
 ifndef USE_CLANG
 CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.s,$<) -mfloat-abi=soft
 endif
-CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
+CFLAGS += $(patsubst %,-I%,$(call uniq,$(EXTRAINCDIRS)))
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -fsingle-precision-constant
 
@@ -195,7 +195,7 @@ MATH_LIB = -lm
 #  -Wl,...:     tell GCC to pass this to linker.
 #    -Map:      create map file
 #    --cref:    add cross reference to  map file
-LDFLAGS = -nostartfiles -Wl,-Map,$(TARGET).map,--cref,--gc-sections,--demangle
+LDFLAGS = -nostartfiles -Wl,-Map,$(@:.elf=.map),--cref,--gc-sections,--demangle
 LDFLAGS += -lc
 LDFLAGS += $(NEWLIBLPC) $(MATH_LIB)
 #LDFLAGS += -lgcc 
@@ -319,7 +319,7 @@ build: elf bin lss hex FW.SFE #html
 bin: $(TARGET).nosource.bin $(TARGET).bin
 hex: $(TARGET).nosource.hex $(TARGET).hex
 elf: $(TARGET).nosource.elf $(TARGET).elf
-lss: $(TARGET).lss 
+lss: $(TARGET).nosource.lss $(TARGET).lss 
 
 # Eye candy.
 begin:
@@ -334,7 +334,7 @@ end:
 	@echo
 
 Doxyfile: ../libraries/System/Doxyfile.template
-	sed -e 's%^[^I]*INPUT[ \t]*=.*$$%INPUT=$(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(EXTRADOC)%' \
+	sed -e 's%^[^I]*INPUT[ \t]*=.*$$%INPUT=$(ALLSRC) $(INCDEF) $(EXTRADOC)%' \
 	    -e 's%^[^P]*PROJECT_NAME[ \t]*=.*$$%PROJECT_NAME="$(TARGET)"%' \
 	    -e 's%^[^P]*PROJECT_BRIEF[ \t]*=.*$$%PROJECT_BRIEF=$(PROJECT_BRIEF)%' \
 	    < $< > $@
@@ -500,11 +500,11 @@ clean_list :
 	$(REMOVE) $(TARGET).bin $(TARGET).nosource.bin
 	$(REMOVE) $(TARGET).obj
 	$(REMOVE) $(TARGET).elf $(TARGET).nosource.elf
-	$(REMOVE) $(TARGET).map
+	$(REMOVE) $(TARGET).map $(TARGET).nosource.map
 	$(REMOVE) $(TARGET).obj
 	$(REMOVE) $(TARGET).a90
 	$(REMOVE) $(TARGET).lnk
-	$(REMOVE) $(TARGET).lss
+	$(REMOVE) $(TARGET).lss $(TARGET).nosource.lss
 	$(REMOVE) $(CTARBALL)
 	$(REMOVE) $(TARBALL)
 	$(REMOVE) $(SOURCEOBJ)

@@ -92,8 +92,8 @@
        | 
          (('GPGGA,' 
                     (int2 % handleHH) (int2 % handleNN) (float % handleSS) ','  #UTC time of fix in HHMMSS.SSS 
-                    (lat)(',N'|(',S' % invertLat))',' #Latitude in   DDMM.MMMMM
-                    (lon)(',E'|(',W' % invertLon))',' #Longitude in DDDMM.MMMMM
+                    (lat)',' #Latitude in   DDMM.MMMMM
+                    (lon)',' #Longitude in DDDMM.MMMMM
                     '1,'                              #Fix valid flag
                     (intIgn)','                       #Number of satellites in fix (not used)
                     (floatIgn)','                     #HDOP (not used)

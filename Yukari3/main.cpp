@@ -18,6 +18,7 @@
 #include "readconfig.h"
 #include "config.h"
 #include "navigate.h"
+#include "ccsds.h"
 #include "guide.h"
 #include "control.h"
 #include "pwm.h"
@@ -258,14 +259,16 @@ void setup() {
 
   //Write processor config and firmware version
   writeVersion();
-  sdStore.drain(); 
+  sdStore.drain();
 
   //Read system config
   bool worked;
   ccsds.start(sdStore,0x22);
   worked=readconfig.begin();
   ccsds.finish(0x22);
-  sdStore.drain(); 
+  sdStore.drain();
+  volatile int deg=45;
+  Serial.print(sint(deg));
   ccsds.start(sdStore,0x28);
   #include "write_packet_parseconfig.inc"
   for(int i=0;i<=config.nWaypoints;i++) {

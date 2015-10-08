@@ -141,6 +141,8 @@ void Navigate::handleGyro(uint32_t TC, Vector<3>& meas) {
   gyroT+=(minuteofs*60);
   deltaT=(gyroT-lastT)+60;
   lastT=gyroT;
+  volatile int i=372;
+  volatile fp f=cost(i);
   if (!hasButton) {
     if(loopAvgG==0) {
       //If we haven't been around the loop yet, just accumulate data

@@ -27,8 +27,8 @@ bool ReadConfig::begin() {
   //Dump the whole file into a packet, including its direntry. This will capture
   //the file name, date and size. The FileCircular buffer is big enough to
   //handle it if the calling function calls dump right after
-  ccsds.fill(f.de.entry,sizeof(f.de.entry));
-  ccsds.fill(buf,size);
+  packet.fill(f.de.entry,sizeof(f.de.entry));
+  packet.fill(buf,size);
   void* tagData;
   int* arrSize;
   int tagType;
