@@ -1,13 +1,6 @@
 LIBMAKE+=../libraries/float/Makefile
 CPPSRC+=../libraries/float/float.cpp
 EXTRAINCDIRS +=../libraries/float/
-EXTRADOC += sinShort.h
-MAKESINSHORT = ../libraries/float/makeSinShort.pl
-PERL += $(MAKESINSHORT)
-../libraries/float/float.o: sinShort.h
-
-sinShort.h: $(PERL)
-	perl $< > $@
 
 float.o64: float.cpp
 	g++ -std=c++1y -O3 -o float.o64 -c float.cpp

@@ -22,7 +22,7 @@ include ../libraries/FileCircular/Makefile
 include ../libraries/Wire/StateTwoWire/Makefile
 include ../libraries/gps/ragel_nmea/Makefile
 include ../libraries/config/Makefile
-include ../libraries/quaternion/Makefile
+include ../libraries/float/quaternion/Makefile
 include ../libraries/System/Makefile
 USB = /dev/sdd1
 COURSE=Long Course

@@ -106,7 +106,7 @@ AT91LIBNOWARN = no
 
 # Debugging format.
 # Needed in order to get source code listings in .lst and .lss files
-#DEBUG = -gstabs
+DEBUG = -gstabs
 #DEBUG = -gdwarf-2
 
 # List any extra directories to look for include files here.

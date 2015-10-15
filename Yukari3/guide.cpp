@@ -9,8 +9,8 @@ void Guide::guide() {
   targetBearing=atan2(dr_rt[0],dr_rt[1])*180.0/PI;
   coerceHeading(targetBearing);
   dr_rw1=config.waypoint[i_next]-nav.r_r;
-  //Dot product of vector from current waypoint to target waypoint, with 
-  //               vector from position         to target waypoint. 
+  //Dot product of vector from current waypoint to target waypoint, with
+  //               vector from position         to target waypoint.
   //When this is negative, we have passed the waypoint
   if(nav.gyroT>nav.predictT) {
     i_base++;
