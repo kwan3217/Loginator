@@ -10,4 +10,5 @@ test_nmea
 FW.*SFE
 *.inc
 CONFIG.TXT
+*treemap*
 
