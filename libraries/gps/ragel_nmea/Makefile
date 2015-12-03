@@ -1,6 +1,7 @@
 include ../libraries/float/Makefile
 LIBMAKE+=../libraries/gps/ragel_nmea/Makefile
 EXTRAINCDIRS +=../libraries/gps/ragel_nmea/
+ATTACH+=../libraries/gps/ragel_nmea/fixdot.pl
 RAGEL += ../libraries/gps/ragel_nmea/nmea.rl
 RAGEL_MODE = G0
 

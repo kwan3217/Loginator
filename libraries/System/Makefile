@@ -334,7 +334,7 @@ end:
 	@echo
 
 Doxyfile: ../libraries/System/Doxyfile.template
-	sed -e 's%^[^I]*INPUT[ \t]*=.*$$%INPUT=$(ALLSRC) $(INCDEF) $(EXTRADOC)%' \
+	sed -e 's%^[^I]*INPUT[ \t]*=.*$$%INPUT=$(ALLSRC) $(HDEP) $(INCDEP) $(EXTRADOC)%' \
 	    -e 's%^[^P]*PROJECT_NAME[ \t]*=.*$$%PROJECT_NAME="$(TARGET)"%' \
 	    -e 's%^[^P]*PROJECT_BRIEF[ \t]*=.*$$%PROJECT_BRIEF=$(PROJECT_BRIEF)%' \
 	    < $< > $@

@@ -8,7 +8,6 @@
 typedef double fp;
 #else
 typedef float fp;
-#define cos cosf
 #define atan2 atan2f
 #define sqrt sqrtf
 #endif
@@ -53,6 +52,7 @@ static inline constexpr fp factorial(int n) {
 }
 
 constexpr fp sinPoly[]={0,1,0,-1.0/factorial(3),0,+1.0/factorial(5),0,-1.0/factorial(7),0,1.0/factorial(9),0,-1.0/factorial(11)};
+constexpr fp cosPoly[]={1,0,-1.0/factorial(2),0,+1.0/factorial(4),0,-1.0/factorial(6),0,1.0/factorial(8),0,-1.0/factorial(10)};
 
 static inline constexpr fp poly(const fp x, const fp* P, const int maxorder, const int order) {
   return P[maxorder-order]+x*(order==0?0:poly(x,P,maxorder,order-1));
@@ -65,6 +65,12 @@ static inline constexpr fp poly(const fp x, const fp* P, const int order) {
 static inline constexpr fp sin(const fp x) {
   return poly(x,sinPoly,sizeof(sinPoly)/sizeof(fp)-1);
 }
+
+static inline constexpr fp cos(const fp x) {
+  return poly(x,cosPoly,sizeof(cosPoly)/sizeof(fp)-1);
+}
+
+
 
 extern const fp sinTable[];
 

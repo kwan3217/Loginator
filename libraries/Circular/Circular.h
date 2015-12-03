@@ -8,7 +8,7 @@
 //two parts - data which is ready to be flushed, and data which is not
 //yet ready. The buffer writer decides when the data which wasn't ready
 //becomes so, and when it is, it is added to the data which is ready.
-//The buffer gets written to by the generic fill() function. 
+//The buffer gets written to by the generic fill() function.
 //A special drain() function empties data out of the buffer somehow and
 //moves the head ptr up.
 class Circular {
@@ -21,7 +21,7 @@ protected:
   uint32_t volatile mid;
   //Location of the next slot to be flushed
   uint32_t volatile tail;
-  //If set, buffer reached full. All unmarked data was tossed and 
+  //If set, buffer reached full. All unmarked data was tossed and
   //no new data should be accepted until buffer is drained.
   bool fullState;
   uint32_t bufOverflow;

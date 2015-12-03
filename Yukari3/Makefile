@@ -13,13 +13,13 @@ CPPSRC+=navigate.cpp guide.cpp control.cpp
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile
 include ../libraries/PWM/Makefile
-include ../libraries/hmc5883/Makefile
-include ../libraries/l3g4200d/Makefile
-include ../libraries/Serial/Makefile
-include ../libraries/sdhc/Makefile
-include ../libraries/fat/Makefile
-include ../libraries/FileCircular/Makefile
-include ../libraries/Wire/StateTwoWire/Makefile
+include ../libraries/sensors/hmc5883/Makefile
+include ../libraries/sensors/l3g4200d/Makefile
+include ../libraries/peripherals/Serial/Makefile
+include ../libraries/file/sdhc/Makefile
+include ../libraries/file/fat/Makefile
+include ../libraries/file/FileCircular/Makefile
+include ../libraries/peripherals/Wire/StateTwoWire/Makefile
 include ../libraries/gps/ragel_nmea/Makefile
 include ../libraries/config/Makefile
 include ../libraries/float/quaternion/Makefile
@@ -27,7 +27,7 @@ include ../libraries/System/Makefile
 USB = /dev/sdd1
 COURSE=Long Course
 
-main.cpp: extract_str.inc
+main.cpp: extract_str.INC
 
 simall: simclean clean playback simhost extractPacket
 

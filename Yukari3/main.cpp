@@ -26,29 +26,31 @@
 #include "YukariConfig.h"
 
 const char syncMark[]="KwanSync";
-static const char version_string[]="Project Yukari v3.0 " __DATE__ " " __TIME__;
+static const char version_string[]="Project Yukari v4.0 " __DATE__ " " __TIME__;
 const int dumpPktSize=120;
 
 StateTwoWire Wire1(1);
 HMC5883 hmc5883(&Wire1);
-SDHC sd;
+SDHC<CCSDS,HardwareSerial<0>> sd;
 L3G4200D gyro(&SPI1,25);
-SDHC_info sdinfo;
-Partition p(sd);
-Cluster fs(p);
-File f(fs);
-FileCircular sdStore(f);
+SDHC_info<CCSDS,HardwareSerial<0>> sdinfo;
+Partition<CCSDS,HardwareSerial<0>> p(sd);
+Cluster<CCSDS,HardwareSerial<0>> fs(p);
+File<CCSDS,HardwareSerial<0>> f(fs);
+FileCircular<CCSDS,HardwareSerial<0>> sdStore(f);
 char serialBuf[1024];
 Circular serialStore(1024,serialBuf);
 CCSDS ccsds;
 NMEA gps;
-ReadConfig readconfig(fs,ccsds);
+ReadConfig<CCSDS,HardwareSerial<0>> readconfig(fs,ccsds);
 Config config;
 Navigate nav(config);
 Guide guide(nav,config);
 Control control(nav,guide,config);
 
-const char* const ReadConfig::tagNames[]={
+template<> const char ReadConfig<CCSDS,HardwareSerial<0>>::configFilename[]="CONFIG.TXT";
+
+template<> const char* const ReadConfig<CCSDS,HardwareSerial<0>>::tagNames[]={
 "GSENS",
 "GODR",
 "GBW",
@@ -64,7 +66,8 @@ const char* const ReadConfig::tagNames[]={
 "TCUT",
 "TICK",
 nullptr};
-const ReadConfigEntry   ReadConfig::entries[]={
+
+template<> const ReadConfigEntry   ReadConfig<CCSDS,HardwareSerial<0>>::entries[]={
 {ReadConfig::typeInt,&config.gyroSens           ,nullptr           }, //GSENS
 {ReadConfig::typeInt,&config.gyroODR            ,nullptr           }, //GODR
 {ReadConfig::typeInt,&config.gyroBW             ,nullptr           }, //GBW
@@ -113,7 +116,7 @@ void collectMagData() {
     //wrote sensor registers in order, therefore wrote xzy order unintentionally.
     //We will keep this order to maintain compatibility with old data, including
     //flight 36.290
-    #include "write_packet_mag.inc"
+    #include "write_packet_mag.INC"
     magPhase=0;
   }
   magPhase++;
@@ -132,7 +135,7 @@ bool collectGyroData() {
     meas[1]=gy;
     meas[2]=gz;
     nav.handleGyro(gTC,meas);
-    #include "write_packet_nav2.inc"
+    #include "write_packet_nav2.INC"
     flushPackets();
     return nav.hasButton;
   }
@@ -240,12 +243,12 @@ void initButtons() {
 }
 
 void writeVersion() {
-  #include "write_packet_version.inc"
+  #include "write_packet_version.INC"
   sdStore.drain();
 }
 
 void setupWaypointPacket(int context) {
-  #include "write_packet_wpt.inc"
+  #include "write_packet_wpt.INC"
   flushPackets();
 }
 
@@ -270,7 +273,7 @@ void setup() {
   volatile int deg=45;
   Serial.print(sint(deg));
   ccsds.start(sdStore,0x28);
-  #include "write_packet_parseconfig.inc"
+  #include "write_packet_parseconfig.INC"
   for(int i=0;i<=config.nWaypoints;i++) {
     ccsds.fillfp(config.waypoint[i][0]);
     ccsds.fillfp(config.waypoint[i][1]);
@@ -343,12 +346,12 @@ bool collectEncoder() {
 }
 
 void guidePacket() {
-  #include "write_packet_guide.inc"
+  #include "write_packet_guide.INC"
   flushPackets();
 }
 
 void controlPacket() {
-  #include "write_packet_control.inc"
+  #include "write_packet_control.INC"
   flushPackets();
 }
 
@@ -419,14 +422,14 @@ void steerSeq() {
 
 void loop() {
   if(ppsTC!=TCR(0,channelTCPPS)) {
-    #include "write_packet_pps.inc"
+    #include "write_packet_pps.INC"
     flushPackets();
     ppsTC=TCR(0,channelTCPPS);
     nav.handlePPS(ppsTC);
   }
   if(btnTC!=TCR(0,channelTCBtn)) {
     Serial.println("Button!");
-    #include "write_packet_button.inc"
+    #include "write_packet_button.INC"
     flushPackets();
     btnTC=TCR(0,channelTCBtn);
     nav.buttonPress();
@@ -460,8 +463,8 @@ void loop() {
     controlPacket();
     //Dump code to serial port and packet file
   } else if(len>0) {
-    #include "write_packet_source.inc"
-    sdStore.drain(); 
+    #include "write_packet_source.INC"
+    sdStore.drain();
     base+=dumpPktSize;
     len-=dumpPktSize;
   }

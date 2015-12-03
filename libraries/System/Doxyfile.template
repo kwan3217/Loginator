@@ -55,4 +55,5 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = __attribute__(x)=
+EXTENSION_MAPPING      = inc=C++
 

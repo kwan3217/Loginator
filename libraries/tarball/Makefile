@@ -6,9 +6,10 @@ LIBMAKE+=../libraries/tarball/Makefile
 EXTRAINCDIRS+=../libraries/tarball/
 ZPAQDIR=../libraries/tarball
 
-INCDEF = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq))
+HDEP = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq))
+INCDEP = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.inc\)\s*:/\1/gp' | sort | uniq))
 ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM) $(PERL)
-ATTACH+= $(ALLSRC) $(INCDEF) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(ZPAQDIR)/max.cfg gccversion.txt
+ATTACH+= $(ALLSRC) $(HDEP) $(INCDEP) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(ZPAQDIR)/max.cfg gccversion.txt
 SATTACH=$(sort $(ATTACH))
 DDATTACH=$(addprefix $(TARGETBASE)/,$(SATTACH))
 CTARBALL = source.cpio.max1.zpaq
