@@ -5,12 +5,13 @@
 
 #include "float.h"
 #include "ccsds.h"
+#include "direntry.h"
 
 char buf[65536+7];
 struct ccsdsHeader* ccsds=(struct ccsdsHeader*)buf;
 
-#include "extract_str.inc"
-#include "extract_vars.inc"
+#include "extract_str.INC"
+#include "extract_vars.INC"
 
 char* KwanSync="KwanSync";
 uint32_t lastPPSTC;
@@ -67,7 +68,7 @@ int main(int argc, char** argv) {
     }
     fwrite(&qes,sizeof(qes),1,ouf[ccsds->apid]);
     fwrite(buf+6,1,ccsds->length+1,ouf[ccsds->apid]);
-    #include "extract_body.inc"
+    #include "extract_body.INC"
 /*    if(ccsds->apid==0x03) {
       if(tarzpaq==NULL) {
         sprintf(oufn,"%s.cpio.zpaq",base);

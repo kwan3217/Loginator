@@ -132,3 +132,6 @@ void SDHC_info::fill(Packet& p) {
   p.fill(flag_write_protect_temp);
   p.fill(format);                  
 }
+
+*/
+

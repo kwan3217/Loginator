@@ -17,7 +17,7 @@ int main() {
   }
 }
 
-SimState::SimState(double Llat0,double Llon0,double Lhdg):
+SimState::SimState(fp Llat0,fp Llon0,fp Lhdg):
   lat0(int(Llat0*1e7)),lon0(int(Llon0*1e7)),
   x(0),y(0),hdg(Lhdg*PI/180.0),spd(0),
   shadowTTC(ttc),shadowX(x),shadowY(y),shadowHdg(hdg),shadowSpd(spd),
@@ -27,19 +27,19 @@ SimState::SimState(double Llat0,double Llon0,double Lhdg):
   nmeaLog=fopen("simState.nmea","w");
   struct timespec tp;
 //  clock_gettime(CLOCK_REALTIME,&tp);
-//  rtc0=double(tp.tv_sec)+double(tp.tv_nsec)/1e9;
+//  rtc0=fp(tp.tv_sec)+fp(tp.tv_nsec)/1e9;
   rtc0=1434823200.0;//Exactly 06/20/2015 at 18:00:00UTC (noon MDT)
 }
 
-static double chaseValue(double value, double cmdValue, double maxValue, double valueTime, double dt) {
+static fp chaseValue(fp value, fp cmdValue, fp maxValue, fp valueTime, fp dt) {
   if(value==cmdValue) return value;
   //Time to crank all the way from the current value to the new value. 
   //Term before * is the fraction of the max value we have yet to travel
-  double tFullValue=fabs(value-cmdValue)/maxValue*valueTime;
+  fp tFullValue=fabs(value-cmdValue)/maxValue*valueTime;
   if(tFullValue<dt) {
     value=cmdValue;
   } else {
-    double valueRate=maxValue/valueTime; 
+    fp valueRate=maxValue/valueTime; 
     //Figure the rate in units/s
     value=value+(cmdValue>value?1:-1)*dt*valueRate;
   }
@@ -49,7 +49,7 @@ static double chaseValue(double value, double cmdValue, double maxValue, double 
 /**Force heading to be between 0 and almost 360deg, used for absolute heading
   @param hdg heading to coerce, given in degrees
 */
-static inline void coerceHeadingRad(double& hdg) {
+static inline void coerceHeadingRad(fp& hdg) {
   if(hdg>2*PI) hdg-=2*PI;
   if(hdg<0)    hdg+=2*PI;
 }
@@ -58,7 +58,7 @@ static inline void coerceHeadingRad(double& hdg) {
    for heading differences (such as difference between desired and present heading)
   @param dhdg delta-heading to coerce, given in degrees
 */
-inline void coercedHeadingRad(double& dhdg) {
+inline void coercedHeadingRad(fp& dhdg) {
   if(dhdg>=PI) dhdg-=2*PI;
   if(dhdg<-PI) dhdg+=2*PI;
 }
@@ -80,11 +80,11 @@ static inline void addChecksum(char* gpsBuf) {
 void SimState::propagate(int ms) {
   //Timing
   int dttc=ms*60000;
-  double dt=double(dttc)/60e6;
-  double rtc_a=ttc/60e6+rtc0; 
+  fp dt=fp(dttc)/60e6;
+  fp rtc_a=ttc/60e6+rtc0; 
   ttc+=dttc;
-  double t=ttc/60e6;
-  double rtc=t+rtc0;
+  fp t=ttc/60e6;
+  fp rtc=t+rtc0;
   fprintf(stateLog,"%lu,%u,%0.6f,%d,%0.6f",ttc,TTC(0),t,dttc,dt);
   //Update speed and steering
   spd=chaseValue(spd,cmdSpd,maxSpd,spdTime,dt);
@@ -93,7 +93,7 @@ void SimState::propagate(int ms) {
   fprintf(stateLog,",%0.6f,%0.6f",cmdSteer,steer);
 
   //Update position
-  double dx,dy;
+  fp dx,dy;
   //Figure turning radius
   //Both the front and back wheels are tangent to circles centered
   //on the center of curvature. Therefore, a line perpendicular to both
@@ -108,7 +108,7 @@ void SimState::propagate(int ms) {
   //-b=-tan(steer)*x
   //b=tan(steer)*x
   //b/tan(steer)=x=r, turning radius from back wheels.
-  double r=wheelBase/tan(steer);
+  fp r=wheelBase/tan(steer);
   //Figure yaw rate
   //The yaw rate is just the speed divided by the turning radius
   yRate=spd/r;
@@ -124,8 +124,8 @@ void SimState::propagate(int ms) {
   x+=dx;
   y+=dy;
   fprintf(stateLog,",%0.6f,%0.6f,%0.6f,%0.6f,%0.6f",hdg*180.0/PI,dx,dy,x,y);
-  double lat=(lat0+y)/1e7;
-  double lon=(lon0+x*clat)/1e7;
+  fp lat=(lat0+y)/1e7;
+  fp lon=(lon0+x*clat)/1e7;
   fprintf(stateLog,",%0.6f,%0.6f",lat,lon);
  
 
@@ -142,12 +142,12 @@ void SimState::propagate(int ms) {
     hasRMC=false;
   }
 
-  double printLat=int(fabs(lat))*100+60.0*(fabs(lat)-int(fabs(lat)));
-  double printLon=int(fabs(lon))*100+60.0*(fabs(lon)-int(fabs(lon)));
-  double printSpd=shadowSpd*cmsToKnot;
-  double printHdg=shadowHdg*180.0/PI;
+  fp printLat=int(fabs(lat))*100+60.0*(fabs(lat)-int(fabs(lat)));
+  fp printLon=int(fabs(lon))*100+60.0*(fabs(lon)-int(fabs(lon)));
+  fp printSpd=shadowSpd*cmsToKnot;
+  fp printHdg=shadowHdg*180.0/PI;
   //If necessary, make GGA sentence
-  double frac=rtc-int(rtc);
+  fp frac=rtc-int(rtc);
   if(!hasGGA && frac>ggaTime) {
     hasGGA=true;
     time_t rtctt=(time_t)rtc;

@@ -83,9 +83,9 @@ private:
 
 private:
   Cluster<Pk,Pr,S>& fs;
-  Pk& packet;
+  Pk& ccsds;
 public:
-  ReadConfig(Cluster<Pk,Pr,S>& Lfs, Pk& Lpacket):fs(Lfs),packet(Lpacket) {};
+  ReadConfig(Cluster<Pk,Pr,S>& Lfs, Pk& Lpacket):fs(Lfs),ccsds(Lpacket) {};
   bool begin();
   static const int typeInt=0;
   static const int typeFp=1;

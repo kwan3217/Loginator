@@ -5,11 +5,17 @@ ATTACH+=11Dof.brd 11Dof.sch
 ATTACH+=GP-2106_Eval-v11.brd GP-2106_Eval-v11.sch
 ATTACH+=gpl-3.0.html
 ATTACH+=CONFIG.TXT.head
-ATTACH+=sim/Makefile $(wildcard sim/*.cpp) $(wildcard sim/*.h) 
 ATTACH+=Yukari.fzz
 ATTACH+=AVC2015.kml
 ATTACH+=parsekml.pl
+
+#Embedded files other than main.cpp
 CPPSRC+=navigate.cpp guide.cpp control.cpp config.cpp
+
+#Simulated Robot files
+SIMCPPSRC+=sim/robot.cpp
+SIMCPPSRC+=sim/playback.cpp
+
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile
 include ../libraries/PWM/Makefile
@@ -24,12 +30,13 @@ include ../libraries/gps/ragel_nmea/Makefile
 include ../libraries/config/Makefile
 include ../libraries/float/quaternion/Makefile
 include ../libraries/System/Makefile
+include ../libraries/sim/Makefile
 USB = /dev/sdd1
 COURSE=Long Course
 
 main.cpp: extract_str.INC
 
-simall: simclean clean playback simhost extractPacket
+simall: clean playback simhost extractPacket
 
 format: CONFIG.TXT
 	df $(USB)
@@ -43,31 +50,20 @@ format: CONFIG.TXT
 	sleep 1
 	sudo umount -f $(USB)
 
-simhost: mount CONFIG.TXT source.o64
-	make -f sim/Makefile simhost
+SIMOBJ = $(CPPSRC:.cpp=.$(SIMOBJEXT)) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(GENCPP:.CPP=.$(SIMOBJEXT)) 
+
+playback: sim/playback.o64 $(SIMOBJ) source.cpio.max1.zpaq.o64
+	clang++ $(CLANGLINK)
 	sudo cp -v CONFIG.TXT sdcard
 	make umount
 
-playback: 
-	make -f sim/Makefile playback
+test_nmea: sim/test_nmea.o64 ../libraries/gps/ragel_nmea/nmea.o64 ../libraries/System/Stringex.o64 ../libraries/float/float.o64
+	clang++ -g -O0 -o $@ -lm $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/  -Wno-ignored-attributes
 
-simclean:
-	make -f sim/Makefile clean
-
-source.o64: source.cpio.max1.zpaq
-	objcopy -I binary -O elf64-x86-64 $< $@ --rename-section .data=.source -B i386:x86-64
-
-mount: sim/sdcard sdcard
-	sudo mount sim/sdcard sdcard/ || true
-
-sim/sdcard: 
-	make -f sim/Makefile sim/sdcard
-
-sdcard:
-	mkdir sdcard
-
-umount:
-	sudo umount sdcard/ || true
+simhost: sim/simhost.o64 $(SIMOBJ) source.cpio.max1.zpaq.o64
+	clang++ -g -O0 -o $@ -lm $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/ -Wno-ignored-attributes
+	sudo cp -v CONFIG.TXT sdcard
+	make umount
 
 .PHONY: CONFIG.TXT
 

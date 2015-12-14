@@ -1,5 +1,4 @@
 #include "LPC214x.h"
-#include "Time.h"
 #include "irq.h"
 #include "hardware_stack.h"
 
@@ -92,6 +91,50 @@ void setup();
 the main work of the program. */
 void loop();
 
+//The docs say that a successful feed must consist of two writes with no
+//intervening APB cycles. Use asm to make sure that it is done with two
+//intervening instructions.
+static inline void feed(int channel) {
+  asm("mov r0, %0\n\t"
+      "mov r1,#0xAA\n\t"
+      "mov r2,#0x55\n\t"
+      "str r1,[r0]\n\t"
+      "str r2,[r0]\n\t" : :"r"(&PLLFEED(channel)):"r0","r1","r2");
+//  PLLFEED(channel)=0xAA;
+//  PLLFEED(channel)=0x55;
+}
+
+/** Set up on-board phase-lock-loop clock multiplier.
+
+\param channel Channel 0 is the system PLL used to generate CCLK up to 60MHz.
+               Channel 1 is the USB PLL used to generate its 48MHz.
+\param M Clock multiplier. Final clock rate will be crystal frequency times this
+number. May be between 1 and 32, but in practice must not exceed 5 with a 12MHz 
+crystal.
+*/
+void setup_pll(unsigned int channel, unsigned int M) {
+  //Figure out N, exponent for PLL divider value, P=2^N. Intermediate frequency will be
+  //FOSC*M*2*P=FOSC*M*2*2^N, and must be between 156MHz and 320MHz. This selects the lowest
+  //N which satisfies the frequency constraint
+  unsigned int N=0;
+  while(FOSC*M*2*(1<<N)<156'000'000) N++;
+  // Set Multiplier and Divider values
+  PLLCFG(channel)=(M-1)|(N<<5);
+  feed(channel);
+
+  // Enable the PLL */
+  PLLCON(channel)=0x1;
+  feed(channel);
+
+  // Wait for the PLL to lock to set frequency
+  while(!(PLLSTAT(channel) & (1 << 10))) ;
+
+  // Connect the PLL as the clock source
+  PLLCON(channel)=0x3;
+  feed(channel);
+
+}
+
 /** Interrupt vector table. In an ARM processor, the interrupt table consists
 of actual code, in this case an LDR instruction which loads PC with the value
 specified by PC+24 bytes. So we have those instructions, then pointers to the 
@@ -179,7 +222,8 @@ extern "C" void __attribute__ ((naked)) __attribute__ ((noreturn)) Reset_Handler
   //MAMTIM=0x3; //VCOM?
   MAMCR()=0x2;
   MAMTIM()=0x4; //Original
-  setup_clock();
+  // Setting peripheral Clock (pclk) to System Clock (cclk)
+  VPBDIV()=0x1;
 
 // call C++ constructors of global objects
   for(int i=0;i<_ctors_end-_ctors_start;i++) _ctors_start[i]();

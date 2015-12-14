@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include "Serial.h"
 #include "robot.h"
+#include "Time.h"
 
 // Constructors ////////////////////////////////////////////////////////////////
 

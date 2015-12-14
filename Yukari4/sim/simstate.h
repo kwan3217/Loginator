@@ -1,13 +1,13 @@
 #ifndef sim_h
 #define sim_h
-#include "float.h" //for PI, believe it or not
+#include "float.h" 
 #include <stdio.h>
 
 #include "robot.h"
 
 class SimState:public RobotState {
 public:
-  int lat0; ///< Latitude of initial point, cm'    
+  int lat0; ///< Latitude of initial point, cm'
   int lon0; ///< Longitude of initial point, cm'
   unsigned long shadowTTC; ///< At last GPS fix, ticks from sim start
   unsigned long gyroLastTTC; ///< At last gyro measurement, ticks from sim start
@@ -40,7 +40,7 @@ public:
   FILE* stateLog,*nmeaLog;
   virtual void propagate(int ms);
   virtual void setCmdSpd(int Lservo) {cmdSpd=maxSpd/127*Lservo*forward;};
-  virtual void setCmdSteer(int Lservo) {cmdSteer=maxSteer/127*Lservo*right;}; 
+  virtual void setCmdSteer(int Lservo) {cmdSteer=maxSteer/127*Lservo*right;};
   double rtc0; ///< Time of init in unix seconds, including fractional part
   double t() {return double(ttc)/60e6;};
   bool hasGGA,hasRMC;

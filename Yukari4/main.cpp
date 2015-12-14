@@ -134,6 +134,9 @@ void closeLog() {
 
 void initSD() {
   bool worked;
+  sd.p0=7;
+  Serial.print("sd.p0=");
+  Serial.println(sd.p0);
   worked=sd.begin();
 
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
@@ -219,9 +222,6 @@ void setupWaypointPacket(int context) {
 void setup() {
   Serial.begin(4800);
   Serial.println(version_string);
-  sd.p0=7;
-  Serial.print("sd.p0=");
-  Serial.println(sd.p0);
   initSD();
 
   //Write processor config and firmware version

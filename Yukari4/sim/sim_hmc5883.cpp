@@ -1,5 +1,7 @@
 #include "hmc5883.h"
 #include "sim.h"
+
+/*
 // Sets the configuration and mode registers such that the part is continuously
 // generating measurements. This function should be called at the beginning of 
 // the program
@@ -41,9 +43,9 @@ void HMC5883::whoami(char* id) {
 }
 
 bool HMC5883::fillConfig(Packet& ccsds) {
-  #include "write_packet_hmccfg.inc"
+  #include "write_packet_hmccfg.INC"
   return true;
 }
 
 
-
+*/

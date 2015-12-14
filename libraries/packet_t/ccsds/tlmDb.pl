@@ -16,7 +16,7 @@ my %fill=('fp'=>'fp',
           'uint8_t'=>'',
           'uint16_t'=>'16',
           'uint32_t'=>'32',
-          'char[]'=>'');
+          'char['=>'');
 my %ntoh=('fp'=>'ntohf',
           'int8_t'=>'',
           'int16_t'=>'ntohs',
@@ -24,7 +24,7 @@ my %ntoh=('fp'=>'ntohf',
           'uint8_t'=>'',
           'uint16_t'=>'ntohs',
           'uint32_t'=>'ntohl',
-          'char[]'=>'');
+          'char['=>'');
 my %format=('fp'=>'%f',
           'int8_t'=>'%d',
           'int16_t'=>'%d',
@@ -32,7 +32,7 @@ my %format=('fp'=>'%f',
           'uint8_t'=>'%u',
           'uint16_t'=>'%u',
           'uint32_t'=>'%u',
-          'char[]'=>'%s');
+          'char['=>'%s');
 my @shortNames;
 my @fields;
 my @types;
@@ -190,17 +190,20 @@ while ( my $row = $csv->getline( $fh ) ) {
   $field=$row->[7];
   push @fields,$field;
   $type=$row->[8];
-  push @types,$type;
-  if($type =~ /([^[]+)([[^\]]*])/) {
+  if($type =~ /([^[]+)(\[[^\]]*\])/) {
     $pretype=$1;
     $array=$2;
+    $type=$pretype."[";
   } else {
     $pretype=$type;
     $array='';
   }
+  push @types,$type;
   my $unit=$row->[9];
   my $desc=$row->[10];
-  print $oufRobot "ccsds.fill".$fill{$type}."(".$source."); //".$desc."\n";
+  if($source ne '') {
+    print $oufRobot "ccsds.fill".$fill{$type}."(".$source."); //".$desc."\n";
+  }  
   if($writeExtract) {
     print $oufExtractStr "  $pretype $field$array __attribute__((packed));\n";
   }

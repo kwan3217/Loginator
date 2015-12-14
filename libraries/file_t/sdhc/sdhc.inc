@@ -7,12 +7,10 @@
 #include <string.h>
 #include <stdio.h>
 #include "sdhc.h"
-#include "gpio.h" //for delay(), and gpio_read() for sdhc::available()
-#include "Time.h" //for delay(), and gpio_read() for sdhc::available()
+#include "gpio.h" //for gpio_read() for sdhc::available()
+#include "Time.h" //for delay()
 
-//#define SD_DEBUG
-#ifdef SD_DEBUG
-#endif
+#define SD_DEBUG
 
 #include "Serial.h"
 
@@ -22,14 +20,14 @@ template<class Pk, class Pr, class S> inline
 bool SDHC<Pk,Pr,S>::begin() {
   // enable outputs for MOSI, SCK, SS, input for MISO 
   int debug_pt=0;
-  Serial.print(debug_pt);debug_pt++;
+  Serial.print("SDHC startup debug point ");Serial.println(debug_pt);debug_pt++;
   spi.claim_cs(p0);
-  Serial.print(debug_pt);debug_pt++;
+  Serial.print("SDHC startup debug point ");Serial.println(debug_pt);debug_pt++;
   unselect_card();
-  Serial.print(debug_pt);Serial.print(debug_pt);Serial.print(debug_pt);debug_pt++;
+  Serial.print("SDHC startup debug point ");Serial.println(debug_pt);debug_pt++;
   // initialize SPI with lowest frequency; max. 400kHz during identification mode of card 
   spi.begin(400000,1,1);
-  Serial.print(debug_pt);debug_pt++;
+  Serial.print("SDHC startup debug point ");Serial.println(debug_pt);debug_pt++;
 
   // initialization procedure 
   //SD RAW NOT AVAILABLE
@@ -88,7 +86,6 @@ bool SDHC<Pk,Pr,S>::begin() {
     }
   }
 
-
   /* wait for card to get ready */
   uint32_t arg = 0;
   if(card_type & SDHC_SPEC_2) arg = 0x40000000; //Set the HCS bit
@@ -141,9 +138,13 @@ bool SDHC<Pk,Pr,S>::begin() {
 template<class Pk, class Pr, class S> inline
 bool SDHC<Pk,Pr,S>::available() {
   unsigned int i;
+  Serial.println("available point0");
   spi.release_cs(p0);
   delay(10);
+  Serial.println("available point1");
   i = !gpio_read(p0);
+  Serial.println("available point2");
+  Serial.println(i);
   spi.claim_cs(p0);
   return i == 0x00;
 }
@@ -177,6 +178,7 @@ void SDHC<Pk,Pr,S>::send_command(unsigned char command, unsigned int arg, unsign
 
   /* send command via SPI */
   send_byte(0x40 | command);
+  /* Send argment, MSB first */
   send_byte((arg >> 24) & 0xff);
   send_byte((arg >> 16) & 0xff);
   send_byte((arg >> 8) & 0xff);

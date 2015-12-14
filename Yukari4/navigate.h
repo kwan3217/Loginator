@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "config.h"
 #include "Quaternion.h"
-static constexpr fp clat=cos(40.071338*PI/180.0);//0.765243525639;  //cosine of latitude of AVC2014 start line
+static constexpr fp clat=cos(fp(40.071338*PI/180.0));//0.765243525639;  //cosine of latitude of AVC2014 start line
 static constexpr fp cms=6378137.0*PI/180.0/1e7; ///<Length of a cm' in meters
 static constexpr fp cmsToKnot=cms*3600/1852; ///< Multiply cm'/s by this number to get knots
 static constexpr fp wheelBase=31; ///< distance between back and front wheels in cm'

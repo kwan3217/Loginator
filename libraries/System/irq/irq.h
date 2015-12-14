@@ -12,7 +12,7 @@ public:
   static void begin( void );
   static bool install(unsigned int IntNumber, irqHandler HandlerAddr );
   static bool uninstall(unsigned int IntNumber );
-  static void __attribute__ ((interrupt("IRQ"))) IRQ_Wrapper();
+  static void /*__attribute__ ((interrupt("IRQ"))) */IRQ_Wrapper();
 
   static const int WDT		= 0; ///< Watchdog timer  
   static const int SWI		= 1; ///< Software interrupt, triggered by SWI x instruction

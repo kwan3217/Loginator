@@ -1,11 +1,13 @@
 #include "LPC214x.h"
 #include "irq.h"
+#include <inttypes.h>
+#include <stddef.h> //for size_t
 
 //Now we see why we like high-level languages for IRQ handling. It says treat
 //the number as a pointer to a function and call it.
 typedef void (*fvoid)(void);
 void IRQHandler::IRQ_Wrapper() {
-  ((fvoid)(VICVectAddr()))();
+  ((fvoid)(uintptr_t)(VICVectAddr()))();
 }
 
 /**
@@ -36,7 +38,8 @@ void IRQHandler::begin(void) {
   }
 
   /* Install the default VIC handler here */
-  VICDefVectAddr() = (int)DefaultVICHandler;
+  //Weird cast below is for machines where pointer isn't 32 bit (like an x86_64 host)
+  VICDefVectAddr() = (uint32_t)(size_t)&DefaultVICHandler;
   return;
 }
 
@@ -59,7 +62,8 @@ bool IRQHandler::install(unsigned int IntNumber, irqHandler HandlerAddr ) {
     // find first un-assigned VIC address for the handler
 
     if ( VICVectAddrSlot(i) == 0 ) {
-      VICVectAddrSlot(i) = (int)HandlerAddr;    // set interrupt vector
+      //Weird cast below is for machines where pointer isn't 32 bit (like an x86_64 host)
+      VICVectAddrSlot(i) = (uint32_t)(size_t)HandlerAddr;    // set interrupt vector
       VICVectCntlSlot(i) = (IRQ_SLOT_EN | IntNumber);
       VICIntEnable() |= 1 << IntNumber;  // Enable Interrupt
       return true;

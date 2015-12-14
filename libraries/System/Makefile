@@ -3,16 +3,13 @@
 #GENCPP - Generated C++ source files, for instance made by ragel from a .rl 
 #         file. These files are not included in the tarball. They should 
 #         have the extension .CPP
-
+include ../libraries/System/irq/Makefile
 # List C++ source files here.
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
 CPPSRC += main.cpp
-CPPSRC += ../libraries/System/Stringex.cpp
-CPPSRC += ../libraries/System/Startup.cpp
-CPPSRC += ../libraries/System/Time.cpp
-CPPSRC += ../libraries/System/irq.cpp
-#SRC += ../libraries/System/syscalls.c
+CPPSRC += ../libraries/System/Stringex.cpp #usable by both embedded and sim
+EMBCPPSRC += ../libraries/System/Startup.cpp
 ifndef OBJEXT
 OBJEXT=o
 endif
@@ -61,7 +58,7 @@ CPPSRCARM:=$(call uniq,$(CPPSRCARM))
 ASRC:=$(call uniq,$(ASRC))
 ASRCARM:=$(call uniq,$(ASRCARM))
 LIBMAKE:=$(call uniq,$(LIBMAKE))
-ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM) $(PERL)
+ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(EMBCPPSRC) $(SIMCPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM) $(PERL)
 BACKUP = $(addsuffix ~,$(ALLTAR))
 #MYTAR = $(shell cat $(ALLTAR) | sed -n 's"\.\./lib/\S*\s//g"')
 
@@ -281,14 +278,14 @@ COBJ      = $(SRC:.c=.$(OBJEXT))
 AOBJ      = $(ASRC:.S=.$(OBJEXT))
 COBJARM   = $(SRCARM:.c=.$(OBJEXT))
 AOBJARM   = $(ASRCARM:.S=.$(OBJEXT))
-CPPOBJ    = $(CPPSRC:.cpp=.$(OBJEXT)) 
+CPPOBJ    = $(CPPSRC:.cpp=.$(OBJEXT))
+EMBCPPOBJ = $(EMBCPPSRC:.cpp=.$(OBJEXT)) 
 GENCPPOBJ = $(GENCPP:.CPP=.$(OBJEXT)) 
 CPPOBJARM = $(CPPSRCARM:.cpp=.$(OBJEXT))
 
-
 # Define all listing files.
 LST = $(ASRC:.S=.lst) $(ASRCARM:.S=.lst) $(SRC:.c=.lst) $(SRCARM:.c=.lst)
-LST += $(CPPSRC:.cpp=.lst) $(CPPSRCARM:.cpp=.lst)
+LST += $(CPPSRC:.cpp=.lst) $(EMBCPPSRC:.cpp=.lst) $(CPPSRCARM:.cpp=.lst)
 
 # Compiler flags to generate dependency files.
 ### GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
@@ -454,6 +451,14 @@ $(CPPOBJ) : %.$(OBJEXT) : %.cpp
 	$(CPP) -S $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.cpp=.s)
 	$(CPP) -c $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $@
 
+# Compile: create object files from C++ source files. ARM/Thumb
+$(EMBCPPOBJ) : %.$(OBJEXT) : %.cpp
+	@echo
+	@echo $(MSG_COMPILINGCPP) $<
+	$(CPP) -E $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.cpp=.e)
+	$(CPP) -S $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $(<:.cpp=.s)
+	$(CPP) -c $(THUMB) $(ALL_CFLAGS) $(CPPFLAGS) $< -o $@
+
 # Compile: create object files from generated C++ source files. ARM/Thumb
 $(GENCPPOBJ) : %.$(OBJEXT) : %.CPP
 	@echo
@@ -511,6 +516,8 @@ clean_list :
 	$(REMOVE) $(TEST_ARCHIVE)
 	$(REMOVE) $(COBJ)
 	$(REMOVE) $(CPPOBJ)
+	$(REMOVE) $(EMBCPPOBJ)
+	$(REMOVE) $(SIMCPPOBJ)
 	$(REMOVE) $(GENCPPOBJ)
 	$(REMOVE) $(AOBJ)
 	$(REMOVE) $(COBJARM)
@@ -528,6 +535,14 @@ clean_list :
 	$(REMOVE) $(CPPSRC:.cpp=.s) 
 	$(REMOVE) $(CPPSRC:.cpp=.d)
 	$(REMOVE) $(CPPSRC:.cpp=.e)
+	$(REMOVE) $(CPPSRC:.cpp=.$(SIMOBJEXT))
+	$(REMOVE) $(EMBCPPSRC:.cpp=.s) 
+	$(REMOVE) $(EMBCPPSRC:.cpp=.d)
+	$(REMOVE) $(EMBCPPSRC:.cpp=.e)
+	$(REMOVE) $(SIMCPPSRC:.cpp=.s) 
+	$(REMOVE) $(SIMCPPSRC:.cpp=.d)
+	$(REMOVE) $(SIMCPPSRC:.cpp=.e)
+	$(REMOVE) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT))
 	$(REMOVE) $(CPPSRCARM:.cpp=.s) 
 	$(REMOVE) $(CPPSRCARM:.cpp=.d)
 	$(REMOVE) $(CPPSRCARM:.cpp=.e)

@@ -33,6 +33,7 @@ void HardSPI0::begin(unsigned int freq, unsigned char CPOL, unsigned char CPHA) 
 void HardSPI0::setfreq(unsigned int freq) {
   //SSP Prescale register (Scale register SCR set to 1 above)
   Serial.print("Freq: ");Serial.println(freq);
+  Serial.print("PCLK: ");Serial.println(PCLK);
   unsigned int scale=PCLK/freq;
   Serial.print("Scale1: ");Serial.println(scale);
   scale&=0xFE;

@@ -6,7 +6,7 @@
 
 class PlaybackState:public RobotState {
 public:
-  PlaybackState(char* infn, int fs);
+  void begin(char* infn,int fs);
   bool done();
   FILE* inf;
   double sensX, sensY, sensZ;  

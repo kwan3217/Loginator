@@ -1,0 +1,8 @@
+rw1(i2c,I2CCONSET);
+ro1(i2c,I2CSTAT);
+rw1(i2c,I2CDAT);
+rw1(i2c,I2CADR);
+rw1(i2c,I2CSCLH);
+rw1(i2c,I2CSCLL);
+wo1(i2c,I2CCONCLR);
+

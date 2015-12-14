@@ -1,4 +1,4 @@
-#include "l3g4200d.h"
+/*#include "l3g4200d.h"
 #include "sim.h"
 
 uint8_t L3G4200D::whoami() {
@@ -38,4 +38,4 @@ void L3G4200D::read(int16_t& x, int16_t& y, int16_t& z, uint8_t& t, uint8_t& sta
   z=(int16_t)actualZ; //Convert from rad/s to DN
 }
 
-
+*/

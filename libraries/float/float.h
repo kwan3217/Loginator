@@ -9,7 +9,7 @@ typedef double fp;
 #else
 typedef float fp;
 #define atan2 atan2f
-#define sqrt sqrtf
+//#define sqrt sqrtf
 #endif
 
 /**
@@ -42,8 +42,6 @@ static inline void trigm(fp ca, fp cb, fp sa, fp sb, fp &c, fp &s) {
 //An extreme example of trading space for time in an optimization - a big sine
 //table and an easy table lookup function
 constexpr fp PI=3.1415926535897932;
-// Generate an entry to the CRC lookup table
-//template <int c> struct gen_sin_table{enum {value = sin(fp(c)/10.0*PI/180.0)};};
 
 static inline constexpr fp factorial(int n) {
   fp result=1.0;
@@ -70,8 +68,6 @@ static inline constexpr fp cos(const fp x) {
   return poly(x,cosPoly,sizeof(cosPoly)/sizeof(fp)-1);
 }
 
-
-
 extern const fp sinTable[];
 
 //Angle is measured in tenths of a degree, so a full circle has 3600 parts
@@ -87,27 +83,26 @@ static inline fp cost(int angle) {
   return sint(900-angle);
 }
 
-
-union floatint {
-  float f;
-  int32_t i;
-};
-
 //From Wikipedia:Fast inverse square root. Must be float, not fp. Edited
 //to use correct types and avoid strict-aliasing warning on conversion from float to int
 static inline float Q_rsqrt( float number ) {
-	floatint i;
-	float x2, y;
-	const float threehalfs = 1.5F;
+  union floatint {
+    float f;
+    int32_t i;
+  };
 
-	x2 = number * 0.5F;
-	i.f  = number;        // evil floating point bit level hacking
-	i.i  = 0x5f3759df - ( i.i >> 1 );               // what the...?
-	y  = i.f;
-	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
-//      y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+  floatint i;
+  float x2, y;
+  const float threehalfs = 1.5F;
 
-	return y;
+  x2 = number * 0.5F;
+  i.f  = number;        // evil floating point bit level hacking
+  i.i  = 0x5f3759df - ( i.i >> 1 );               // what the...?
+  y  = i.f;
+  y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
+//  y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+
+  return y;
 }
 
 fp stof(char* s);

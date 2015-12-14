@@ -8,7 +8,7 @@ ZPAQDIR=../libraries/tarball
 
 HDEP = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq))
 INCDEP = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.inc\)\s*:/\1/gp' | sort | uniq))
-ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM) $(PERL)
+ALLSRC = $(SRC) $(SRCARM) $(CPPSRC) $(EMBCPPSRC) $(SIMCPPSRC) $(CPPSRCARM) $(ASRC) $(ASRCARM) $(PERL)
 ATTACH+= $(ALLSRC) $(HDEP) $(INCDEP) $(LD_SCRIPT) $(LIBMAKE) ../libraries/System/Doxyfile.template $(ZPAQDIR)/max.cfg gccversion.txt
 SATTACH=$(sort $(ATTACH))
 DDATTACH=$(addprefix $(TARGETBASE)/,$(SATTACH))
@@ -38,6 +38,7 @@ gccversion.txt:
 	echo >> $@
 	echo == Perl version == >> $@
 	perl --version -v >> $@
+	perl -V >> $@
 	echo >> $@
 	echo == ragel version == >> $@
 	ragel --version >> $@
@@ -137,3 +138,5 @@ endif
 $(SOURCEOBJ): $(CTARBALL)
 	$(OBJCOPY) -I binary -O $(BFDO) $< $@ --rename-section .data=.source -B $(BFDB)
 
+$(CTARBALL).o64: $(CTARBALL)
+	objcopy -I binary -O elf64-x86-64 $< $@ --rename-section .data=.source -B i386:x86-64
