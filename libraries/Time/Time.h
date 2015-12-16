@@ -20,8 +20,13 @@ extern int32_t dtc01;
 extern int32_t timer_read_ticks;
 
 void setup_clock(void);
+/**Busy wait accurate delay. Relies on Timer0 running without pause at PCLK and resetting
+ at timerSec seconds, as by setup_clock(). Code only reads, never writes, Timer0 registers.
+ Implemented in delay.cpp for embedded code, and in the main simulator code
+ when simulated (so that it may be implemented in any method needed).
+  @param ms milliseconds to wait
+*/
 void delay(unsigned int ms);
-void setup_pll(unsigned int channel, unsigned int M);
 void set_rtc(int y, int m, int d, int h, int n, int s);
 void time_mark(void);
 static inline int msPassed(uint32_t TC0) {
@@ -30,6 +35,27 @@ static inline int msPassed(uint32_t TC0) {
   uint32_t dtms=(TC1c-TC0)/(PCLK/1000);
   return dtms;
 }
+
+//Twiddle the PLLFEED registers such that the values written to the other PLL registers
+//take effect. This is a safety feature designed to make sure the clock isn't fiddled
+//with accidentally, and to ensure that the other changes to the other registers
+//are applied in an atomic manner. The docs say that a successful feed must 
+//consist of two writes with no intervening APB cycles. Use asm to make sure
+//that it is done with two intervening instructions. This function is not included
+//in Time.cpp, since it is device-dependent. It is implemented in Startup.cpp
+//for the embedded version, and LPC214x.cpp for the simulated version (as a no-op).
+void feed(int channel);
+
+
+/** Set up on-board phase-lock-loop clock multiplier.
+
+\param channel Channel 0 is the system PLL used to generate CCLK up to 60MHz.
+               Channel 1 is the USB PLL used to generate its 48MHz.
+\param M Clock multiplier. Final clock rate will be crystal frequency times this
+number. May be between 1 and 32, but in practice must not exceed 5 with a 12MHz 
+crystal.
+*/
+void setup_pll(unsigned int channel, unsigned int M);
 
 /**Given a timer value from timer1, return the timer value for timer0 at the same instant. Depends on measurements
    conducted in setup_clock(), will not be valid if either timer is stopped, reset, or jammed to a different value.

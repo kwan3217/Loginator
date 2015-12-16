@@ -22,6 +22,9 @@
 #include "scb_registers.inc"
 #include "adc_registers.inc"
 
+//PLL feed for simulation code. The PLL has no real effect, so this is a no-op.
+void feed(int channel) {}
+
 #undef ro0
 #undef rw0
 #undef wo0

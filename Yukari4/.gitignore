@@ -1,0 +1,15 @@
+*.o64
+*.csv
+*.nmea
+*.zpaq
+*.cpio
+*.tar
+simhost
+extractPacket
+test_nmea
+playback
+FW.*SFE
+*.inc
+CONFIG.TXT
+*treemap*
+

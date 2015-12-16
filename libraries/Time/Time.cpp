@@ -179,30 +179,27 @@ void setup_clock(void) {
   timer_read_ticks=dtc01_m-dtc01;
 }
 
-/**Busy wait accurate delay. Relies on Timer0 running without pause at PCLK and resetting
- at timerSec seconds, as by setup_clock(). Code only reads, never writes, Timer0 registers
-  @param ms milliseconds to wait
-*/
-void delay(unsigned int ms) {
-  unsigned int TC0=TTC(0);
-  //count off whole minutes
-  while(ms>=1000*timerSec) {
-    //wait for the top of the minute
-    while(TTC(0)>TC0) ;
-    //wait for the bottom of the minute
-    while(TTC(0)<TC0) ;
-    ms-=1000*timerSec;
-  }
-  if(ms==0) return;
-  unsigned int TC1=TC0+ms*(PCLK/1000);
-  if(TC1>timerInterval) {
-    //Do this while we are waiting
-    TC1-=timerInterval;
-    //wait for the top of the minute
-    while(TTC(0)>TC0) ;
-  }
-  //wait for the rest of the minute
-  while(TTC(0)<TC1) ;
+void setup_pll(unsigned int channel, unsigned int M) {
+  //Figure out N, exponent for PLL divider value, P=2^N. Intermediate frequency will be
+  //FOSC*M*2*P=FOSC*M*2*2^N, and must be between 156MHz and 320MHz. This selects the lowest
+  //N which satisfies the frequency constraint
+  unsigned int N=0;
+  while(FOSC*M*2*(1<<N)<156'000'000) N++;
+  // Set Multiplier and Divider values
+  PLLCFG(channel)=(M-1)|(N<<5);
+  feed(channel);
+
+  // Enable the PLL */
+  PLLCON(channel)=0x1;
+  feed(channel);
+
+  // Wait for the PLL to lock to set frequency
+  while(!(PLLSTAT(channel) & (1 << 10))) ;
+
+  // Connect the PLL as the clock source
+  PLLCON(channel)=0x3;
+  feed(channel);
+
 }
 
 
