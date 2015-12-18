@@ -53,21 +53,23 @@ private:
   static const SimCid cid;
   SimCsd csd;
   SimGpio& gpio;
-  int cs;
+  bool cs; ///< True if card has been selected
   FILE* card;
+  //State machine stuff
+  enum State {WAIT_CMD, WAIT_ARG, WAIT_CRC, 
+              RESPOND_START, RESPOND_SEND, 
+              WRITE_START  , WRITE, 
+              READ_START   , READ};
+  State state;
   uint8_t cmd;
+  int argCount;
   uint32_t arg;
   uint8_t crc;
-  int cmdptr;
-  char response[10];
-  bool responseReady=false;
-  int responsePtr,responseLen;
-  int responseDelayBytes;
-  char data[512];
-  bool dataReceive=false;
-  bool dataReady=false;
-  int dataPtr,dataLen;
-  int dataDelayBytes;
+  int responseDelay,responseCount,responsePtr;
+  char response[5]; //No responses are longer than 5
+  int readDelay,readCount,readPtr;
+  int writeDelay,writeCount,writePtr;
+  char data[512]; //Used as both read and write block, for both CID/CSD and data
   bool nextCommandAppSpecific=false;
   int blocklen;
   int HCS;
@@ -125,16 +127,23 @@ private:
   static const int R1_ADDR_ERR      = 1 << 5;
   static const int R1_PARAM_ERR     = 1 << 6;
 public:
-  SimSd(SimGpio& Lgpio, int Lcs):gpio(Lgpio),cs(Lcs) {};
+  SimSd(SimGpio& Lgpio, int Lcs):gpio(Lgpio),cs(Lcs),state(WAIT_CMD) {};
   bool open(char* cardfn);
   void close();
   virtual void pinOut(int port, int pin, int value) override;
   virtual int pinIn(int port, int pin) override;
   virtual void pinMode(int port, int pin, bool out) override;
-  virtual uint32_t read_S0SPDR() override;
+  /**The master triggers an SPI transfer by writing to the data register.
+     On real hardware, the transfer takes a certain amount of time, after
+     which the SPIF bit in the status register is set. At this point, a read
+     of the data register gets the data just received by the master during this
+     transfer, and the SPIF bit is cleared. In the simulation, the transfer
+     takes no time. The SPIF bit is always set and writing to the data register
+     should trigger the calculation of the byte to be received by the host.
+     *That* data, not the input value argument, should be written to the S0SPDR
+     internal variable. */
   virtual void write_S0SPDR(uint32_t value) override;
   void executeCommand();
-//  virtual uint32_t read_S0SPSR() override;
 };
 
 #endif

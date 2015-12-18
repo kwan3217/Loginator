@@ -55,16 +55,20 @@ format: CONFIG.TXT
 
 SIMOBJ = $(CPPSRC:.cpp=.$(SIMOBJEXT)) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(GENCPP:.CPP=.$(SIMOBJEXT)) 
 
-playback: $(SIMOBJ) sim/playback.o64 source.cpio.max1.zpaq.o64
+playback.exe: $(SIMOBJ) sim/playback.o64 source.cpio.max1.zpaq.o64
 	clang++ $(CLANGLINK)
+	make CONFIG.TXT
+	make mount
 	sudo cp -v CONFIG.TXT sdcard
 	make umount
 
 test_nmea: sim/test_nmea.o64 ../libraries/gps/ragel_nmea/nmea.o64 ../libraries/System/Stringex.o64 ../libraries/float/float.o64
 	clang++ -g -O0 -o $@ -lm $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/  -Wno-ignored-attributes
 
-simhost: sim/simhost.o64 $(SIMOBJ) source.cpio.max1.zpaq.o64
+simhost.exe: $(SIMOBJ) sim/simhost.o64 source.cpio.max1.zpaq.o64
 	clang++ -g -O0 -o $@ -lm $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/ -Wno-ignored-attributes
+	make CONFIG.TXT
+	make mount
 	sudo cp -v CONFIG.TXT sdcard
 	make umount
 

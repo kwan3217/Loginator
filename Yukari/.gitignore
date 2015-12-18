@@ -4,12 +4,13 @@
 *.zpaq
 *.cpio
 *.tar
-simhost
-extractPacket
-test_nmea
-playback
+*.ii
+*.bc
+*.s
+*.exe
+*.lss64
 FW.*SFE
-*.inc
+*.INC
 CONFIG.TXT
 *treemap*
 

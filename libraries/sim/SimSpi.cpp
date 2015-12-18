@@ -43,5 +43,32 @@ uint32_t SimSpi::read_S0SPSR() {
              ((SPIF & ((1<<1)-1)) << 7)  ; //SPIF, bit 6. This is SPI transfer finished, and is permanently 1 since SPI transfers take no simulated time
 /*  ::fprintf(stderr,"S0SPSR read, 0x%02x (%d), ABRT=%d, MODF=%d, ROVR=%d, WCOL=%d, SPIF=%d\n",
     value,value,ABRT,MODF,ROVR,WCOL,SPIF); */
+  SPIF_read=true;
   return value;
 }
+
+void SimSpi::write_S0SPDR(uint32_t value) {
+  //Unless this is overridden further, the data goes straight to bit heaven.
+  //The only action taken is to set the SPIF flag. Subclasses which *do* 
+  //override this should set S0SPDR to the value which the simulated device
+  //sends back, rather than the byte the master is sending out.
+  SPIF_read=false;  //The SPIF flag has not been read since the last transfer
+  SPIF=1;           //The transfer has (instantly) completed
+}
+
+uint32_t SimSpi::read_S0SPDR() {
+  //This code does the right thing with the SPIF flag. "This bit is cleared by
+  //first reading [S0SPSR] then accessing the SPI data register." Presumably
+  //on real hardware, the access above could be a write, meaning the read was
+  //ignored. Such a write on the real thing would trigger an SPI transfer,
+  //and the SPIF flag would be appropriately cleared until it finished. In the
+  //sim, the transfer happens instantly, so a write access actually sets the 
+  //flag, but this is correct for simulated purposes.
+  if(SPIF_read) {
+    SPIF=0;
+    SPIF_read=false;
+  };
+  return S0SPDR;
+}
+
+

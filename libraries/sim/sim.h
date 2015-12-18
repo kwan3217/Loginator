@@ -149,12 +149,15 @@ private:
   static const int MODF=0;
   static const int ROVR=0;
   static const int WCOL=0;
-  static const int SPIF=1;
+  int SPIF;
+  bool SPIF_read;
 public:
   virtual void write_S0SPCR(uint32_t value) override;
   virtual uint32_t read_S0SPCR() override;
   virtual void write_S0SPCCR(uint32_t value) override;
   virtual uint32_t read_S0SPSR() override;
+  virtual void write_S0SPDR(uint32_t value) override;
+  virtual uint32_t read_S0SPDR() override;
 };
 
 class SimSsp {
