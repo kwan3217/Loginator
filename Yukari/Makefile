@@ -34,7 +34,10 @@ include ../libraries/sim/Makefile
 USB = /dev/sdd1
 COURSE=Long Course
 
-main.cpp: extract_str.INC
+#Make the first file compiled (mentioned above) dependent on the packet parser stuff
+navigate.cpp: extract_str.INC
+
+playback.cpp: CONFIG.TXT
 
 simall: clean playback simhost extractPacket
 
@@ -52,7 +55,7 @@ format: CONFIG.TXT
 
 SIMOBJ = $(CPPSRC:.cpp=.$(SIMOBJEXT)) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(GENCPP:.CPP=.$(SIMOBJEXT)) 
 
-playback: sim/playback.o64 $(SIMOBJ) source.cpio.max1.zpaq.o64
+playback: $(SIMOBJ) sim/playback.o64 source.cpio.max1.zpaq.o64
 	clang++ $(CLANGLINK)
 	sudo cp -v CONFIG.TXT sdcard
 	make umount
