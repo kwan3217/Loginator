@@ -13,4 +13,6 @@ FW.*SFE
 *.INC
 CONFIG.TXT
 *treemap*
+*.SDS
+*.sds
 

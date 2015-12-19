@@ -12,6 +12,6 @@ TelemetryDatabase.csv: TelemetryDatabase.ods
 extract_str.INC: ../libraries/packet/ccsds/tlmDb.pl TelemetryDatabase.csv
 	perl ../libraries/packet/ccsds/tlmDb.pl TelemetryDatabase.csv
 
-extractPacket: ../libraries/packet/ccsds/extractPacket.cpp extract_str.INC
+extractPacket.exe: ../libraries/packet/ccsds/extractPacket.cpp extract_str.INC
 	clang -g -o $@ $< -std=c++14 -I . $(addprefix -I ,$(EXTRAINCDIRS))
 

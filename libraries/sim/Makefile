@@ -1,5 +1,6 @@
 SIMOBJEXT=o64
 LIBMAKE+=../libraries/sim/Makefile
+ATTACH+=../libraries/sim/SimSd.dot
 
 #Simulation harness
 SIMCPPSRC+=../libraries/sim/LPC214x.cpp
