@@ -132,11 +132,23 @@ public:
   virtual void write_ULCR(int Lport, uint32_t write) override;
 };
 
-class SimI2c {
+class SimSubI2c {
 public:
   #include "i2c_registers.inc"
 };
 
+class SimI2c: public SimSubI2c {
+private:
+public:
+  SimI2c() {for(int i=0;i<2;i++) I2CSTAT[i]=0xF8;};
+  int AA  (int port) {return (I2CCONSET[port]>>2) & 0x01;};
+  int SI  (int port) {return (I2CCONSET[port]>>3) & 0x01;};
+  int STO (int port) {return (I2CCONSET[port]>>4) & 0x01;};
+  int STA (int port) {return (I2CCONSET[port]>>5) & 0x01;};
+  int I2EN(int port) {return (I2CCONSET[port]>>6) & 0x01;};
+  virtual void write_I2CCONSET(int Lport, uint32_t write) override;
+  virtual void write_I2CCONCLR(int Lport, uint32_t write) override;
+};
 class SimSubSpi {
 public:
   #include "spi_registers.inc"

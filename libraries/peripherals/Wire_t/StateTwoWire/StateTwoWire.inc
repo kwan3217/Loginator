@@ -159,7 +159,7 @@ void StateTwoWire<T,port>::stateDriver() {
 template<class T, int port>
 void StateTwoWire<T,port>::twi_init(unsigned int freq) {
   //Turn on appropriate I2C peripheral
-  PCONP() |= (1<<(7+port));
+  PCONP() |= (1<<((0==port)?7:19));
   //Set the clock rate
   unsigned int rate=(PCLK/freq)/2;
   I2CSCLL(port)=rate;

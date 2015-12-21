@@ -4,16 +4,16 @@ ATTACH+=../libraries/sim/SimSd.dot
 
 #Simulation harness
 SIMCPPSRC+=../libraries/sim/LPC214x.cpp
-SIMCPPSRC+=../libraries/sim/SimUart.cpp
 SIMCPPSRC+=../libraries/sim/SimGpio.cpp
+SIMCPPSRC+=../libraries/sim/SimI2c.cpp
 SIMCPPSRC+=../libraries/sim/SimScb.cpp
-SIMCPPSRC+=../libraries/sim/SimSpi.cpp
 SIMCPPSRC+=../libraries/sim/SimSd.cpp
+SIMCPPSRC+=../libraries/sim/SimSpi.cpp
+SIMCPPSRC+=../libraries/sim/SimUart.cpp
 
 CLANGINCLUDE=-I ../libraries/sim -I . $(addprefix -I ,$(call uniq,$(EXTRAINCDIRS))) -I /usr/include/c++/4.9 -I /usr/include/x86_64-linux-gnu/c++/4.9/
-CLANGE   =-g -O0 -std=c++1y -E -o $(<:.cpp=.e) $< $(CLANGINCLUDE) -Wno-ignored-attributes
 CLANGCOMP=-g -O0 -std=c++1y -c -save-temps -o $@           $< $(CLANGINCLUDE) -Wno-ignored-attributes
-CLANGLINK=-g -O0 -o $@ -lm -lstdc++ $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/ -L/usr/lib/gcc/x86_64-linux-gnu/4.9/ -Wno-ignored-attributes
+CLANGLINK=-g -O0 -o $@ -lm -lstdc++ $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/ -L/usr/lib/gcc/x86_64-linux-gnu/4.9/ -Wl,-Map,$(@:.exe=.map) -Wno-ignored-attributes
 
 #Rules to compile source into .o64 files
 $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(CPPSRC:.cpp=.$(SIMOBJEXT)): %.$(SIMOBJEXT): %.cpp
@@ -39,6 +39,7 @@ mount: sim/sdcard sdcard
 umount:
 	sudo umount sdcard/ || true
 
+#Program annotated listing
 %.lss64: %.exe
 	@echo
 	@echo $(MSG_EXTENDED_LISTING) $@
