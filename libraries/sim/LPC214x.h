@@ -27,8 +27,8 @@
    code uses things like |= to do read-modify-write.  
 */
 
-#define ro0(part,name) static inline uint32_t name() {return peripherals.part.read_##name();} 
-#define rw0(part,name) class name##_class { \
+#define ro0(part,name,addr) static inline uint32_t name() {return peripherals.part.read_##name();}
+#define rw0(part,name,addr) class name##_class { \
   public:                              \
     name##_class& operator()() {return *this;};        \
     operator int() {return peripherals.part.read_##name();};                    \
@@ -43,18 +43,18 @@
     uint32_t      operator++(int) {uint32_t tmp=(*this);(*this)=(*this) +1;return tmp;}; \
 };                                     \
 extern name##_class name
-#define wo0(part,name) class name##_class { \
+#define wo0(part,name,addr) class name##_class { \
   public:                              \
     name##_class& operator()() {return *this;};        \
     void operator=(uint32_t write) {peripherals.part.write_##name(write);};         \
 };                                     \
 extern name##_class name
-#define ro1(part,name) static inline uint32_t name(int port) {return peripherals.part.read_##name(port);}
-#define rw1(part,name) class name##_class { \
+#define ro1(part,name,N,addr) static inline uint32_t name(int i) {return peripherals.part.read_##name(i);}
+#define rw1(part,name,N,addr) class name##_class { \
   private:                             \
     int i_port;                          \
   public:                              \
-    name##_class& operator()(int Lport) {i_port=Lport;return *this;};        \
+    name##_class& operator()(int i) {i_port=i;return *this;};        \
     operator int() {return peripherals.part.read_##name(i_port);};                    \
     void operator=(uint32_t write) {peripherals.part.write_##name(i_port,write);};         \
     name##_class& operator&=(int write) {(*this)=(*this) & write;return *this;}; \
@@ -67,16 +67,16 @@ extern name##_class name
     uint32_t      operator++(int) {uint32_t tmp=(*this);(*this)=(*this) +1;return tmp;}; \
 };                                     \
 extern name##_class name
-#define wo1(part,name) class name##_class { \
+#define wo1(part,name,N,addr) class name##_class { \
   private:                             \
     int i_port;                          \
   public:                              \
-    name##_class& operator()(int Lport) {i_port=Lport;return *this;};        \
+    name##_class& operator()(int i) {i_port=i;return *this;};        \
     void operator=(uint32_t write) {peripherals.part.write_##name(i_port,write);};         \
 };                                     \
 extern name##_class name
-#define ro2(part,name) static inline uint32_t name(int port, int channel) {return peripherals.part.read_##name(port,channel);}
-#define rw2(part,name) class name##_class { \
+#define ro2(part,name,M,N,addr) static inline uint32_t name(int port, int channel) {return peripherals.part.read_##name(port,channel);}
+#define rw2(part,name,M,N,addr) class name##_class { \
   private:                             \
     int i_port,i_channel;                          \
   public:                              \
@@ -93,7 +93,7 @@ extern name##_class name
     uint32_t      operator++(int) {uint32_t tmp=(*this);(*this)=(*this) +1;return tmp;}; \
 };                                     \
 extern name##_class name
-#define wo2(part,name) class name##_class { \
+#define wo2(part,name,M,N,addr) class name##_class { \
   private:                             \
     int i_port,i_channel;                          \
   public:                              \

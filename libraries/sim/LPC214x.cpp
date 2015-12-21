@@ -1,14 +1,14 @@
 #include "LPC214x.h"
 
-#define ro0(part,name)
-#define rw0(part,name) name##_class name
-#define wo0(part,name) name##_class name
-#define ro1(part,name) 
-#define rw1(part,name) name##_class name
-#define wo1(part,name) name##_class name
-#define ro2(part,name) 
-#define rw2(part,name) name##_class name
-#define wo2(part,name) name##_class name
+#define ro0(part,name    ,addr)
+#define rw0(part,name    ,addr) name##_class name
+#define wo0(part,name    ,addr) name##_class name
+#define ro1(part,name,N  ,addr)
+#define rw1(part,name,N  ,addr) name##_class name
+#define wo1(part,name,N  ,addr) name##_class name
+#define ro2(part,name,M,N,addr)
+#define rw2(part,name,M,N,addr) name##_class name
+#define wo2(part,name,M,N,addr) name##_class name
 
 #include "uart_registers.inc"
 #include "i2c_registers.inc"

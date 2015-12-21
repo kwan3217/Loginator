@@ -7,13 +7,13 @@
 
 //Macros which define a register with zero levels of addressing, IE only
 //one instance on the part.
-#define ro0(junk,name) \
+#define ro0(junk,name,addr) \
 protected: uint32_t name; \
 public: virtual uint32_t read_##name() {fprintf(stdout,#name " read, value=0x%08x (%d)\n",name,name);return name;}
-#define wo0(junk,name) \
+#define wo0(junk,name,addr) \
 protected: uint32_t name; \
 public: virtual void write_##name(uint32_t value) {fprintf(stdout,#name " written, value=0x%08x (%d)\n",value,value);name=value;}
-#define rw0(junk,name) \
+#define rw0(junk,name,addr) \
 protected: uint32_t name; \
 public: virtual uint32_t read_##name() {fprintf(stdout,#name " read, value=0x%08x (%d)\n",name,name);return name;}; \
 virtual void write_##name(uint32_t value) {fprintf(stdout,#name " written, value=0x%08x (%d)\n",value,value);name=value;}
@@ -21,30 +21,30 @@ virtual void write_##name(uint32_t value) {fprintf(stdout,#name " written, value
 //Macros which define a register with one levels of addressing, IE multiple 
 //instances on the part, but no channels in each instance. This includes such
 //things as GPIO and I2C
-#define ro1(junk,name) \
-protected: uint32_t name[16]; \
-public: virtual uint32_t read_##name(int instance) {fprintf(stdout,#name "[%d] read, value=0x%08x (%d)\n",instance,name[instance],name[instance]);return name[instance];}
-#define wo1(junk,name) \
-protected: uint32_t name[16]; \
-public: virtual void write_##name(int instance, uint32_t value) {fprintf(stdout,#name "[%d] written, value=0x%08x (%d)\n",instance,value,value);name[instance]=value;}
-#define rw1(junk,name) \
-protected: uint32_t name[16]; \
-public: virtual uint32_t read_##name(int instance) {fprintf(stdout,#name "[%d] read, value=0x%08x (%d)\n",instance,name[instance],name[instance]);return name[instance];};\
-virtual void write_##name(int instance, uint32_t value) {fprintf(stdout,#name "[%d] written, value=0x%08x (%d)\n",instance,value,value);name[instance]=value;}
+#define ro1(junk,name,N,addr) \
+protected: uint32_t name[N]; \
+public: virtual uint32_t read_##name(int i) {fprintf(stdout,#name "[%d] read, value=0x%08x (%d)\n",i,name[i],name[i]);return name[i];}
+#define wo1(junk,name,N,addr) \
+protected: uint32_t name[N]; \
+public: virtual void write_##name(int i, uint32_t value) {fprintf(stdout,#name "[%d] written, value=0x%08x (%d)\n",i,value,value);name[i]=value;}
+#define rw1(junk,name,N,addr) \
+protected: uint32_t name[N]; \
+public: virtual uint32_t read_##name(int i) {fprintf(stdout,#name "[%d] read, value=0x%08x (%d)\n",i,name[i],name[i]);return name[i];};\
+virtual void write_##name(int i, uint32_t value) {fprintf(stdout,#name "[%d] written, value=0x%08x (%d)\n",i,value,value);name[i]=value;}
  
 //Macros which define a register with two levels of addressing, IE multiple 
 //instances on the part, and multiple channels in each instance. This includes
 //such things as timers and PWMs
-#define ro2(junk,name) \
-protected: uint32_t name[16][16]; \
-public: virtual uint32_t read_##name(int instance, int channel) {return name[instance][channel];}
-#define wo2(junk,name) \
-protected: uint32_t name[16][16]; \
-public: virtual void write_##name(int instance, int channel, uint32_t value) {name[instance][channel=value;}
-#define rw2(junk,name) \
-protected: uint32_t name[16][16]; \
-public: virtual uint32_t read_##name(int instance, int channel) {return name[instance][channel];};\
-virtual void write_##name(int instance, int channel, uint32_t value) {name[instance][channel]=value;}
+#define ro2(junk,name,M,N,addr) \
+protected: uint32_t name[M][N]; \
+public: virtual uint32_t read_##name(int i, int j) {return name[i][j];}
+#define wo2(junk,name,M,N,addr) \
+protected: uint32_t name[M][N]; \
+public: virtual void write_##name(int i, int j, uint32_t value) {name[i][j]=value;}
+#define rw2(junk,name,M,N,addr) \
+protected: uint32_t name[M][N]; \
+public: virtual uint32_t read_##name(int i, int j) {return name[i][j];};\
+virtual void write_##name(int i, int j, uint32_t value) {name[i][j]=value;}
  
 /** Class to back up the simulated registers
 Make a subclass to handle details of how your simulated system interacts with
