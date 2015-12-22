@@ -19,7 +19,7 @@ void setup() {
   Serial.println("Starting up");
   bool sd_worked=sd.begin();
   Serial.println(sd_worked?"sd.begin Worked":"sd.begin didn't work");
-  Serial.println(sd.errno,DEC);
+  Serial.println(sd.errnum,DEC);
   if(!sd_worked) return;
 
   sd.get_info(&info);
@@ -27,14 +27,14 @@ void setup() {
 
   sd_worked=p.begin(0);
   Serial.println(sd_worked?"p.begin worked":"p.begin didn't work");
-  Serial.println(sd.errno,DEC);
+  Serial.println(sd.errnum,DEC);
   if(!sd_worked) return;
   
   p.print(Serial);
 
   sd_worked=p.read(0,buf);
   Serial.println(sd_worked?"p.read worked":"p.read didn't work");
-  Serial.println(sd.errno,DEC);
+  Serial.println(sd.errnum,DEC);
   if(!sd_worked) return;
 
   ih.region(buf,0,sizeof(buf),16);

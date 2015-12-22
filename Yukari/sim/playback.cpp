@@ -18,7 +18,7 @@ public:
   // receive data ready (bit 0) is 1 whenever there is GPS data
   // Transmitter holding register empty (bit 5) is always 1 since we can always send a byte
   virtual uint32_t read_ULSR(int Lport) override {return ((state.hasGPS()?1:0) << 0) | 
-                                                ((                 1) << 5);};
+                                                         ((                 1) << 5);};
   virtual uint32_t read_URBR(int Lport) override {
     char result=state.gpsBuf[state.gpsTransPointer];
     state.gpsTransPointer++;
@@ -34,18 +34,49 @@ public:
   virtual void write_TTC(int Lport, uint32_t value) override {printf("Do you really need to write to TTC?");}
 };
 
+class SimHmcYukari: public SimI2cSlave {
+private:
+  bool getAddr=false;
+  int addr;
+  uint8_t reg[13];
+public:
+  virtual void start() override {getAddr=true;::printf("HMC5883 received start\n");}
+  virtual void stop() override {::printf("HMC5883 received stop\n");}
+  virtual void repeatStart() override {getAddr=true;::printf("HMC5883 received repeated start\n");}
+  virtual uint8_t readByte(bool ack) override;
+  virtual void writeByte(uint8_t write, bool& ack) override;
+};
+
+uint8_t SimHmcYukari::readByte(bool ack) {
+  //Ack will be false on last byte, true on others
+  uint8_t result=reg[addr];
+  ::printf("Reading %d (0x%02x) from register %d (0x%02x) on HMC5883\n",result,result,addr,addr);
+  addr++;
+  return result;
+}
+
+void SimHmcYukari::writeByte(uint8_t write, bool& ack) {
+  ack=true;
+  if(getAddr) {
+	addr=write;
+	getAddr=false;
+    ::printf("Addressing register %d (0x%02x) on HMC5883\n",write,write);
+  } else {
+    ::printf("Writing %d (0x%02x) to register %d (0x%02x) on HMC5883\n",write,write,addr,addr);
+    addr++;
+  }
+}
+
 PlaybackState playbackState;
-extern SimSd simsd;
 SimUartYukari uart(playbackState);
 SimGpio gpio;
-SimI2c i2c;
-SimSd simsd(gpio,4);
-SimSsp ssp;
-SimTimeYukari time(playbackState);
+SimSd simsd;
+SimTimeYukari timer(playbackState);
 SimRtc rtc;
 SimPwm pwm;
 SimAdc adc;
-SimPeripherals peripherals(gpio,uart,i2c,simsd,ssp,time,rtc,pwm,adc);
+SimHmcYukari hmc;
+SimPeripherals peripherals(gpio,uart,timer,rtc,pwm,adc);
 
 #include "ccsds.h"
 #include "extract_str.INC"
@@ -87,7 +118,9 @@ int main(int argc, char** argv) {
   setvbuf(stdout, NULL, _IONBF, 0);
   playbackState.begin(argv[1],0);
   simsd.open("sim/sdcard");
-  gpio.addListener(simsd,{7});
+  peripherals.spi.addSlave(0,7,simsd);
+  peripherals.i2c.addSlave(0x1E,hmc);
+  peripherals.gpio.addListener(peripherals.spi,{7}); //Include in here all the SPI slaves' CS lines
   reset_handler(); //Do the stuff that the embedded reset_handler would do
 
   setup(); //Run robot setup code

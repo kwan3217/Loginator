@@ -13,10 +13,10 @@ private:
 protected:
   File& ouf;
 public:
-  unsigned int errno;
+  unsigned int errnum;
   FileCircular(File& Louf):Circular(sizeof(buf),buf),ouf(Louf) {};
 
-  bool drain() {errno=0;if(readylen()>=blockSize) return drainCore();return false;};
+  bool drain() {errnum=0;if(readylen()>=blockSize) return drainCore();return false;};
 };
 
 #endif

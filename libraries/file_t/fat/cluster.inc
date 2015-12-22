@@ -1,16 +1,16 @@
 template<class Pk, class Pr, class S> inline
 bool Cluster<Pk,Pr,S>::begin() {
   if(!p.read(0,bpb,510,2)) {
-    errno=100*p.errno+1;
+    errnum=100*p.errnum+1;
     return false;
   }
   if(bpb[0]!=0x55) {
-    errno=2;
+    errnum=2;
     return false;
   }
   if(((unsigned char)(bpb[1]))!=0xAA) FAIL(3);
-  if(!p.read(0,bpb,0x0B,sizeof(bpb))) FAIL(p.errno*100+4);
-  if(bytesPerSector!=512) FAIL(p.errno+5);
+  if(!p.read(0,bpb,0x0B,sizeof(bpb))) FAIL(p.errnum*100+4);
+  if(bytesPerSector!=512) FAIL(p.errnum+5);
 
   //The following implements ceil(numRootEntries*32/bytesPerSector);
   uint32_t rootDirSectors=((numRootEntries16*32)+(bytesPerSector-1))/bytesPerSector;
@@ -93,14 +93,14 @@ void Cluster<Pk,Pr,S>::calcTableCluster(uint32_t cluster, uint32_t& sectorsPerTa
   entryOffset=tableOffset % bytesPerSector;
 }
 
-#define FAIL_BAD(n) {errno=(n);return BAD_cluster;}
+#define FAIL_BAD(n) {errnum=(n);return BAD_cluster;}
 template<class Pk, class Pr, class S> inline
 uint32_t Cluster<Pk,Pr,S>::readTable(uint32_t cluster) {
   if(tableEntrySize!=12) {
     uint32_t sectorsPerTable, entrySector, entryOffset;
     calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
     uint32_t result=0;
-    if(!p.read(entrySector,(char*)&result,entryOffset,tableEntrySize/8)) FAIL_BAD(p.errno*100+6);
+    if(!p.read(entrySector,(char*)&result,entryOffset,tableEntrySize/8)) FAIL_BAD(p.errnum*100+6);
     if(tableEntrySize==16) result+=0x0FFF0000; //Homogenize 16-bit and 32-bit table entries
     result &= 0x0FFFFFFF;                      //chop off reserved bits
     if(result>=0x0FFFFFF8) result =0x0FFFFFFF; //Homogenize end-of-chain marker
@@ -133,7 +133,7 @@ bool Cluster<Pk,Pr,S>::writeTable(uint32_t cluster, uint32_t entry) {
   if(tableEntrySize==12) FAIL(8);
   uint32_t sectorsPerTable, entrySector, entryOffset;
   calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
-  if(!p.read(entrySector,findbuf)) FAIL(p.errno*100+9);
+  if(!p.read(entrySector,findbuf)) FAIL(p.errnum*100+9);
   if(tableEntrySize==16) {
     findbuf[entryOffset+0]=(uint8_t)(entry & 0xFF);
     findbuf[entryOffset+1]=(uint8_t)((entry>>8) & 0xFF);
@@ -143,7 +143,7 @@ bool Cluster<Pk,Pr,S>::writeTable(uint32_t cluster, uint32_t entry) {
     findbuf[entryOffset+2]=(uint8_t)((entry>>16) & 0xFF);
     findbuf[entryOffset+3]=(findbuf[entryOffset+3]&0xC0)|(uint8_t)((entry>>24) & 0x3F);
   }
-  for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,findbuf,tr(1,2,1))) FAIL(p.errno*100+10);
+  for(int i=0;i<numTables;i++) if(!p.write(entrySector+i*sectorsPerTable,findbuf,tr(1,2,1))) FAIL(p.errnum*100+10);
   return true;
 }
 
@@ -169,7 +169,7 @@ uint32_t Cluster<Pk,Pr,S>::findFreeCluster(uint32_t startCluster) {
     calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
     if(entrySector!=lastEntrySector) {
 //        Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
-      if(!p.read(entrySector,findbuf)) FAIL_BAD(p.errno*100+15);
+      if(!p.read(entrySector,findbuf)) FAIL_BAD(p.errnum*100+15);
     }
     lastEntrySector=entrySector;
     entry=0;
@@ -182,7 +182,7 @@ uint32_t Cluster<Pk,Pr,S>::findFreeCluster(uint32_t startCluster) {
     calcTableCluster(cluster, sectorsPerTable, entrySector, entryOffset);
     if(entrySector!=lastEntrySector) {
 //        Serial.print("Reading sector ");Serial.println((unsigned int)entrySector);
-      if(!p.read(entrySector,findbuf)) FAIL_BAD(p.errno*100+17);
+      if(!p.read(entrySector,findbuf)) FAIL_BAD(p.errnum*100+17);
     }
     lastEntrySector=entrySector;
     entry=0;
@@ -190,7 +190,7 @@ uint32_t Cluster<Pk,Pr,S>::findFreeCluster(uint32_t startCluster) {
 //      Serial.println((unsigned int)entry);
     if(entry==0) return cluster;
   }
-  errno=19;
+  errnum=19;
   return BAD_cluster;
 }
 

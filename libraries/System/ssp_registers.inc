@@ -1,4 +1,5 @@
 #define SSP_BASE_ADDR 0xE0068000
+/* SSP Controller (usable as SPI1 but different map) */
 
 rw0(ssp,SSPCR0 ,SSP_BASE_ADDR+0x00);
 rw0(ssp,SSPCR1 ,SSP_BASE_ADDR+0x04);

@@ -8,10 +8,10 @@
 #include "circular.h"
 #include <math.h>
 
-extern int mxerrno;
+extern int mxerrnum;
 
 #ifdef CHECK_ASSERT
-#define assertmx(x,y) {x; if(mxerrno<0) {mxerrno=mxerrno*100+y;return mxerrno;}}
+#define assertmx(x,y) {x; if(mxerrnum<0) {mxerrnum=mxerrnum*100+y;return mxerrnum;}}
 #else
 #define assertmx(x,y) x
 #endif
@@ -28,10 +28,10 @@ public:
   //Effectively this=a. Copy elements from matrix a to matrix b
   matrix& operator=(const matrix& a) {
     #ifdef CHECK_COMPAT
-      if(&a==this) {mxerrno=-1;return *this;} //Can't do this in place
-      if(rows!=a.rows) {mxerrno=-2;return *this;} //Check matrix compatibility
-      if(cols!=a.cols) {mxerrno=-3;return *this;}
-      mxerrno=0;
+      if(&a==this) {mxerrnum=-1;return *this;} //Can't do this in place
+      if(rows!=a.rows) {mxerrnum=-2;return *this;} //Check matrix compatibility
+      if(cols!=a.cols) {mxerrnum=-3;return *this;}
+      mxerrnum=0;
     #endif
     for(int i=0;i<a.rows*a.cols;i++) data[i]=a.data[i];
     return *this;
@@ -42,8 +42,8 @@ public:
   //Performs va . vb.
   static fp  vdot(matrix& a, matrix& b) {
     #ifdef CHECK_COMPAT
-      if((b.rows*b.cols)!=(a.rows*a.cols)) {mxerrno=-1;return 0;} //Check matrix compatibility
-      mxerrno=0;
+      if((b.rows*b.cols)!=(a.rows*a.cols)) {mxerrnum=-1;return 0;} //Check matrix compatibility
+      mxerrnum=0;
     #endif
     fp c=0.0;
     for(int i=0;i<a.rows*a.cols;i++)c+=a.data[i]*b.data[i];

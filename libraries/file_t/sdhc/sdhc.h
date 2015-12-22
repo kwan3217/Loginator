@@ -12,15 +12,15 @@
 //#define SDHC_PKT
 #ifdef SDHC_PKT
 #include "Circular.h"
-#define FAILREC(x) {errno=(x);buf.fill32BE(errno);buf.mark();return false;}
+#define FAILREC(x) {errnum=(x);buf.fill32BE(errnum);buf.mark();return false;}
 #define SUCCEED    {buf.fill32BE(0);buf.mark();return true;}
 #else
-#define FAILREC(x) {errno=(x);return false;}
+#define FAILREC(x) {errnum=(x);return false;}
 #define SUCCEED    {return true;}
 #endif
 #include "packet.h"
 
-#define FAIL(x) {errno=(x);return false;}
+#define FAIL(x) {errnum=(x);return false;}
 
 #define ASSERT(x,y) {bool result=(x);if(!result) FAIL((y));return result;}
 
@@ -187,7 +187,7 @@ public:
 #endif
   int p0;
   static const int BLOCK_SIZE=512;
-  unsigned int errno;
+  unsigned int errnum;
   bool begin(void);
   bool available(void);
   SDHC(S& Lspi):spi(Lspi) {};

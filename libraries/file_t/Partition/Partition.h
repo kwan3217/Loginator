@@ -26,7 +26,7 @@ private:
   };
   SDHC<Pk,Pr,S>& sd;
 public:
-  int errno;
+  int errnum;
   Partition(SDHC<Pk,Pr,S>& Lsd):sd(Lsd) {};
   uint16_t first_cylinder() {return ((uint16_t)(cs0&0xC0))<<2 | c0;};
   uint8_t first_head() {return h0;};
@@ -36,8 +36,8 @@ public:
   uint8_t last_sector() {return cs1 & 0x3F;};
   bool begin(int index);
   void print(Pr& out);
-  bool read(const uint32_t block, char* buf) {ASSERT(sd.read(block+lba_start,buf),sd.errno*100+5);};
-  bool read(const uint32_t block, char* buf, int start, int len) {ASSERT(sd.read(block+lba_start,buf,start,len),sd.errno*100+6);};
+  bool read(const uint32_t block, char* buf) {ASSERT(sd.read(block+lba_start,buf),sd.errnum*100+5);};
+  bool read(const uint32_t block, char* buf, int start, int len) {ASSERT(sd.read(block+lba_start,buf,start,len),sd.errnum*100+6);};
   bool write(const uint32_t block, const char* buf, uint32_t trace);
 };
 

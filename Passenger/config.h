@@ -7,7 +7,7 @@
 
 class Config {
 public:
-  int errno;
+  int errnum;
   int gyroSens;
   int gyroODR;
   int gyroBW;

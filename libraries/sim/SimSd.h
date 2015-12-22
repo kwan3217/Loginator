@@ -48,11 +48,10 @@ public:
 
 void write_bits(char data[], int datalen, uint32_t val, int hibit, int lowbit);
 
-class SimSd:public SimSpi, public SimGpioListener {
+class SimSd:public SimSpiSlave {
 private:
   static const SimCid cid;
   SimCsd csd;
-  SimGpio& gpio;
   bool cs; ///< True if card has been selected
   FILE* card;
   //State machine stuff
@@ -127,7 +126,7 @@ private:
   static const int R1_ADDR_ERR      = 1 << 5;
   static const int R1_PARAM_ERR     = 1 << 6;
 public:
-  SimSd(SimGpio& Lgpio, int Lcs):gpio(Lgpio),cs(Lcs),state(WAIT_CMD) {};
+  SimSd():state(WAIT_CMD) {};
   bool open(char* cardfn);
   void close();
   virtual void pinOut(int port, int pin, int value) override;

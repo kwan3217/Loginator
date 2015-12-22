@@ -38,14 +38,14 @@ void setup() {
   sourceDump.dumpSource();
   Serial.println("Starting up");
   bool sd_worked=sd.begin();
-  Serial.printf("sd.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
+  Serial.printf("sd.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errnum);
 //  if(!sd_worked) return;
 
 //  sd.get_info(info);
 //  info.print(Serial);
 
 //  sd_worked=p.begin(1);
-//  Serial.printf("p.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
+//  Serial.printf("p.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errnum);
 //  if(!sd_worked) return;
 //  p.print(Serial);  
 
@@ -53,7 +53,7 @@ void setup() {
 //  sectorDump.region(buf,0,sizeof(buf),16);
 
 //  sd_worked=fs.begin();  
-//  Serial.printf("fs.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errno);
+//  Serial.printf("fs.begin %s. Status code %d\n",sd_worked?"Worked":"didn't work",sd.errnum);
 //  fs.print(Serial,sectorDump);
 //  if(!sd_worked) return;
 

@@ -33,7 +33,7 @@ this way, but one is enough.
 template<class Pk, class Pr, class S>
 class ReadConfig {
 public:
-  int errno;
+  int errnum;
 private:
   static const char configFilename[];
 /** Define the tag names. This is a ragged array, IE an array of pointers

@@ -21,9 +21,9 @@ bool ReadConfig::begin() {
                  //permanently.
   File f(fs);
 
-  if(!f.openr(configFilename)) FAIL(100*f.errno+21);
+  if(!f.openr(configFilename)) FAIL(100*f.errnum+21);
   int size=f.size()>512?512:f.size();
-  if(!f.read(buf)) FAIL(100*f.errno+22);
+  if(!f.read(buf)) FAIL(100*f.errnum+22);
   //Dump the whole file into a packet, including its direntry. This will capture
   //the file name, date and size. The FileCircular buffer is big enough to
   //handle it if the calling function calls dump right after
@@ -77,7 +77,7 @@ bool ReadConfig::begin() {
           //Found the end of the data
           buf[i]=0;
           partindata=buf[i]=='#'?4:0; //If it's a comment, skip the rest of the line
-          if(!handleData(buf+datastart,tagData,arrSize,tagType)) return false; //handleData will set errno if necessary
+          if(!handleData(buf+datastart,tagData,arrSize,tagType)) return false; //handleData will set errnum if necessary
         }
         break;
       case 4: //comment
@@ -88,7 +88,7 @@ bool ReadConfig::begin() {
         break;
     }
   }
-  if(partindata==3) if(!handleData(buf+datastart,tagData,arrSize,tagType)) return false; //handleData will set errno if necessary
+  if(partindata==3) if(!handleData(buf+datastart,tagData,arrSize,tagType)) return false; //handleData will set errnum if necessary
   return true;
 }
 

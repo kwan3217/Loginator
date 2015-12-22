@@ -1,6 +1,16 @@
 #include "sim.h"
 #include <stdio.h>
 
+void SimSpi::pinOut (int port, int pin, int value) {
+  if(slaves.count(addr)>0) {
+    slave=slaves[addr];
+  } else {
+    slave=nullptr;
+  }
+}
+int  SimSpi::pinIn  (int port, int pin) override;
+void SimSpi::pinMode(int port, int pin, bool out) override;
+
 void SimSpi::write_S0SPCR(uint32_t value) {
   BitEnable= (value>>2) & ((1<<1)-1);
   CPHA     = (value>>3) & ((1<<1)-1);

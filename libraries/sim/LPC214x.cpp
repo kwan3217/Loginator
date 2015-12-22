@@ -11,6 +11,7 @@
 #define wo2(part,name,M,N,addr) name##_class name
 
 #include "uart_registers.inc"
+#include "id_registers.inc"
 #include "i2c_registers.inc"
 #include "spi_registers.inc"
 #include "ssp_registers.inc"

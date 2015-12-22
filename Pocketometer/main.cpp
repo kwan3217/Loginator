@@ -71,8 +71,8 @@ void openLog(uint16_t inc=1) {
   }
   Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");
   bool worked=f.openw(fn);
-  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
-  if(!worked) blinklock(f.errno);
+  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errnum);
+  if(!worked) blinklock(f.errnum);
 }
 
 static void closeLog() {
@@ -84,23 +84,23 @@ static void initSD() {
   bool worked;
   Serial.print("sd");    Serial.print(".begin ");
   worked=sd.begin();
-  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
-  if(!worked) blinklock(sd.errno);
+  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errnum);
+  if(!worked) blinklock(sd.errnum);
 
 //  sd.get_info(sdinfo);
 //  sdinfo.print(Serial);
   Serial.print("p");     Serial.print(".begin ");
   worked=p.begin(1);
-  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errno);
+  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errnum);
 //  p.print(Serial);
-  if(!worked) blinklock(p.errno);
+  if(!worked) blinklock(p.errnum);
 
   Serial.print("fs");    Serial.print(".begin ");
   worked=fs.begin();  
-  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
+  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errnum);
 //  sector.begin();
 //  fs.print(Serial);//,sector);
-  if(!worked) blinklock(fs.errno);
+  if(!worked) blinklock(fs.errnum);
 
   openLog();
   sdStore.fill(syncMark);
@@ -229,8 +229,8 @@ void setup() {
   ccsds.start(sdStore,0x04,pktseq);
   Serial.print("readconfig");Serial.print(".begin ");
   worked=readconfig.begin();
-  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(readconfig.errno);
-  if(!worked) blinklock(readconfig.errno);
+  Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(readconfig.errnum);
+  if(!worked) blinklock(readconfig.errnum);
   ccsds.finish(0x04);
   sdStore.drain();
   

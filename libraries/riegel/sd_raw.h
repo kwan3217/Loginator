@@ -136,7 +136,7 @@ uint8_t sd_raw_sync();
 
 uint8_t sd_raw_get_info(struct sd_raw_info* info);
 
-extern uint32_t sd_errno;
+extern uint32_t sd_errnum;
 
 /**
  * @}

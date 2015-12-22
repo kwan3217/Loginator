@@ -105,8 +105,8 @@ void openLog(uint16_t inc=1) {
     Serial.println(fn);
   }
   bool worked=f.openw(fn);
-  Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errno);
-  if(!worked) blinklock(f.errno);
+  Serial.print("f.openw(\"");Serial.print(fn);Serial.print("\"): ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(f.errnum);
+  if(!worked) blinklock(f.errnum);
 }
 
 void closeLog() {
@@ -307,21 +307,21 @@ void setup() {
   bool worked;
   worked=sd.begin();
 
-  Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errno);
-  if(!worked) blinklock(sd.errno);
+  Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errnum);
+  if(!worked) blinklock(sd.errnum);
 
   sd.get_info(sdinfo);
   sdinfo.print(Serial);
   worked=p.begin(1);
-  Serial.print("p");     Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errno);
+  Serial.print("p");     Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(p.errnum);
   p.print(Serial);
-  if(!worked) blinklock(p.errno);
+  if(!worked) blinklock(p.errnum);
 
   worked=fs.begin();  
-  Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errno);
+  Serial.print("fs");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(fs.errnum);
 //  sector.begin();
   fs.print(Serial);//,sector);
-  if(!worked) blinklock(fs.errno);
+  if(!worked) blinklock(fs.errnum);
 
   openLog(resetFileSkip);
   sdStore.fill(syncMark);
@@ -433,10 +433,10 @@ void loop() {
       sdStore.mark();
     }
   }
-  if(sdStore.errno!=0) {
-    Serial.print("Problem writing file: sdStore.errno=");
-    Serial.println(sdStore.errno);
-    blinklock(sdStore.errno);
+  if(sdStore.errnum!=0) {
+    Serial.print("Problem writing file: sdStore.errnum=");
+    Serial.println(sdStore.errnum);
+    blinklock(sdStore.errnum);
   }
   if(wantPrint) {
     Serial.print(RTCHOUR,DEC,2);

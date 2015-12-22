@@ -17,8 +17,8 @@ void SimSd::close() {
   fclose(card);
 }
 
-void SimSd::pinOut(int port, int pin, int value) {
-  ::printf("SimSd::pinOut(port=%d, pin=%d, value=%d)\n",port,pin,value);
+void SimSd::csOut(int value) {
+  ::printf("SimSd::csOut(value=%d)\n",value);
   cs=(0==value);
   ::printf(cs?"Card selected\n":"Card deselected\n");
   if(!cs) {
@@ -26,17 +26,17 @@ void SimSd::pinOut(int port, int pin, int value) {
   }
 }
 
-int SimSd::pinIn(int port, int pin) {
+int SimSd::pinIn() {
   int value=1; //If we are being read, then we have to return 1. This seems to represent a pullup on the CS line.
-  ::printf("SimSd::pinIn(port=%d, pin=%d)=%d\n",port,pin,value);
+  ::printf("SimSd::csIn()=%d\n",value);
   return value;
 }
 
-void SimSd::pinMode(int port, int pin, bool out) {
-  ::printf("SimSd::pinMode(port=%d, pin=%d, dir=%s)\n",port,pin,out?"out":"in");
+void SimSd::csMode(int port, int pin, bool out) {
+  ::printf("SimSd::csMode(dir=%s)\n",out?"out":"in");
 }
 
-void SimSd::write_S0SPDR(uint32_t value) {
+uint8_t SimSd::transfer(uint8_t value) {
   SimSpi::write_S0SPDR(value); //Handle the SPIF flag
   switch(state) {
     case WAIT_CMD:

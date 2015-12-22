@@ -6,7 +6,6 @@ void SimGpio::addListener(SimGpioListener& listener, std::vector<int> Lpins0, st
   pins1.push_back(Lpins1);
 }
 
-
 bool SimGpio::listenerCares(int index, int port, int pin) {
   std::vector<int>* thisPins;
   if(port==0) {

@@ -34,15 +34,15 @@ bool Config::begin() {
     Serial.print("Couldn't open file: ");
     Serial.println(configFilename);
 #endif
-    FAIL(100*f.errno+21);
+    FAIL(100*f.errnum+21);
   }
   int size=f.size()>512?512:f.size();
   if(!f.read(buf)) {
 #ifdef DEBUG
     Serial.print("Couldn't read file: ");
-    Serial.println(100*f.errno+22);
+    Serial.println(100*f.errnum+22);
 #endif
-    FAIL(100*f.errno+22);
+    FAIL(100*f.errnum+22);
   }
   //Dump the whole file into a packet, including its direntry. This will capture
   //the file name, date and size. The FileCircular buffer is big enough to 
@@ -109,12 +109,12 @@ bool Config::begin() {
           //Found the end of the data
           buf[i]=0; 
           partindata=0;
-          if(!handleData(tagid,buf+datastart)) return false; //handleData will set errno if necessary
+          if(!handleData(tagid,buf+datastart)) return false; //handleData will set errnum if necessary
         }
         break;
     }
   }
-  if(partindata==3) if(!handleData(tagid,buf+datastart)) return false; //handleData will set errno if necessary
+  if(partindata==3) if(!handleData(tagid,buf+datastart)) return false; //handleData will set errnum if necessary
   return true;
 }
 
@@ -127,7 +127,7 @@ bool Config::handleData(int tagid, char* buf) {
 #endif
   switch(tagid) {
     case 1:
-      if(!handleInt(buf,gyroSens)) return false; //handler will set errno if necessary
+      if(!handleInt(buf,gyroSens)) return false; //handler will set errnum if necessary
       break;
     case 2:
       if(!handleInt(buf,gyroODR)) return false; 

@@ -18,9 +18,9 @@ class File {
   Cluster<Pk,Pr,S>& c;
   uint32_t cluster,sector,last_cluster;
 public:
-  int errno;
+  int errnum;
   DirEntry<Pk,Pr,S> de;
-  File(Cluster<Pk,Pr,S>& Lc):c(Lc),last_cluster(1),errno(0),de(c) {};
+  File(Cluster<Pk,Pr,S>& Lc):c(Lc),last_cluster(1),errnum(0),de(c) {};
   bool find(const char* fn, uint32_t dir_cluster=0) {return de.find(fn,dir_cluster);};
   bool create(const char* filename, uint32_t dir_cluster=0);
   bool openr(const char* name, uint32_t dir_cluster=0);

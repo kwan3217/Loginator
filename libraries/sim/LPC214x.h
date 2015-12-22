@@ -102,41 +102,7 @@ extern name##_class name
 };                                     \
 extern name##_class name
 
-static inline unsigned int HW_TYPE() {return 3;}
-static inline unsigned int HW_SERIAL() {return 1;}
-
-//Serial UART
-#include "uart_registers.inc"
-
-//I2C (Wire)
-#include "i2c_registers.inc"
-
-//SPI (SPI0)
-#include "spi_registers.inc"
-
-//SSP (SPI1)
-#include "ssp_registers.inc"
-
-//Timers
-#include "timer_registers.inc"
-
-//PWM
-#include "pwm_registers.inc"
-
-//RTC
-#include "rtc_registers.inc"
-
-//GPIO
-#include "gpio_registers.inc"
-
-//VIC
-#include "vic_registers.inc"
-
-//System Control Block
-#include "scb_registers.inc"
-
-//Analog/Digital Converter
-#include "adc_registers.inc"
+#include "registers.inc"
 
 #undef ro0
 #undef rw0

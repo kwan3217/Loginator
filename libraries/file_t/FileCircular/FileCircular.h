@@ -14,10 +14,10 @@ private:
 protected:
   File<Pk,Pr,S>& ouf;
 public:
-  unsigned int errno;
+  unsigned int errnum;
   FileCircular(File<Pk,Pr,S>& Louf):Circular(sizeof(buf),buf),ouf(Louf) {};
 
-  bool drain() {errno=0;if(readylen()>=blockSize) return drainCore();return false;};
+  bool drain() {errnum=0;if(readylen()>=blockSize) return drainCore();return false;};
 };
 
 #include "FileCircular.inc"

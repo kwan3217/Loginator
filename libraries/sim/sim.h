@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <vector>
+#include <unordered_map>
 
 //Macros which define a register with zero levels of addressing, IE only
 //one instance on the part.
@@ -77,6 +78,11 @@ public:
   virtual void pinMode(int port, int pin, bool out)=0;
 };
 
+class SimFio {
+public:
+  #include "fio_registers.inc"
+};
+
 class SimSubGpio {
 public:
   #include "gpio_registers.inc"
@@ -137,24 +143,62 @@ public:
   #include "i2c_registers.inc"
 };
 
+class SimI2cSlave {
+public:
+  virtual void start()=0;
+  virtual void stop()=0;
+  virtual void repeatStart()=0;
+  virtual uint8_t readByte(bool ack)=0;
+  virtual void writeByte(uint8_t write, bool& ack)=0;
+};
+
 class SimI2c: public SimSubI2c {
 private:
+  std::unordered_map<int,SimI2cSlave*> slaves;
+  SimI2cSlave* slave;
 public:
+  void addSlave(int addr, SimI2cSlave& listener);
   SimI2c() {for(int i=0;i<2;i++) I2CSTAT[i]=0xF8;};
   int AA  (int port) {return (I2CCONSET[port]>>2) & 0x01;};
   int SI  (int port) {return (I2CCONSET[port]>>3) & 0x01;};
   int STO (int port) {return (I2CCONSET[port]>>4) & 0x01;};
   int STA (int port) {return (I2CCONSET[port]>>5) & 0x01;};
   int I2EN(int port) {return (I2CCONSET[port]>>6) & 0x01;};
-  virtual void write_I2CCONSET(int Lport, uint32_t write) override;
-  virtual void write_I2CCONCLR(int Lport, uint32_t write) override;
+  void AA  (int port, int val) {I2CCONSET[port]=(I2CCONSET[port] & ~(1<<2)) | ((val & 0x01) << 2);};
+  void SI  (int port, int val) {I2CCONSET[port]=(I2CCONSET[port] & ~(1<<3)) | ((val & 0x01) << 3);};
+  void STO (int port, int val) {I2CCONSET[port]=(I2CCONSET[port] & ~(1<<4)) | ((val & 0x01) << 4);};
+  void STA (int port, int val) {I2CCONSET[port]=(I2CCONSET[port] & ~(1<<5)) | ((val & 0x01) << 5);};
+  void I2EN(int port, int val) {I2CCONSET[port]=(I2CCONSET[port] & ~(1<<6)) | ((val & 0x01) << 6);};
+  void runStateMachine(int port);
+  void printConStatus(int port);
+  virtual void write_I2CCONSET(int port, uint32_t write) override;
+  virtual void write_I2CCONCLR(int port, uint32_t write) override;
 };
+
+class SimSubId {
+public:
+  #include "id_registers.inc"
+};
+
+class SimId: public SimSubId {
+public:
+  virtual uint32_t read_HW_TYPE()   override { return HW_TYPE_SIMULATOR; };
+  virtual uint32_t read_HW_SERIAL() override { return 1; };
+};
+
 class SimSubSpi {
 public:
   #include "spi_registers.inc"
 };
 
-class SimSpi:public SimSubSpi {
+class SimSpiSlave {
+  virtual void csOut(int value)=0;
+  virtual int csIn()=0;
+  virtual void csMode(bool out)=0;
+  virtual uint8_t transfer(uint8_t value)=0;
+};
+
+class SimSpi:public SimSubSpi, public SimGpioListener {
 private:
   int BitEnable,CPHA,CPOL,MSTR,LSBF,SPIE,Bits;
   static const int ABRT=0;
@@ -163,10 +207,25 @@ private:
   static const int WCOL=0;
   int SPIF;
   bool SPIF_read;
+  std::unordered_map<int,SimSpiSlave*> slaves;
+  SimSpiSlave* slave;
 public:
+  void addSlave(int addr, SimSpiSlave& listener);
+  virtual void pinOut(int port, int pin, int value) override;
+  virtual int pinIn(int port, int pin) override;
+  virtual void pinMode(int port, int pin, bool out) override;
   virtual void write_S0SPCR(uint32_t value) override;
   virtual uint32_t read_S0SPCR() override;
   virtual void write_S0SPCCR(uint32_t value) override;
+  /**The master triggers an SPI transfer by writing to the data register.
+     On real hardware, the transfer takes a certain amount of time, after
+     which the SPIF bit in the status register is set. At this point, a read
+     of the data register gets the data just received by the master during this
+     transfer, and the SPIF bit is cleared. In the simulation, the transfer
+     takes no time. The SPIF bit is always set and writing to the data register
+     should trigger the calculation of the byte to be received by the host.
+     *That* data, not the input value argument, should be written to the S0SPDR
+     internal variable. */
   virtual uint32_t read_S0SPSR() override;
   virtual void write_S0SPDR(uint32_t value) override;
   virtual uint32_t read_S0SPDR() override;
@@ -175,6 +234,11 @@ public:
 class SimSsp {
 public:
   #include "ssp_registers.inc"
+};
+
+class SimWdog {
+public:
+  #include "wdog_registers.inc"
 };
 
 class SimTime {
@@ -216,29 +280,35 @@ public:
   #include "adc_registers.inc"
 };
 
+class SimUsb {
+public:
+  #include "usb_registers.inc"
+};
+
 class SimPeripherals {
 public:
   SimGpio& gpio;
   SimUart& uart; //Both UARTs
-  SimI2c& i2c;
-  SimSpi& spi;
-  SimSsp& ssp;
   SimTime& time;
   SimRtc& rtc;
   SimPwm& pwm;
   SimAdc& adc;
   SimScb scb; //If it's not overridden, we can use it directly here
+  SimI2c i2c;
+  SimSpi spi;
+  SimSsp ssp;
   SimVic vic;
+  SimId id;
+  SimFio fio;
+  SimUsb usb;
+  SimWdog wdog;
   SimPeripherals(SimGpio& Lgpio, 
                  SimUart& Luart,
-                 SimI2c& Li2c,
-                 SimSpi& Lspi,
-                 SimSsp& Lssp,
                  SimTime& Ltime,
                  SimRtc& Lrtc,
                  SimPwm& Lpwm,
                  SimAdc& Ladc
-  ):gpio(Lgpio),uart(Luart),i2c(Li2c),spi(Lspi),ssp(Lssp),time(Ltime),rtc(Lrtc),pwm(Lpwm),adc(Ladc) {};
+  ):gpio(Lgpio),uart(Luart),time(Ltime),rtc(Lrtc),pwm(Lpwm),adc(Ladc) {};
 };
 
 extern SimPeripherals peripherals;

@@ -96,32 +96,40 @@ void state28(StateTwoWire<T,port>& that) {
   }
 }
 
+//Data sent, NOT ACK received
 template<class T, int port>
 void state30(StateTwoWire<T,port>& that) {
   I2CCONSET(port)=StateTwoWire<T,port>::STO;
 }
 
+//Arbitration lost
 template<class T, int port>
 void state38(StateTwoWire<T,port>& that) {
+  //When bus becomes free, transmit a STA and try again
   I2CCONSET(port)=StateTwoWire<T,port>::STA;
 }
 
+//SLA+R sent, ACK received
 template<class T, int port>
 void state40(StateTwoWire<T,port>& that) {
   if(that.lengthRead==1) {
     //Only one byte to be read, so NAK it immediately
     I2CCONCLR(port)=StateTwoWire<T,port>::AA;
   } else {
+	//More bytes to send, let the slave know
     I2CCONSET(port)=StateTwoWire<T,port>::AA;
   }
 }
 
+//SLA+R sent, NOT ACK received
 template<class T, int port>
 void state48(StateTwoWire<T,port>& that) {
+  //Give up the write - send a STOP condition. AA shouldn't matter in this case.
   that.done=true;
   I2CCONSET(port)=StateTwoWire<T,port>::AA|StateTwoWire<T,port>::STO;
 }
 
+//Data byte received, ACK sent
 template<class T, int port>
 void state50(StateTwoWire<T,port>& that) {
   *that.dataRead=I2CDAT(port);
@@ -135,6 +143,7 @@ void state50(StateTwoWire<T,port>& that) {
   }
 }
 
+//Data byte received, NOT ACK sent (normal case for last byte, error otherwise)
 template<class T, int port>
 void state58(StateTwoWire<T,port>& that) {
   *that.dataRead=I2CDAT(port);

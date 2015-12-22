@@ -32,7 +32,7 @@ this way, but one is enough.
 */
 class ReadConfig {
 public:
-  int errno;
+  int errnum;
 private:
   static const char configFilename[];
 /** Define the tag names. This is a ragged array, IE an array of pointers

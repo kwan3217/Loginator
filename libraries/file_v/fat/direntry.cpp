@@ -133,7 +133,7 @@ bool DirEntry::find(const char* fn,uint32_t dir_cluster) {
     entrySector=entryIndex*32;
     entryOffset=entrySector%512;
     entrySector=entrySector/512;
-    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errno*100+1);
+    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errnum*100+1);
     if(entry[0]==0) return false;
     if(!isLFN()) {
       int i=0;
@@ -156,7 +156,7 @@ bool DirEntry::findEmpty(uint32_t dir_cluster) {
     entrySector=entryIndex*32;
     entryOffset=entrySector%512;
     entrySector=entrySector/512;
-    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errno*100+2);
+    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errnum*100+2);
     if(entry[0]==0) return true;
   }
   //No unused entries, have to use a deleted entry
@@ -164,7 +164,7 @@ bool DirEntry::findEmpty(uint32_t dir_cluster) {
     entrySector=entryIndex*32;
     entryOffset=entrySector%512;
     entrySector=entrySector/512;
-    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errno*100+3);
+    if(!f.read(entryCluster,entrySector,entry,entryOffset,sizeof(entry))) FAIL(f.errnum*100+3);
     if(((unsigned char)(entry[0]))==0xE5) return true;
   }
   return false;
@@ -172,12 +172,12 @@ bool DirEntry::findEmpty(uint32_t dir_cluster) {
 
 bool DirEntry::writeBack() {
   
-  if(!f.read(entryCluster,entrySector,buf)) FAIL(f.errno*100+4);
+  if(!f.read(entryCluster,entrySector,buf)) FAIL(f.errnum*100+4);
   char* pentry=(char*)&entry;
   for(unsigned int i=0;i<sizeof(entry);i++) {
     buf[entryOffset+i]=pentry[i];
   }
-  if(!f.write(entryCluster,entrySector,buf)) FAIL(f.errno*100+5);
+  if(!f.write(entryCluster,entrySector,buf)) FAIL(f.errnum*100+5);
   return true;
 }
 
