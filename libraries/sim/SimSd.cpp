@@ -26,49 +26,48 @@ void SimSd::csOut(int value) {
   }
 }
 
-int SimSd::pinIn() {
+int SimSd::csIn() {
   int value=1; //If we are being read, then we have to return 1. This seems to represent a pullup on the CS line.
   ::printf("SimSd::csIn()=%d\n",value);
   return value;
 }
 
-void SimSd::csMode(int port, int pin, bool out) {
+void SimSd::csMode(bool out) {
   ::printf("SimSd::csMode(dir=%s)\n",out?"out":"in");
 }
 
+//The return value should not be a function of the input, since
+//in the real thing, the two bytes pass each other on the line
+//and the first bit of the response is sent before the last
+//bit of the input is received.
 uint8_t SimSd::transfer(uint8_t value) {
-  SimSpi::write_S0SPDR(value); //Handle the SPIF flag
+//  SimSpi::write_S0SPDR(value); //Handle the SPIF flag
   switch(state) {
     case WAIT_CMD:
-      S0SPDR=0xFF; //Nothing to say to the host
       if(0==(value & 0x80)) {
         cmd=value & 0x3F;
         argCount=4;
         state=WAIT_ARG;
       }
-      break;
+      return 0xFF; //Nothing to say to the host
     case WAIT_ARG:
-      S0SPDR=0xFF; //Nothing to say to the host
       arg=arg<<8 | (value & 0xFF);
       argCount--;
       if(argCount==0) state=WAIT_CRC;
-      break;
+      return 0xFF; //Nothing to say to the host
     case WAIT_CRC:
-      S0SPDR=0xFF; //Nothing to say to the host
       crc=(value & 0xFE) >> 1;
       ::printf("Received complete command 0x%02x 0x%08x 0x%02x\n",cmd,arg,crc);
       executeCommand();
-      break;
+      return 0xFF; //Nothing to say to the host
     case RESPOND_START:
-      S0SPDR=0xFF; //Delaying
       if(responseDelay>1) {
         responseDelay--;
       } else {
         state=RESPOND_SEND;
       }
-      break;
+      return 0xFF; //Delaying
     case RESPOND_SEND:
-      S0SPDR=response[responsePtr]; //Delaying
       if(responseCount>1) {
         responsePtr++;
         responseCount--;
@@ -79,33 +78,29 @@ uint8_t SimSd::transfer(uint8_t value) {
       } else {
         state=WAIT_CMD;
       }
-      break;
+      return response[responsePtr];
     case READ_START:
-      S0SPDR=0xFE; //Delaying
       if(readDelay>1) {
         readDelay--;
       } else {
         state=READ;
       }
-      break;
+      return 0xFE; //Send start condition
     case READ:
-      S0SPDR=data[readPtr];
       if(readCount>1) {
         readPtr++;
         readCount--;
       } else {
         state=WAIT_CMD;
       }
-      break;
+      return data[readPtr];
     case WRITE_START:
-      S0SPDR=0xFF; //Waiting for start byte
       if(0xFE==(value & 0xFF)) {
         state=WRITE;
       }
-      break;
+      return 0xFF; //Waiting for start byte
     case WRITE:
       data[writePtr]=value & 0xFF; 
-      S0SPDR=0xFF;
       if(writeCount>1) {
         writePtr++;
         writeCount--;
@@ -114,7 +109,7 @@ uint8_t SimSd::transfer(uint8_t value) {
         fflush(card);
         state=WAIT_CMD;
       }
-      break;
+      return 0xFF;
   }
 }
 

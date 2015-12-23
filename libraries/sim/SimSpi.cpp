@@ -2,14 +2,23 @@
 #include <stdio.h>
 
 void SimSpi::pinOut (int port, int pin, int value) {
-  if(slaves.count(addr)>0) {
-    slave=slaves[addr];
-  } else {
-    slave=nullptr;
-  }
+  int addr=((port & 0x0F)<<4) | (pin & 0x0F);
+  selected[addr]=(value==0);
+  slaves[addr]->csOut(value);
 }
-int  SimSpi::pinIn  (int port, int pin) override;
-void SimSpi::pinMode(int port, int pin, bool out) override;
+int  SimSpi::pinIn  (int port, int pin) {
+  int addr=((port & 0x0F)<<4) | (pin & 0x0F);
+  return slaves[addr]->csIn();
+}
+void SimSpi::pinMode(int port, int pin, bool out) {
+  int addr=((port & 0x0F)<<4) | (pin & 0x0F);
+  slaves[addr]->csMode(out);
+}
+
+void SimSpi::addSlave(int port, int pin, SimSpiSlave& Lslave) {
+  int addr=((port & 0x0F)<<4) | (pin & 0x0F);
+  slaves[addr]=&Lslave;
+}
 
 void SimSpi::write_S0SPCR(uint32_t value) {
   BitEnable= (value>>2) & ((1<<1)-1);
@@ -50,7 +59,7 @@ uint32_t SimSpi::read_S0SPSR() {
              ((MODF & ((1<<1)-1)) << 4)  | //MODF, bit 3
              ((ROVR & ((1<<1)-1)) << 5)  | //ROVR, bit 4
              ((WCOL & ((1<<1)-1)) << 6)  | //WCOL, bit 5
-             ((SPIF & ((1<<1)-1)) << 7)  ; //SPIF, bit 6. This is SPI transfer finished, and is permanently 1 since SPI transfers take no simulated time
+             ((SPIF & ((1<<1)-1)) << 7)  ; //SPIF, bit 6
 /*  ::fprintf(stderr,"S0SPSR read, 0x%02x (%d), ABRT=%d, MODF=%d, ROVR=%d, WCOL=%d, SPIF=%d\n",
     value,value,ABRT,MODF,ROVR,WCOL,SPIF); */
   SPIF_read=true;
@@ -58,12 +67,16 @@ uint32_t SimSpi::read_S0SPSR() {
 }
 
 void SimSpi::write_S0SPDR(uint32_t value) {
-  //Unless this is overridden further, the data goes straight to bit heaven.
-  //The only action taken is to set the SPIF flag. Subclasses which *do* 
-  //override this should set S0SPDR to the value which the simulated device
-  //sends back, rather than the byte the master is sending out.
   SPIF_read=false;  //The SPIF flag has not been read since the last transfer
   SPIF=1;           //The transfer has (instantly) completed
+  int selectedSlaves=0;
+  for(int i=0;i<32;i++) if(selected[i]) {
+	S0SPDR=slaves[i]->transfer(value);
+	selectedSlaves++;
+  }
+  if(selectedSlaves!=1) {
+	::printf("Warning: Exactly one slave should be selected, but %d are\n",selectedSlaves);
+  }
 }
 
 uint32_t SimSpi::read_S0SPDR() {

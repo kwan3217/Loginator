@@ -192,6 +192,7 @@ public:
 };
 
 class SimSpiSlave {
+public:
   virtual void csOut(int value)=0;
   virtual int csIn()=0;
   virtual void csMode(bool out)=0;
@@ -207,10 +208,10 @@ private:
   static const int WCOL=0;
   int SPIF;
   bool SPIF_read;
-  std::unordered_map<int,SimSpiSlave*> slaves;
-  SimSpiSlave* slave;
+  SimSpiSlave* slaves[32];
+  bool selected[32];
 public:
-  void addSlave(int addr, SimSpiSlave& listener);
+  void addSlave(int port, int pin, SimSpiSlave& Lslave);
   virtual void pinOut(int port, int pin, int value) override;
   virtual int pinIn(int port, int pin) override;
   virtual void pinMode(int port, int pin, bool out) override;

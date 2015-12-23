@@ -129,9 +129,9 @@ public:
   SimSd():state(WAIT_CMD) {};
   bool open(char* cardfn);
   void close();
-  virtual void pinOut(int port, int pin, int value) override;
-  virtual int pinIn(int port, int pin) override;
-  virtual void pinMode(int port, int pin, bool out) override;
+  virtual void csOut(int value) override;
+  virtual int csIn() override;
+  virtual void csMode(bool out) override;
   /**The master triggers an SPI transfer by writing to the data register.
      On real hardware, the transfer takes a certain amount of time, after
      which the SPIF bit in the status register is set. At this point, a read
@@ -141,7 +141,7 @@ public:
      should trigger the calculation of the byte to be received by the host.
      *That* data, not the input value argument, should be written to the S0SPDR
      internal variable. */
-  virtual void write_S0SPDR(uint32_t value) override;
+  virtual uint8_t transfer(uint8_t value) override;
   void executeCommand();
 };
 
