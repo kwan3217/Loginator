@@ -36,6 +36,7 @@ my %format=('fp'=>'%f',
 my @shortNames;
 my @fields;
 my @types;
+my @apidNames;
 my $csv = Text::CSV->new ( { binary => 1 } )  # should set binary attribute.
                 or die "Cannot use CSV: ".Text::CSV->error_diag ();
  
@@ -43,6 +44,7 @@ open my $fh, "<:encoding(utf8)", $ARGV[0] or die "$ARGV[0]: $!";
 open my $oufExtractStr, ">","extract_str.INC"; 
 open my $oufExtractVars, ">","extract_vars.INC"; 
 open my $oufExtractBody, ">","extract_body.INC"; 
+open my $oufExtractNames, ">","extract_names.INC"; 
 my $oufRobot;
 my $oufReverse;
 my $shortName;
@@ -155,6 +157,7 @@ while ( my $row = $csv->getline( $fh ) ) {
     $writeExtract=$row->[3];
     $hasTC=$row->[4];
     push @shortNames,$shortName;
+    $apidNames[hex($apid)]=$shortName;
     open $oufRobot, ">",sprintf("write_packet_%s.INC",$shortName);
     open $oufReverse, ">",sprintf("reverse_packet_%s.INC",$shortName);
     if($wrapRobot) {
@@ -212,8 +215,14 @@ finishApid;
 foreach $shortName (@shortNames) {
   print $oufExtractVars "struct $shortName * $shortName=(struct $shortName *)buf;\n";
 }
+print $oufExtractNames "const char* packetNames[64]={\n";
+foreach $shortName (@apidNames) {
+  print $oufExtractNames '"'.$shortName.'",';
+}
+print $oufExtractNames "};\n";
 close $oufExtractStr;
 close $oufExtractVars;
 close $oufExtractBody;
+close $oufExtractNames;
 
 

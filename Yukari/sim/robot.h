@@ -11,8 +11,6 @@ public:
   int gpsTransPointer;
   bool hasGPS();
   unsigned long ttc; ///< ticks from sim start
-  unsigned int TCCR[2]; ///<Timer capture control register, one for each timer
-  unsigned int TCR[2][4]; ///<Timer capture register, four channels for each timer
   unsigned int rtcHour,rtcMin,rtcSec,rtcYear,rtcMonth,rtcDom,rtcDoy,rtcDow; ///<RTC registers, automatically incremented on second rollover 
   virtual void propagate(int ms)=0;
   virtual void setCmdSpd(int Lservo)=0;

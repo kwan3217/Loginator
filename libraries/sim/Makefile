@@ -9,6 +9,7 @@ SIMCPPSRC+=../libraries/sim/SimI2c.cpp
 SIMCPPSRC+=../libraries/sim/SimScb.cpp
 SIMCPPSRC+=../libraries/sim/SimSd.cpp
 SIMCPPSRC+=../libraries/sim/SimSpi.cpp
+SIMCPPSRC+=../libraries/sim/SimSsp.cpp
 SIMCPPSRC+=../libraries/sim/SimUart.cpp
 SIMCPPSRC+=../libraries/sim/dprintf.cpp
 

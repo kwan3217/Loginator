@@ -12,19 +12,19 @@ void SimI2c::addSlave(int addr, SimI2cSlave& Lslave) {
 //as-is, except that no time is taken in transmitting or recieving.
 
 void SimI2c::printConStatus(int port) {
-  ::printf("I2CCON(%d) %02x (%d) AA=%d SI=%d STO=%d STA=%d I2EN=%d\n",port,I2CCONSET[port],I2CCONSET[port],AA(port),SI(port),STO(port),STA(port),I2EN(port));
+  dprintf(SIMI2C,"I2CCON(%d) %02x (%d) AA=%d SI=%d STO=%d STA=%d I2EN=%d\n",port,I2CCONSET[port],I2CCONSET[port],AA(port),SI(port),STO(port),STA(port),I2EN(port));
 }
 
 void SimI2c::runStateMachine(int port) {
   if(SI(port)) return; //Don't run anything here unless the int bit has been cleared by software already. Keep us from going off half-cocked.
   bool ack=false;
   SI(port,1); //Since the transfer takes no time, immediately set the interrupt (hardware needs attention) flag
-  ::printf("I2C running state 0x%02x\n",I2CSTAT[port]);
+  dprintf(SIMI2C_TRANSFER,"I2C running state 0x%02x\n",I2CSTAT[port]);
   switch(I2CSTAT[port]) {
     case 0xF8:
       //Idle
 	  if(STA(port)) {
-        ::printf("Transmission on I2C%d started\n",port);
+		dprintf(SIMI2C_TRANSFER,"Transmission on I2C%d started\n",port);
         I2CSTAT[port]=0x08;
 	  }
       break;
@@ -124,7 +124,7 @@ void SimI2c::runStateMachine(int port) {
   	  }
       break;
     default:
-      ::printf("Unhandled state 0x%02x\n",I2CSTAT[port]);
+      dprintf(SIMI2C_TRANSFER,"Unhandled state 0x%02x\n",I2CSTAT[port]);
       exit(1);
       break;
   }

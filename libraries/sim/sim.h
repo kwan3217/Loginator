@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-enum DebugStream {SIMSPI,SIMSD,SIMREG,SIMSD_TRANSFER,SIMSCB,SIMUART,SIMSPI_TRANSFER};
+enum DebugStream {SIMSPI,SIMSD,SIMREG,SIMSD_TRANSFER,SIMSCB,SIMUART,SIMSPI_TRANSFER,SIMI2C,SIMI2C_TRANSFER,SIMHMC,SIMSSP,SIMSSP_TRANSFER,SIMGYRO,PLAYBACK};
 void dprintf(DebugStream stream, const char* pattern, ...);
 void dnprintf(const char* pattern, ...);
 
@@ -212,8 +212,8 @@ private:
   static const int WCOL=0;
   int SPIF;
   bool SPIF_read;
-  SimSpiSlave* slaves[32];
-  bool selected[32];
+  SimSpiSlave* slaves[64];
+  bool selected[64];
 public:
   void addSlave(int port, int pin, SimSpiSlave& Lslave);
   virtual void pinOut(int port, int pin, int value) override;
@@ -236,9 +236,47 @@ public:
   virtual uint32_t read_S0SPDR() override;
 };
 
-class SimSsp {
+class SimSubSsp {
 public:
   #include "ssp_registers.inc"
+};
+
+class SimSsp:public SimSubSsp, public SimGpioListener {
+private:
+  int DSS,FRF,CPOL,CPHA,SCR,LBM,SSE,MS,SOD;
+  static const int TFE=1;
+  static const int TNF=1;
+  static const int RNE=1;
+  static const int RFF=0;
+  static const int BSY=0;
+  bool SPIF_read;
+  SimSpiSlave* slaves[64];
+  bool selected[64];
+  static const int PCLK=60'000'000;
+  int Hz() {int result=-1; if((SSPCPSR*(SCR+1))>0) result=PCLK/(SSPCPSR*(SCR+1));return result;};
+
+public:
+  void addSlave(int port, int pin, SimSpiSlave& Lslave);
+  virtual void pinOut(int port, int pin, int value) override;
+  virtual int pinIn(int port, int pin) override;
+  virtual void pinMode(int port, int pin, bool out) override;
+  virtual void write_SSPCR0(uint32_t value) override;
+  virtual uint32_t read_SSPCR0() override;
+  virtual void write_SSPCR1(uint32_t value) override;
+  virtual uint32_t read_SSPCR1() override;
+  virtual void write_SSPCPSR(uint32_t value) override;
+  /**The master triggers an SPI transfer by writing to the data register.
+     On real hardware, the transfer takes a certain amount of time, after
+     which the SPIF bit in the status register is set. At this point, a read
+     of the data register gets the data just received by the master during this
+     transfer, and the SPIF bit is cleared. In the simulation, the transfer
+     takes no time. The SPIF bit is always set and writing to the data register
+     should trigger the calculation of the byte to be received by the host.
+     *That* data, not the input value argument, should be written to the S0SPDR
+     internal variable. */
+  virtual uint32_t read_SSPSR() override;
+  virtual void write_SSPDR(uint32_t value) override;
+  virtual uint32_t read_SSPDR() override;
 };
 
 class SimWdog {
@@ -276,8 +314,8 @@ private:
   int PLLE,PLLC,MSEL,PSEL;
   const int PLOCK=1;
 public:
-  virtual uint32_t read_PLLSTAT(int port);
-  virtual void write_PLLCFG(int port, uint32_t value);
+  virtual uint32_t read_PLLSTAT(int port) override;
+  virtual void write_PLLCFG(int port, uint32_t value) override;
 };
 
 class SimAdc {

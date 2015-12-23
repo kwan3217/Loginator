@@ -26,23 +26,15 @@ public:
   }
 };
 
-class SimTimeYukari: public SimTime{
-  RobotState& state;
-public:
-  SimTimeYukari(RobotState& Lstate):state(Lstate) {};
-  virtual uint32_t read_TTC(int Lport) override {return state.ttc%(uint32_t(60)*1000000*60);};
-  virtual void write_TTC(int Lport, uint32_t value) override {printf("Do you really need to write to TTC?");}
-};
-
 class SimHmcYukari: public SimI2cSlave {
 private:
   bool getAddr=false;
   int addr;
   uint8_t reg[13];
 public:
-  virtual void start() override {getAddr=true;::printf("HMC5883 received start\n");}
-  virtual void stop() override {::printf("HMC5883 received stop\n");}
-  virtual void repeatStart() override {getAddr=true;::printf("HMC5883 received repeated start\n");}
+  virtual void start() override {getAddr=true;dprintf(SIMHMC,"HMC5883 received start\n");};
+  virtual void stop() override {dprintf(SIMHMC,"HMC5883 received stop\n");};
+  virtual void repeatStart() override {getAddr=true;dprintf(SIMHMC,"HMC5883 received repeated start\n");};
   virtual uint8_t readByte(bool ack) override;
   virtual void writeByte(uint8_t write, bool& ack) override;
 };
@@ -50,7 +42,7 @@ public:
 uint8_t SimHmcYukari::readByte(bool ack) {
   //Ack will be false on last byte, true on others
   uint8_t result=reg[addr];
-  ::printf("Reading %d (0x%02x) from register %d (0x%02x) on HMC5883\n",result,result,addr,addr);
+  dprintf(SIMHMC,"Reading %d (0x%02x) from register %d (0x%02x) on HMC5883\n",result,result,addr,addr);
   addr++;
   return result;
 }
@@ -60,22 +52,82 @@ void SimHmcYukari::writeByte(uint8_t write, bool& ack) {
   if(getAddr) {
 	addr=write;
 	getAddr=false;
-    ::printf("Addressing register %d (0x%02x) on HMC5883\n",write,write);
+    dprintf(SIMHMC,"Addressing register %d (0x%02x) on HMC5883\n",write,write);
   } else {
-    ::printf("Writing %d (0x%02x) to register %d (0x%02x) on HMC5883\n",write,write,addr,addr);
+    dprintf(SIMHMC,"Writing %d (0x%02x) to register %d (0x%02x) on HMC5883\n",write,write,addr,addr);
     addr++;
   }
+}
+
+class SimGyroYukari: public SimSpiSlave {
+private:
+  uint8_t reg[0x38+1]; //Highest numbered register, plus one for register 0
+  bool getAddr=false;
+  bool read=false;
+  bool multi=false;
+  int addr;
+public:
+  SimGyroYukari() {reg[0x0F]=0b1101'0011;};
+  void setFromPacket(int16_t x, int16_t y, int16_t z);
+  virtual void csOut (int value) override {getAddr=true;dprintf(SIMGYRO,"csOut=%d (%s)\n",value,value==0?"selected":"deselected");};
+  virtual int  csIn  (         ) override {dprintf(SIMGYRO,"csIn=%d\n",1);return 1;};
+  virtual void csMode(bool out ) override {dprintf(SIMGYRO,"csMode=%s\n",out?"out":"in");};
+  virtual uint8_t transfer(uint8_t value) override;
+};
+
+void SimGyroYukari::setFromPacket(int16_t x, int16_t y, int16_t z) {
+  dprintf(SIMGYRO,"Measurement: x=%d, y=%d, z=%d\n",x,y,z);
+  reg[0x28]=uint8_t( x       & 0xFF);
+  reg[0x29]=uint8_t((x >> 8) & 0xFF);
+  reg[0x2A]=uint8_t( y       & 0xFF);
+  reg[0x2B]=uint8_t((y >> 8) & 0xFF);
+  reg[0x2C]=uint8_t( z       & 0xFF);
+  reg[0x2D]=uint8_t((z >> 8) & 0xFF);
+}
+
+uint8_t SimGyroYukari::transfer(uint8_t value) {
+  uint8_t result=0xFF;
+  if(getAddr) {
+	getAddr=false;
+    addr=value & ((1<<6)-1);
+    read=(value & 1<<6)!=0;
+    multi=(value & 1<<7)!=0;
+    dprintf(SIMGYRO,"Addressing: Received 0x%02x, Read=%d, Multi=%d, Addr=%d, sending 0x%02x\n",value,read,multi,addr,result);
+  } else {
+	if(read) {
+      dprintf(SIMGYRO,"Reading register 0x%02x, value=%d (0x%02x)\n",addr,value);
+      result=reg[addr];
+	} else {
+      dprintf(SIMGYRO,"Writing register 0x%02x, value=%d (0x%02x)\n",addr,value);
+      reg[addr]=value;
+	}
+	if(multi) {
+	  addr++;
+      dprintf(SIMGYRO,"Auto-increment register address, now Writing register 0x%02x\n",addr);
+	}
+  }
+  return result;
+}
+
+class SimAdcYukari: public SimAdc {
+public:
+  virtual uint32_t read_ADGDR(int port) override;
+};
+
+uint32_t SimAdcYukari::read_ADGDR(int port) {
+  return 1 << 31;
 }
 
 PlaybackState playbackState;
 SimUartYukari uart(playbackState);
 SimGpio gpio;
 SimSd simsd;
-SimTimeYukari timer(playbackState);
+SimTime timer;
 SimRtc rtc;
 SimPwm pwm;
-SimAdc adc;
-SimHmcYukari hmc;
+SimAdcYukari adc;
+SimHmcYukari simhmc;
+SimGyroYukari simgyro;
 SimPeripherals peripherals(gpio,uart,timer,rtc,pwm,adc);
 
 #include "ccsds.h"
@@ -118,9 +170,11 @@ int main(int argc, char** argv) {
   setvbuf(stdout, NULL, _IONBF, 0);
   playbackState.begin(argv[1],0);
   simsd.open("sim/sdcard");
-  peripherals.spi.addSlave(0,7,simsd);
-  peripherals.i2c.addSlave(0x1E,hmc);
+  peripherals.spi.addSlave(0, 7,simsd);
+  peripherals.ssp.addSlave(0,25,simgyro);
+  peripherals.i2c.addSlave(0x1E,simhmc);
   peripherals.gpio.addListener(peripherals.spi,{7}); //Include in here all the SPI slaves' CS lines
+  peripherals.gpio.addListener(peripherals.ssp,{25}); //Include in here all the SPI slaves' CS lines
   reset_handler(); //Do the stuff that the embedded reset_handler would do
 
   setup(); //Run robot setup code
@@ -146,33 +200,36 @@ void PlaybackState::begin(char* infn, int fs) {
 void PlaybackState::propagate(int ms) {
   struct ccsdsHeader* ccsds=(struct ccsdsHeader*)buf;
   #include "extract_vars.INC"
+  #include "extract_names.INC"
 
   fread(buf,1,6,inf);
   ccsds->apid=ntohs(ccsds->apid) & 0x07FF;
-  ccsds->seq=ntohs(ccsds->seq);
+  ccsds->seq=ntohs(ccsds->seq) & 0x0FFF;
   ccsds->length=ntohs(ccsds->length);
   fread(buf+6,1,ccsds->length+1,inf);
   buf[ccsds->length+7]=0; //terminate a char* at the end of a packet
+  dprintf(PLAYBACK,"Packet apid %d (0x%03x): %s\n",ccsds->apid,ccsds->apid,packetNames[ccsds->apid]);
   if(ccsds->apid==0x1A) {
     #include "reverse_packet_nmea.INC"
     int nmeaDataLength=ccsds->length+7-(nmea->nmeaData-buf);
     memcpy(gpsBuf,nmea->nmeaData,nmeaDataLength);
-    ttc=nmea->TC;
+    timer.write_TTC(0,nmea->TC);
     gpsBuf[nmeaDataLength]=0;
     gpsTransPointer=0;
   }
   if(ccsds->apid==0x24) {
     #include "reverse_packet_nav2.INC"
+	simgyro.setFromPacket(nav2->gx,nav2->gy,nav2->gz);
     xRate=-nav2->gx*sensX;
     yRate=-nav2->gy*sensY;
     zRate=-nav2->gz*sensZ;
-    ttc=nav2->TC;
-    TCR[0][channelTCGyro]=peripherals.time.read_TTC(0); //Trigger a gyro reading
+    timer.write_TTC(0,nav2->TC);
+    timer.write_TCR(0,channelTCGyro,timer.read_TTC(0));//Trigger a gyro reading
   }
   if(ccsds->apid==0x1C) {
     #include "reverse_packet_button.INC"
-    ttc=button->TC;
-    TCR[0][channelTCBtn]=peripherals.time.read_TTC(0);
+    timer.write_TTC(0,button->tcBtn);
+    timer.write_TCR(0,channelTCBtn,timer.read_TTC(0));
   }
 }
 
