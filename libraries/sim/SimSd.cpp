@@ -18,9 +18,9 @@ void SimSd::close() {
 }
 
 void SimSd::csOut(int value) {
-  ::printf("SimSd::csOut(value=%d)\n",value);
+  dprintf(SIMSD,"SimSd::csOut(value=%d)\n",value);
   cs=(0==value);
-  ::printf(cs?"Card selected\n":"Card deselected\n");
+  dprintf(SIMSD,cs?"Card selected\n":"Card deselected\n");
   if(!cs) {
     state=WAIT_CMD;
   }
@@ -28,12 +28,12 @@ void SimSd::csOut(int value) {
 
 int SimSd::csIn() {
   int value=1; //If we are being read, then we have to return 1. This seems to represent a pullup on the CS line.
-  ::printf("SimSd::csIn()=%d\n",value);
+  dprintf(SIMSD,"SimSd::csIn()=%d\n",value);
   return value;
 }
 
 void SimSd::csMode(bool out) {
-  ::printf("SimSd::csMode(dir=%s)\n",out?"out":"in");
+  dprintf(SIMSD,"SimSd::csMode(dir=%s)\n",out?"out":"in");
 }
 
 //The return value should not be a function of the input, since
@@ -41,72 +41,96 @@ void SimSd::csMode(bool out) {
 //and the first bit of the response is sent before the last
 //bit of the input is received.
 uint8_t SimSd::transfer(uint8_t value) {
+  uint8_t result; //Used when we have to calculate the return value, but do some other stuff which would change it before we return it
   switch(state) {
     case WAIT_CMD:
+      dprintf(SIMSD_TRANSFER,"In state WAIT_CMD\n");
       if(0==(value & 0x80)) {
         cmd=value & 0x3F;
         argCount=4;
         state=WAIT_ARG;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_ARG\n");
       }
       return 0xFF; //Nothing to say to the host
     case WAIT_ARG:
+      dprintf(SIMSD_TRANSFER,"In state WAIT_ARG, argCount=%d\n",argCount);
       arg=arg<<8 | (value & 0xFF);
       argCount--;
-      if(argCount==0) state=WAIT_CRC;
+      if(argCount==0) {
+    	state=WAIT_CRC;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_CRC\n");
+      }
       return 0xFF; //Nothing to say to the host
     case WAIT_CRC:
       crc=(value & 0xFE) >> 1;
-      ::printf("Received complete command 0x%02x 0x%08x 0x%02x\n",cmd,arg,crc);
+      dprintf(SIMSD_TRANSFER,"Received complete command 0x%02x 0x%08x 0x%02x\n",cmd,arg,crc);
       executeCommand();
       return 0xFF; //Nothing to say to the host
     case RESPOND_START:
+      dprintf(SIMSD_TRANSFER,"In state RESPOND_START, %d delay left\n",responseDelay);
       if(responseDelay>1) {
         responseDelay--;
       } else {
         state=RESPOND_SEND;
+        dprintf(SIMSD_TRANSFER,"Going to state RESPOND_SEND\n");
       }
       return 0xFF; //Delaying
     case RESPOND_SEND:
+      dprintf(SIMSD_TRANSFER,"In state RESPOND_SEND, responseCount=%d, readCount=%d, writeCount=%d\n",responseCount,readCount,writeCount);
+      result=response[responsePtr];
       if(responseCount>1) {
         responsePtr++;
         responseCount--;
       } else if(readCount>0) {
         state=READ_START;
+        dprintf(SIMSD_TRANSFER,"Going to state READ_START\n");
       } else if(writeCount>0) {
         state=WRITE_START;
+        dprintf(SIMSD_TRANSFER,"Going to state WRITE_START\n");
       } else {
         state=WAIT_CMD;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_CMD\n");
       }
-      return response[responsePtr];
+      return result;
     case READ_START:
+      dprintf(SIMSD_TRANSFER,"In state READ_START, readDelay=%d\n",readDelay);
       if(readDelay>1) {
         readDelay--;
       } else {
         state=READ;
+        dprintf(SIMSD_TRANSFER,"Going to state READ\n");
       }
       return 0xFE; //Send start condition
     case READ:
+      dprintf(SIMSD_TRANSFER,"In state READ, readCount=%d\n",readCount);
+      result=data[readPtr];
       if(readCount>1) {
         readPtr++;
         readCount--;
       } else {
         state=WAIT_CMD;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_CMD\n");
       }
-      return data[readPtr];
+      return result;
     case WRITE_START:
+      dprintf(SIMSD_TRANSFER,"In state WRITE_START\n");
       if(0xFE==(value & 0xFF)) {
         state=WRITE;
+        dprintf(SIMSD_TRANSFER,"Going to state WRITE\n");
       }
       return 0xFF; //Waiting for start byte
     case WRITE:
+      dprintf(SIMSD_TRANSFER,"In state WRITE, writeCount=%d\n",writeCount);
       data[writePtr]=value & 0xFF; 
       if(writeCount>1) {
         writePtr++;
         writeCount--;
       } else {
+        dprintf(SIMSD_TRANSFER,"Writing data\n");
         fwrite(data,1,512,card);
         fflush(card);
         state=WAIT_CMD;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_CMD\n");
       }
       return 0xFF;
   }
@@ -128,7 +152,7 @@ void write_bits(char data[], int datalen, uint32_t value, int hibit,int lobit) {
 
 void SimSd::executeCommand() {
   if(nextCommandAppSpecific) ::printf("A");
-  ::printf("CMD%02d: ",cmd);
+  dprintf(SIMSD,"CMD%02d: ",cmd);
   responsePtr=0;
   responseDelay=2;
   readPtr=0;
@@ -140,14 +164,14 @@ void SimSd::executeCommand() {
   int result;
   switch(cmd) {
     case CMD_GO_IDLE_STATE: 
-      ::printf("Go Idle\n");
+      dnprintf("Go Idle\n");
       responseCount=1;
       response[0]=R1_IDLE_STATE; //Low bit set, indicating card is idle
       nextCommandAppSpecific=false;
       state=RESPOND_START;
       break;
     case CMD_APP: 
-      ::printf("Next command is application-specific\n");
+      dnprintf("Next command is application-specific\n");
       responseCount=1;
       nextCommandAppSpecific=true;
       response[0]=R1_IDLE_STATE; //Low bit set, indicating card is idle
@@ -155,9 +179,9 @@ void SimSd::executeCommand() {
       break;
     case CMD_SD_SEND_OP_COND:
       if(!nextCommandAppSpecific) {
-        ::printf("This is supposed to be an app specific command, but no CMD_APP before this. Executing it anyway, command is unambiguous...");
+    	dnprintf("This is supposed to be an app specific command, but no CMD_APP before this. Executing it anyway, command is unambiguous...");
       }
-      ::printf("SD Send OP Condition\n");
+      dnprintf("SD Send OP Condition\n");
       responseCount=1;
       response[0]=0;
       nextCommandAppSpecific=false;
@@ -165,7 +189,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       break;
     case CMD_READ_OCR:
-      ::printf("Read OCR\n");
+      dnprintf("Read OCR\n");
       responseCount=5;
       response[0]=0;
       response[1]=(OCR>>24) & 0xFF;                   
@@ -176,7 +200,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       break;
     case CMD_SEND_IF_COND:
-      ::printf("Send interface condition\n");
+      dnprintf("Send interface condition\n");
       responseCount=5;
       response[0]=R1_IDLE_STATE; //Low bit set, indicating card is idle
       response[1]=0; //Reserved
@@ -187,7 +211,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       break;
     case CMD_SET_BLOCKLEN:
-      ::printf("Set block length to %d\n",arg);
+      dnprintf("Set block length to %d\n",arg);
       responseCount=1;
       response[0]=((isSDHC==1 && arg!=512)||(arg>512))?R1_PARAM_ERR:0;
       if(response[0]==0) blocklen=arg;
@@ -195,7 +219,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       break;
     case CMD_SEND_CID:
-      ::printf("Send Card ID register\n");
+      dnprintf("Send Card ID register\n");
       nextCommandAppSpecific=false;
       responseCount=1;
       response[0]=0;
@@ -219,7 +243,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       break;
     case CMD_SEND_CSD:
-      ::printf("Send Card ID register\n");
+      dnprintf("Send Card ID register\n");
       nextCommandAppSpecific=false;
       responseCount=1;
       response[0]=0;
@@ -251,7 +275,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       break;
     case CMD_READ_SINGLE_BLOCK:
-      ::printf("Read single block %u\n",arg);
+      dnprintf("Read single block %u\n",arg);
       //Set up the following so that if the (host file) read fails,
       //we report an error and don't send any data.
       response[0]=R1_PARAM_ERR;
@@ -259,7 +283,7 @@ void SimSd::executeCommand() {
       readCount=0;
       state=RESPOND_START;
 
-      ::printf("Seeking to %lu\n",size_t(arg)*size_t(512));
+      dprintf(SIMSD,"Seeking to %lu\n",size_t(arg)*size_t(512));
       if(fseek(card,size_t(arg)*size_t(512),SEEK_SET)!=0) break;
       result=fread(data,1,512,card);
       if(result!=512) break;
@@ -269,7 +293,7 @@ void SimSd::executeCommand() {
       response[0]=0; 
       break;
     case CMD_WRITE_SINGLE_BLOCK:
-      ::printf("Write single block %u\n",arg);
+      dnprintf("Write single block %u\n",arg);
       //Set up the following so that if the (host file) seek fails,
       //we report an error and don't receive any data
       response[0]=R1_PARAM_ERR;
@@ -277,7 +301,7 @@ void SimSd::executeCommand() {
       state=RESPOND_START;
       writeCount=0;
 
-      ::printf("Seeking to %lu\n",size_t(arg)*size_t(512));
+      dprintf(SIMSD,"Seeking to %lu\n",size_t(arg)*size_t(512));
       if(fseek(card,size_t(arg)*size_t(512),SEEK_SET)!=0) break;
 
       //Now that the seek worked, set the state to show that.
@@ -288,7 +312,7 @@ void SimSd::executeCommand() {
       nextCommandAppSpecific=false;
       responseCount=1;
       response[0]=R1_IDLE_STATE | R1_ILL_COMMAND;
-      ::printf("Unrecognized command\n");
+      dnprintf("Unrecognized command\n");
       state=RESPOND_START;
   }
 }

@@ -52,9 +52,9 @@ void SimUart::write_UDLL(int Lport, uint32_t write) {
 void SimUart::write_UDLM(int Lport, uint32_t write) {
   if(DLAB[Lport]) {
     UDLM[Lport]=write & 0xFF;
-    ::fprintf(stderr,"Changed UDLM(%d) to %d, current baud rate is %d\n",Lport,write,baud(Lport));
+    dprintf(SIMUART,"Changed UDLM(%d) to %d, current baud rate is %d\n",Lport,write,baud(Lport));
   } else {
-    ::fprintf(stderr,"Attempt to write to DLM failed, DLAB=%d\n",DLAB[Lport]);
+	dprintf(SIMUART,"Attempt to write to DLM failed, DLAB=%d\n",DLAB[Lport]);
   };
 }
 
@@ -73,7 +73,7 @@ void SimUart::write_ULCR(int Lport, uint32_t write) {
   parityMode[Lport]=    ((write>>4) & ((1<<2)-1))   ;
   DLAB      [Lport]=(1==((write>>7) & ((1<<1)-1))  );
   const char modeLetter[]="OEMS";
-  ::fprintf(stderr,"ULCR(%d) written as %d %02x, mode %d%c%d, DLAB=%d\n",Lport,write,write,
+  dprintf(SIMUART,"ULCR(%d) written as %d %02x, mode %d%c%d, DLAB=%d\n",Lport,write,write,
    dataBits[Lport],
    parityOn[Lport]?modeLetter[parityMode[Lport]]:'N',
    stopBits[Lport],
