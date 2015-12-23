@@ -41,7 +41,6 @@ void SimSd::csMode(bool out) {
 //and the first bit of the response is sent before the last
 //bit of the input is received.
 uint8_t SimSd::transfer(uint8_t value) {
-//  SimSpi::write_S0SPDR(value); //Handle the SPIF flag
   switch(state) {
     case WAIT_CMD:
       if(0==(value & 0x80)) {
