@@ -46,8 +46,8 @@ SimTime timer;
 SimRtc rtc;
 SimPwm pwm;
 SimAdcYukari adc;
-SimHmcYukari simhmc;
-SimGyroYukari simgyro;
+PlaybackHmc simhmc;
+PlaybackGyro simgyro;
 SimPeripherals peripherals(gpio,uart,timer,rtc,pwm,adc);
 
 #include "ccsds.h"

@@ -15,7 +15,9 @@ CPPSRC+=navigate.cpp guide.cpp control.cpp config.cpp
 #Simulated Robot files
 SIMCPPSRC+=sim/robot.cpp
 SIMCPPSRC+=sim/playback.cpp
-SIMCPPSRC+=sim/simhost.cpp
+SIMCPPSRC+=sim/PlaybackHmc.cpp
+SIMCPPSRC+=sim/PlaybackGyro.cpp
+#SIMCPPSRC+=sim/simhost.cpp
 
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile
@@ -56,7 +58,7 @@ format: CONFIG.TXT
 
 SIMOBJ = $(CPPSRC:.cpp=.$(SIMOBJEXT)) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(GENCPP:.CPP=.$(SIMOBJEXT)) 
 
-playback.exe: $(SIMOBJ) sim/playback.o64 source.cpio.max1.zpaq.o64
+playback.exe: $(SIMOBJ) sim/playback.o64 sim/PlaybackHmc.o64 sim/PlaybackGyro.o64 source.cpio.max1.zpaq.o64
 	clang++ $(CLANGLINK)
 	make CONFIG.TXT
 	make mount
