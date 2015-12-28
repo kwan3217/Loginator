@@ -1,6 +1,7 @@
 #include "LPC214x.h"
 #include "irq.h"
 #include "hardware_stack.h"
+#include "Startup.h"
 
 /** 
   \file Startup.cpp
@@ -83,13 +84,6 @@ extern fvoid _ctors_end[];   ///< Pointer to end of constructor block, one byte 
 extern fvoid _ctors_lib_start[]; ///< Pointer to start of constructor block for library
 extern fvoid _ctors_lib_end[];   ///< Pointer to end of constructor block for library 
 
-//Sketch main routines
-/** Sketch setup routine, called once after the system has set itself up but before
-loop() . This routine is typically used by user code to set up peripherals. */
-void setup(); 
-/** Sketch loop routine, called repeatedly after setup() . This typically performs
-the main work of the program. */
-void loop();
 
 //The docs say that a successful feed must consist of two writes with no
 //intervening APB cycles. Use asm to make sure that it is done with two
@@ -184,21 +178,12 @@ extern "C" void __attribute__ ((naked)) __attribute__ ((noreturn)) Reset_Handler
 
   //Global and static function variables are now available
 
-  //Set up system peripherals. Don't run this until now because we might 
-  //set global variables like PCLK.
-  setup_pll(0,5); //Set up CCLK PLL to 5x crystal rate
-  // Enabling MAM and setting number of clocks used for Flash memory fetch (4 cclks in this case)
-  //MAMTIM=0x3; //VCOM?
-  MAMCR()=0x2;
-  MAMTIM()=0x4; //Original
-  // Setting peripheral Clock (pclk) to System Clock (cclk)
-  VPBDIV()=0x1;
-
-// call C++ constructors of global objects
+  // call C++ constructors of global objects
   for(int i=0;i<_ctors_end-_ctors_start;i++) _ctors_start[i]();
   for(int i=0;i<_ctors_lib_end-_ctors_lib_start;i++) _ctors_lib_start[i]();
 
-  IRQHandler::begin(); //Can't call before ctors are run
+  reset_handler_core();
+
   //Enable hardware interrupts only after VIC is set up to handle them. Note that
   //vectors STILL probably aren't set up right, since the details depend on which
   //peripherals are in use, and those depend on setup(). We will trust that code

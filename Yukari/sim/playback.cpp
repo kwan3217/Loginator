@@ -7,6 +7,9 @@
 #include "SimSd.h"
 #include "Time.h"
 #include "irq.h"
+#include "Startup.h"
+#include "PlaybackHmc.h"
+#include "PlaybackGyro.h"
 
 //I think that we can disallow LPC214x.h access here. All peripheral stuff
 //should be through the SimPeripheral object and its children.
@@ -25,89 +28,6 @@ public:
     return result;
   }
 };
-
-class SimHmcYukari: public SimI2cSlave {
-private:
-  bool getAddr=false;
-  int addr;
-  uint8_t reg[13];
-public:
-  virtual void start() override {getAddr=true;dprintf(SIMHMC,"HMC5883 received start\n");};
-  virtual void stop() override {dprintf(SIMHMC,"HMC5883 received stop\n");};
-  virtual void repeatStart() override {getAddr=true;dprintf(SIMHMC,"HMC5883 received repeated start\n");};
-  virtual uint8_t readByte(bool ack) override;
-  virtual void writeByte(uint8_t write, bool& ack) override;
-};
-
-uint8_t SimHmcYukari::readByte(bool ack) {
-  //Ack will be false on last byte, true on others
-  uint8_t result=reg[addr];
-  dprintf(SIMHMC,"Reading %d (0x%02x) from register %d (0x%02x) on HMC5883\n",result,result,addr,addr);
-  addr++;
-  return result;
-}
-
-void SimHmcYukari::writeByte(uint8_t write, bool& ack) {
-  ack=true;
-  if(getAddr) {
-	addr=write;
-	getAddr=false;
-    dprintf(SIMHMC,"Addressing register %d (0x%02x) on HMC5883\n",write,write);
-  } else {
-    dprintf(SIMHMC,"Writing %d (0x%02x) to register %d (0x%02x) on HMC5883\n",write,write,addr,addr);
-    addr++;
-  }
-}
-
-class SimGyroYukari: public SimSpiSlave {
-private:
-  uint8_t reg[0x38+1]; //Highest numbered register, plus one for register 0
-  bool getAddr=false;
-  bool read=false;
-  bool multi=false;
-  int addr;
-public:
-  SimGyroYukari() {reg[0x0F]=0b1101'0011;};
-  void setFromPacket(int16_t x, int16_t y, int16_t z);
-  virtual void csOut (int value) override {getAddr=true;dprintf(SIMGYRO,"csOut=%d (%s)\n",value,value==0?"selected":"deselected");};
-  virtual int  csIn  (         ) override {dprintf(SIMGYRO,"csIn=%d\n",1);return 1;};
-  virtual void csMode(bool out ) override {dprintf(SIMGYRO,"csMode=%s\n",out?"out":"in");};
-  virtual uint8_t transfer(uint8_t value) override;
-};
-
-void SimGyroYukari::setFromPacket(int16_t x, int16_t y, int16_t z) {
-  dprintf(SIMGYRO,"Measurement: x=%d, y=%d, z=%d\n",x,y,z);
-  reg[0x28]=uint8_t( x       & 0xFF);
-  reg[0x29]=uint8_t((x >> 8) & 0xFF);
-  reg[0x2A]=uint8_t( y       & 0xFF);
-  reg[0x2B]=uint8_t((y >> 8) & 0xFF);
-  reg[0x2C]=uint8_t( z       & 0xFF);
-  reg[0x2D]=uint8_t((z >> 8) & 0xFF);
-}
-
-uint8_t SimGyroYukari::transfer(uint8_t value) {
-  uint8_t result=0xFF;
-  if(getAddr) {
-	getAddr=false;
-    addr=value & ((1<<6)-1);
-    read=(value & 1<<6)!=0;
-    multi=(value & 1<<7)!=0;
-    dprintf(SIMGYRO,"Addressing: Received 0x%02x, Read=%d, Multi=%d, Addr=%d, sending 0x%02x\n",value,read,multi,addr,result);
-  } else {
-	if(read) {
-      dprintf(SIMGYRO,"Reading register 0x%02x, value=%d (0x%02x)\n",addr,value);
-      result=reg[addr];
-	} else {
-      dprintf(SIMGYRO,"Writing register 0x%02x, value=%d (0x%02x)\n",addr,value);
-      reg[addr]=value;
-	}
-	if(multi) {
-	  addr++;
-      dprintf(SIMGYRO,"Auto-increment register address, now Writing register 0x%02x\n",addr);
-	}
-  }
-  return result;
-}
 
 class SimAdcYukari: public SimAdc {
 public:
@@ -149,17 +69,6 @@ float ntohf(float in) {
   return *(float*)(&iin);
 }
 
-void reset_handler() {
-  setup_pll(0,5); //Set up CCLK PLL to 5x crystal rate
-  // Enabling MAM and setting number of clocks used for Flash memory fetch (4 cclks in this case)
-  //MAMTIM=0x3; //VCOM?
-  MAMCR()=0x2;
-  MAMTIM()=0x4; //Original
-  setup_clock();
-
-  IRQHandler::begin(); //Can't call before ctors are run
-}
-
 /* Simulate a delay by advancing the playbackState clock the right number of ticks */
 void delay(unsigned int ms) {
   playbackState.ttc+=ms*60000;
@@ -175,7 +84,7 @@ int main(int argc, char** argv) {
   peripherals.i2c.addSlave(0x1E,simhmc);
   peripherals.gpio.addListener(peripherals.spi,{7}); //Include in here all the SPI slaves' CS lines
   peripherals.gpio.addListener(peripherals.ssp,{25}); //Include in here all the SPI slaves' CS lines
-  reset_handler(); //Do the stuff that the embedded reset_handler would do
+  reset_handler_core(); //Do the stuff that the embedded reset_handler would do
 
   setup(); //Run robot setup code
   while(!playbackState.done()) {

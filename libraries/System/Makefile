@@ -3,13 +3,16 @@
 #GENCPP - Generated C++ source files, for instance made by ragel from a .rl 
 #         file. These files are not included in the tarball. They should 
 #         have the extension .CPP
-include ../libraries/System/irq/Makefile
+
 # List C++ source files here.
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
+include ../libraries/LPC214x/Makefile
 CPPSRC += main.cpp
 CPPSRC += ../libraries/System/Stringex.cpp #usable by both embedded and sim
-EMBCPPSRC += ../libraries/System/Startup.cpp
+CPPSRC += ../libraries/System/Startup2.cpp #Startup stuff usable by both embedded and sim
+CPPSRC += ../libraries/System/irq.cpp 
+EMBCPPSRC += ../libraries/System/Startup.cpp #Startup stuff only usable in embedded
 ifndef OBJEXT
 OBJEXT=o
 endif
