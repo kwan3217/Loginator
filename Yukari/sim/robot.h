@@ -13,8 +13,6 @@ public:
   unsigned long ttc; ///< ticks from sim start
   unsigned int rtcHour,rtcMin,rtcSec,rtcYear,rtcMonth,rtcDom,rtcDoy,rtcDow; ///<RTC registers, automatically incremented on second rollover 
   virtual void propagate(int ms)=0;
-  virtual void setCmdSpd(int Lservo)=0;
-  virtual void setCmdSteer(int Lservo)=0; 
   RobotState();
   double xRate; ///< Pitch rate, rad/s
   double yRate; ///< Vehicle heading change rate, rad/s

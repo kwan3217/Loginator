@@ -220,6 +220,7 @@ void setupWaypointPacket(int context) {
 }
 
 void setup() {
+  setup_clock();
   Serial.begin(4800);
   Serial.println(version_string);
   initSD();

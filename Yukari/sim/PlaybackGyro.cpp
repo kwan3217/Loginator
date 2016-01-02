@@ -10,8 +10,26 @@ void PlaybackGyro::setFromPacket(int16_t x, int16_t y, int16_t z) {
   reg[0x2D]=uint8_t((z >> 8) & 0xFF);
 }
 
-uint8_t PlaybackGyro::transfer(uint8_t value) {
+//Slave->Master (read) transfers. This will always happen last, so do the auto-increment here.
+uint8_t PlaybackGyro::transferMISO() {
   uint8_t result=0xFF;
+  if(getAddr) {
+
+  } else {
+    if(read) {
+      dprintf(SIMGYRO,"Reading register 0x%02x, value=%d (0x%02x)\n",addr,value);
+      result=reg[addr];
+    }
+    if(multi) {
+      addr++;
+      dprintf(SIMGYRO,"Auto-increment register address, now addressing register 0x%02x\n",addr);
+    }
+  }
+  return result;
+}
+
+//Master->Slave (address or write) transfers
+void PlaybackGyro::transferMOSI(uint8_t value) {
   if(getAddr) {
     getAddr=false;
     addr=value & ((1<<6)-1);
@@ -19,19 +37,11 @@ uint8_t PlaybackGyro::transfer(uint8_t value) {
     multi=(value & 1<<7)!=0;
     dprintf(SIMGYRO,"Addressing: Received 0x%02x, Read=%d, Multi=%d, Addr=%d, sending 0x%02x\n",value,read,multi,addr,result);
   } else {
-    if(read) {
-      dprintf(SIMGYRO,"Reading register 0x%02x, value=%d (0x%02x)\n",addr,value);
-      result=reg[addr];
-    } else {
+    if(!read) {
       dprintf(SIMGYRO,"Writing register 0x%02x, value=%d (0x%02x)\n",addr,value);
       reg[addr]=value;
     }
-    if(multi) {
-      addr++;
-      dprintf(SIMGYRO,"Auto-increment register address, now Writing register 0x%02x\n",addr);
-    }
   }
-  return result;
 }
 
 

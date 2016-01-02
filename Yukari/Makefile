@@ -15,7 +15,9 @@ CPPSRC+=navigate.cpp guide.cpp control.cpp config.cpp
 #Simulated Robot files
 SIMCPPSRC+=sim/robot.cpp
 SIMCPPSRC+=sim/playback.cpp
-SIMCPPSRC+=sim/simhost.cpp
+SIMCPPSRC+=sim/PlaybackGyro.cpp
+SIMCPPSRC+=sim/PlaybackHmc.cpp
+#SIMCPPSRC+=sim/simhost.cpp
 
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile

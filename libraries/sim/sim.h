@@ -196,11 +196,20 @@ public:
 };
 
 class SimSpiSlave {
+protected:
+  virtual uint8_t transferMISO(             )=0;
+  virtual void    transferMOSI(uint8_t value)=0;
 public:
   virtual void csOut(int value)=0;
   virtual int csIn()=0;
   virtual void csMode(bool out)=0;
-  virtual uint8_t transfer(uint8_t value)=0;
+  //A transfer is supposed to be simultaneous, but you can't do that in a simulator. Since they are simultaneous,
+  //you can't calculate the slave->master from the master->slave so we call the slave->master transfer (transferMISO)
+  //first so there is no cheating.
+  uint8_t transfer    (uint8_t value) {
+    transferMOSI(value);
+    return transferMISO();
+  }
 };
 
 class SimSpi:public SimSubSpi, public SimGpioListener {
@@ -284,9 +293,14 @@ public:
   #include "wdog_registers.inc"
 };
 
-class SimTime {
+class SimSubTimer {
 public:
   #include "timer_registers.inc"
+};
+
+class SimTimer:public SimSubTimer {
+public:
+  void advance(int port, uint32_t ticks);
 };
 
 class SimPwm {
@@ -332,7 +346,7 @@ class SimPeripherals {
 public:
   SimGpio& gpio;
   SimUart& uart; //Both UARTs
-  SimTime& time;
+  SimTimer& time;
   SimRtc& rtc;
   SimPwm& pwm;
   SimAdc& adc;
@@ -347,7 +361,7 @@ public:
   SimWdog wdog;
   SimPeripherals(SimGpio& Lgpio, 
                  SimUart& Luart,
-                 SimTime& Ltime,
+                 SimTimer& Ltime,
                  SimRtc& Lrtc,
                  SimPwm& Lpwm,
                  SimAdc& Ladc

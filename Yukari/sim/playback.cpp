@@ -1,5 +1,4 @@
 #include "playback.h"
-//#include <time.h>
 #include <string.h>
 #include <stdio.h>
 #include "navigate.h" //for clat
@@ -15,9 +14,9 @@
 //should be through the SimPeripheral object and its children.
 class SimUartYukari: public SimUart{
 private:
-  RobotState& state;
+  PlaybackState& state;
 public:
-  SimUartYukari(RobotState& Lstate):state(Lstate) {};
+  SimUartYukari(PlaybackState& Lstate):state(Lstate) {};
   // receive data ready (bit 0) is 1 whenever there is GPS data
   // Transmitter holding register empty (bit 5) is always 1 since we can always send a byte
   virtual uint32_t read_ULSR(int Lport) override {return ((state.hasGPS()?1:0) << 0) | 
@@ -42,12 +41,12 @@ PlaybackState playbackState;
 SimUartYukari uart(playbackState);
 SimGpio gpio;
 SimSd simsd;
-SimTime timer;
+SimTimer timer;
 SimRtc rtc;
 SimPwm pwm;
 SimAdcYukari adc;
-SimHmcYukari simhmc;
-SimGyroYukari simgyro;
+PlaybackHmc simhmc;
+PlaybackGyro simgyro;
 SimPeripherals peripherals(gpio,uart,timer,rtc,pwm,adc);
 
 #include "ccsds.h"
@@ -71,13 +70,13 @@ float ntohf(float in) {
 
 /* Simulate a delay by advancing the playbackState clock the right number of ticks */
 void delay(unsigned int ms) {
-  playbackState.ttc+=ms*60000;
-  fprintf(stderr,"Delay %d ms, ttc now equals %lu\n",ms,playbackState.ttc);
+  timer.advance(0,ms*60000);
+  fprintf(stderr,"Delay %d ms, ttc now equals %u\n",ms,timer.read_TTC(0));
 }
 
 int main(int argc, char** argv) {
   setvbuf(stdout, NULL, _IONBF, 0);
-  playbackState.begin(argv[1],0);
+  playbackState.begin(argv[1]);
   simsd.open("sim/sdcard");
   peripherals.spi.addSlave(0, 7,simsd);
   peripherals.ssp.addSlave(0,25,simgyro);
@@ -94,16 +93,9 @@ int main(int argc, char** argv) {
 }
 
 char buf[65536+7];
-void PlaybackState::begin(char* infn, int fs) {
+void PlaybackState::begin(char* infn) {
   inf=fopen(infn,"rb");
   fread(buf,1,8,inf); //Skip the KwanSync marker
-  fp FS=((fp)(250 << fs));
-  double sens=FS/360.0; //rotations per second full scale
-  sens*=2*PI;   //radians per second full scale
-  sens/=32768;  //radians per second per DN
-  sensX=sens; //Everyone gets nominal sensitivity
-  sensY=sens;
-  sensZ=sens;
 }
 
 void PlaybackState::propagate(int ms) {
@@ -128,10 +120,7 @@ void PlaybackState::propagate(int ms) {
   }
   if(ccsds->apid==0x24) {
     #include "reverse_packet_nav2.INC"
-	simgyro.setFromPacket(nav2->gx,nav2->gy,nav2->gz);
-    xRate=-nav2->gx*sensX;
-    yRate=-nav2->gy*sensY;
-    zRate=-nav2->gz*sensZ;
+    simgyro.setFromPacket(nav2->gx,nav2->gy,nav2->gz);
     timer.write_TTC(0,nav2->TC);
     timer.write_TCR(0,channelTCGyro,timer.read_TTC(0));//Trigger a gyro reading
   }
@@ -146,3 +135,6 @@ bool PlaybackState::done() {
   return feof(inf);
 }
 
+bool PlaybackState::hasGPS() {
+  return gpsTransPointer<strlen(gpsBuf);
+};

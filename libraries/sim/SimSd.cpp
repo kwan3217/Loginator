@@ -40,7 +40,7 @@ void SimSd::csMode(bool out) {
 //in the real thing, the two bytes pass each other on the line
 //and the first bit of the response is sent before the last
 //bit of the input is received.
-uint8_t SimSd::transfer(uint8_t value) {
+uint8_t SimSd::transferMISO() {
   uint8_t result; //Used when we have to calculate the return value, but do some other stuff which would change it before we return it
   switch(state) {
     case WAIT_CMD:

@@ -16,7 +16,8 @@ public:
   virtual void csOut (int value) override {getAddr=true;dprintf(SIMGYRO,"csOut=%d (%s)\n",value,value==0?"selected":"deselected");};
   virtual int  csIn  (         ) override {dprintf(SIMGYRO,"csIn=%d\n",1);return 1;};
   virtual void csMode(bool out ) override {dprintf(SIMGYRO,"csMode=%s\n",out?"out":"in");};
-  virtual uint8_t transfer(uint8_t value) override;
+  virtual uint8_t transferMISO(             ) override;
+  virtual void    transferMOSI(uint8_t value) override;
 };
 
 #endif

@@ -11,6 +11,7 @@ SIMCPPSRC+=../libraries/sim/SimSd.cpp
 SIMCPPSRC+=../libraries/sim/SimSpi.cpp
 SIMCPPSRC+=../libraries/sim/SimSsp.cpp
 SIMCPPSRC+=../libraries/sim/SimUart.cpp
+SIMCPPSRC+=../libraries/sim/SimTimer.cpp
 SIMCPPSRC+=../libraries/sim/dprintf.cpp
 
 CLANGINCLUDE=-I ../libraries/sim -I . $(addprefix -I ,$(call uniq,$(EXTRAINCDIRS))) -I /usr/include/c++/4.9 -I /usr/include/x86_64-linux-gnu/c++/4.9/
