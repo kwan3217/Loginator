@@ -17,7 +17,7 @@ uint8_t PlaybackGyro::transferMISO() {
 
   } else {
     if(read) {
-      dprintf(SIMGYRO,"Reading register 0x%02x, value=%d (0x%02x)\n",addr,value);
+      dprintf(SIMGYRO,"Reading register 0x%02x, value=%d (0x%02x)\n",addr,reg[addr]);
       result=reg[addr];
     }
     if(multi) {
@@ -35,7 +35,7 @@ void PlaybackGyro::transferMOSI(uint8_t value) {
     addr=value & ((1<<6)-1);
     read=(value & 1<<6)!=0;
     multi=(value & 1<<7)!=0;
-    dprintf(SIMGYRO,"Addressing: Received 0x%02x, Read=%d, Multi=%d, Addr=%d, sending 0x%02x\n",value,read,multi,addr,result);
+    dprintf(SIMGYRO,"Addressing: Received 0x%02x, Read=%d, Multi=%d, Addr=%d\n",value,read,multi,addr);
   } else {
     if(!read) {
       dprintf(SIMGYRO,"Writing register 0x%02x, value=%d (0x%02x)\n",addr,value);

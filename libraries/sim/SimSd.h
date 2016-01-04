@@ -125,6 +125,9 @@ private:
   static const int R1_ERASE_SEQ_ERR = 1 << 4;
   static const int R1_ADDR_ERR      = 1 << 5;
   static const int R1_PARAM_ERR     = 1 << 6;
+protected:
+  virtual uint8_t transferMISO(             ) override;
+  virtual void    transferMOSI(uint8_t value) override;
 public:
   SimSd():state(WAIT_CMD) {};
   bool open(char* cardfn);
@@ -141,7 +144,6 @@ public:
      should trigger the calculation of the byte to be received by the host.
      *That* data, not the input value argument, should be written to the S0SPDR
      internal variable. */
-  virtual uint8_t transfer(uint8_t value) override;
   void executeCommand();
 };
 

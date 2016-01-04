@@ -36,44 +36,23 @@ void SimSd::csMode(bool out) {
   dprintf(SIMSD,"SimSd::csMode(dir=%s)\n",out?"out":"in");
 }
 
-//The return value should not be a function of the input, since
-//in the real thing, the two bytes pass each other on the line
-//and the first bit of the response is sent before the last
-//bit of the input is received.
+//In the real thing, the input and output are simultaneous, and the output
+//cannot be calculated from the input. In the simulation, in order to enforce
+//this, the sim code calls transferMISO (slave->master) first, then
+//transferMOSI (master->slave). We have to be careful to only change state in
+//one of these. Each branch of the case statement will be present in both
+//transfers, but will be trivial in one of them. In particular, if a branch
+//involves the input value, it must be nontrivial only in MOSI, and if a branch
+//returns a non-idle result, it must be nontrivial only in MISO. If a branch
+//only involves state-changes, we will arbitrarily put it in MOSI.
 uint8_t SimSd::transferMISO() {
   uint8_t result; //Used when we have to calculate the return value, but do some other stuff which would change it before we return it
   switch(state) {
     case WAIT_CMD:
-      dprintf(SIMSD_TRANSFER,"In state WAIT_CMD\n");
-      if(0==(value & 0x80)) {
-        cmd=value & 0x3F;
-        argCount=4;
-        state=WAIT_ARG;
-        dprintf(SIMSD_TRANSFER,"Going to state WAIT_ARG\n");
-      }
-      return 0xFF; //Nothing to say to the host
     case WAIT_ARG:
-      dprintf(SIMSD_TRANSFER,"In state WAIT_ARG, argCount=%d\n",argCount);
-      arg=arg<<8 | (value & 0xFF);
-      argCount--;
-      if(argCount==0) {
-    	state=WAIT_CRC;
-        dprintf(SIMSD_TRANSFER,"Going to state WAIT_CRC\n");
-      }
-      return 0xFF; //Nothing to say to the host
     case WAIT_CRC:
-      crc=(value & 0xFE) >> 1;
-      dprintf(SIMSD_TRANSFER,"Received complete command 0x%02x 0x%08x 0x%02x\n",cmd,arg,crc);
-      executeCommand();
       return 0xFF; //Nothing to say to the host
     case RESPOND_START:
-      dprintf(SIMSD_TRANSFER,"In state RESPOND_START, %d delay left\n",responseDelay);
-      if(responseDelay>1) {
-        responseDelay--;
-      } else {
-        state=RESPOND_SEND;
-        dprintf(SIMSD_TRANSFER,"Going to state RESPOND_SEND\n");
-      }
       return 0xFF; //Delaying
     case RESPOND_SEND:
       dprintf(SIMSD_TRANSFER,"In state RESPOND_SEND, responseCount=%d, readCount=%d, writeCount=%d\n",responseCount,readCount,writeCount);
@@ -113,15 +92,63 @@ uint8_t SimSd::transferMISO() {
       }
       return result;
     case WRITE_START:
+    case WRITE:
+      return 0xFF;
+  }
+}
+
+//The return value should not be a function of the input, since
+//in the real thing, the two bytes pass each other on the line
+//and the first bit of the response is sent before the last
+//bit of the input is received.
+void SimSd::transferMOSI(uint8_t value) {
+  switch(state) {
+    case WAIT_CMD:
+      dprintf(SIMSD_TRANSFER,"In state WAIT_CMD\n");
+      if(0==(value & 0x80)) {
+        cmd=value & 0x3F;
+        argCount=4;
+        state=WAIT_ARG;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_ARG\n");
+      }
+      return;
+    case WAIT_ARG:
+      dprintf(SIMSD_TRANSFER,"In state WAIT_ARG, argCount=%d\n",argCount);
+      arg=arg<<8 | (value & 0xFF);
+      argCount--;
+      if(argCount==0) {
+    	state=WAIT_CRC;
+        dprintf(SIMSD_TRANSFER,"Going to state WAIT_CRC\n");
+      }
+      return;
+    case WAIT_CRC:
+      crc=(value & 0xFE) >> 1;
+      dprintf(SIMSD_TRANSFER,"Received complete command 0x%02x 0x%08x 0x%02x\n",cmd,arg,crc);
+      executeCommand();
+      return;
+    case RESPOND_START:
+      dprintf(SIMSD_TRANSFER,"In state RESPOND_START, %d delay left\n",responseDelay);
+      if(responseDelay>1) {
+        responseDelay--;
+      } else {
+        state=RESPOND_SEND;
+        dprintf(SIMSD_TRANSFER,"Going to state RESPOND_SEND\n");
+      }
+      return;
+    case RESPOND_SEND:
+    case READ_START:
+    case READ:
+      return;
+    case WRITE_START:
       dprintf(SIMSD_TRANSFER,"In state WRITE_START\n");
       if(0xFE==(value & 0xFF)) {
         state=WRITE;
         dprintf(SIMSD_TRANSFER,"Going to state WRITE\n");
       }
-      return 0xFF; //Waiting for start byte
+      return;
     case WRITE:
       dprintf(SIMSD_TRANSFER,"In state WRITE, writeCount=%d\n",writeCount);
-      data[writePtr]=value & 0xFF; 
+      data[writePtr]=value & 0xFF;
       if(writeCount>1) {
         writePtr++;
         writeCount--;
@@ -132,7 +159,7 @@ uint8_t SimSd::transferMISO() {
         state=WAIT_CMD;
         dprintf(SIMSD_TRANSFER,"Going to state WAIT_CMD\n");
       }
-      return 0xFF;
+      return;
   }
 }
 
@@ -151,7 +178,7 @@ void write_bits(char data[], int datalen, uint32_t value, int hibit,int lobit) {
 }
 
 void SimSd::executeCommand() {
-  if(nextCommandAppSpecific) ::printf("A");
+  if(nextCommandAppSpecific) ::dprintf(SIMSD,"A");
   dprintf(SIMSD,"CMD%02d: ",cmd);
   responsePtr=0;
   responseDelay=2;
