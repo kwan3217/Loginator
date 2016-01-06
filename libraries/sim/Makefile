@@ -15,7 +15,7 @@ SIMCPPSRC+=../libraries/sim/SimTimer.cpp
 SIMCPPSRC+=../libraries/sim/dprintf.cpp
 
 CLANGINCLUDE=-I ../libraries/sim -I . $(addprefix -I ,$(call uniq,$(EXTRAINCDIRS))) -I /usr/include/c++/4.9 -I /usr/include/x86_64-linux-gnu/c++/4.9/
-CLANGCOMP=-g -O0 -std=c++1y -c -save-temps -o $@           $< $(CLANGINCLUDE) -Wno-ignored-attributes
+CLANGCOMP=-g -O0 -std=c++1y -c -save-temps -o $@           $< $(CLANGINCLUDE) -Wno-ignored-attributes -MMD -MP -MF .dep/$(@F).d
 CLANGLINK=-g -O0 -o $@ -lm -lstdc++ $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/ -L/usr/lib/gcc/x86_64-linux-gnu/4.9/ -Wl,-Map,$(@:.exe=.map) -Wno-ignored-attributes
 
 #Rules to compile source into .o64 files

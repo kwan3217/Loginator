@@ -10,14 +10,16 @@
 char buf[65536+7];
 struct ccsdsHeader* ccsds=(struct ccsdsHeader*)buf;
 
-#include "extract_str.INC"
-#include "extract_vars.INC"
+#include "tlmDb.h"
+
+using namespace tlmDb;
 
 char* KwanSync="KwanSync";
 uint32_t lastPPSTC;
 
 int16_t ntohs(int16_t in) {
-  return ((in&0xFF00)>>8) | ((in&0x00FF)<<8);
+  return ((in&0xFF00)>>8) |
+		 ((in&0x00FF)<<8);
 }
 
 int32_t ntohl(int32_t in) {
@@ -44,11 +46,17 @@ void adjustMin(unsigned int TC) {
   }
   lastTC=TC;
 }
+
 int main(int argc, char** argv) {
   char oufn[1024],base[1024];
-  strcpy(base,basename(argv[1]));
+  auto packets=read(argv[1]);
+  std::map<int,tlmDb::Packet> packetsA;
+  for(auto i=packets.begin();i!=packets.end();++i) {
+	packetsA[i->apid]=*i;
+  }
+  strcpy(base,basename(argv[2]));
   base[8]=0;
-  FILE* inf=fopen(argv[1],"rb");
+  FILE* inf=fopen(argv[2],"rb");
   FILE* ouf[2048];
   
   for(int i=0;i<2048;i++) ouf[i]=NULL;
@@ -61,22 +69,13 @@ int main(int argc, char** argv) {
     ccsds->seq=ntohs(ccsds->seq);
     ccsds->length=ntohs(ccsds->length);
     fread(buf+6,1,ccsds->length+1,inf);
-//    fprintf(stdout,"apid 0x%03x, length %5d\n",ccsds->apid,ccsds->length);
     if(ouf[ccsds->apid]==NULL) {
       sprintf(oufn,"%s_%03x_%02d.sds",base,ccsds->apid,hour);
       ouf[ccsds->apid]=fopen(oufn,"wb");
     }
     fwrite(&qes,sizeof(qes),1,ouf[ccsds->apid]);
     fwrite(buf+6,1,ccsds->length+1,ouf[ccsds->apid]);
-    #include "extract_body.INC"
-/*    if(ccsds->apid==0x03) {
-      if(tarzpaq==NULL) {
-        sprintf(oufn,"%s.cpio.zpaq",base);
-        tarzpaq=fopen(oufn,"wb");
-      }
-      fwrite(buf+8,1,ccsds->length-1,tarzpaq);
-    }
-*/
+
     seq++;
     qes=ntohl(seq);
   }
