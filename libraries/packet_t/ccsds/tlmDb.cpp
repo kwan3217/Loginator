@@ -35,6 +35,17 @@ void Field::set(vector<string>& sfields) {
   }
 }
 
+int Field::arraySize() {
+  if(array=="") {
+	return 1;
+  } else if(array[1]>='0' && array[1]<='9') {
+	string num=array.substr(1,array.find_first_of(']')-1);
+	return stoi(num);
+  } else {
+	return -1;
+  }
+}
+
 void Packet::set(vector<string>& sfields) {
   if(sfields.size()> 0) apidStr  =sfields[0];
   if(sfields.size()> 1) shortName=sfields[1];
@@ -56,7 +67,7 @@ void Packet::add(const Field& field) {
   } else {
 	int lastpos=fieldStart[fields.size()-1];
 	string lasttype=fields[fields.size()-1].ntohType;
-	int lastsize=typeSize.at(lasttype);
+	int lastsize=fieldDef.at(lasttype).typeSize*fields[fields.size()-1].arraySize();
 	fieldStart.push_back(lastpos+lastsize);
   }
   fields.push_back(field);
@@ -138,48 +149,15 @@ vector<Packet> read(const string& infn) {
   return result;
 }
 
-const map<string,string> ntoh={
-	{"fp","ntohf"},
-	{"int8_t",""},
-	{"int16_t","ntohs"},
-	{"int32_t","ntohl"},
-	{"uint8_t",""},
-	{"uint16_t","ntohs"},
-	{"uint32_t","ntohl"},
-	{"char[",""}
-};
-
-const map<string,string> format={
-  {"fp","%f"},
-  {"int8_t","%d"},
-  {"int16_t","%d"},
-  {"int32_t","%d"},
-  {"uint8_t","%u"},
-  {"uint16_t","%u"},
-  {"uint32_t","%u"},
-  {"char[","%s"}
-};
-
-const map<string,string> fillv={
-  {"fp","fp"},
-  {"int8_t",""},
-  {"int16_t","16"},
-  {"int32_t","32"},
-  {"uint8_t",""},
-  {"uint16_t","16"},
-  {"uint32_t","32"},
-  {"char[",""}
-};
-
-const map<string,int> typeSize={
-  {"fp",4},
-  {"int8_t",1},
-  {"int16_t",2},
-  {"int32_t",4},
-  {"uint8_t",1},
-  {"uint16_t",2},
-  {"uint32_t",4},
-  {"char[",1}
+const map<string,FieldDef> fieldDef={
+  {"fp",{"fp","ntohf","%f",4}},
+  {"int8_t",{"","","%d",1}},
+  {"int16_t",{"16","ntohs","%d",2}},
+  {"int32_t",{"32","ntohl","%d",4}},
+  {"uint8_t",{"","","%u",1}},
+  {"uint16_t",{"16","ntohs","%u",2}},
+  {"uint32_t",{"32","ntohl","%u",4}},
+  {"char[",{"","","%s",1}}
 };
 
 }

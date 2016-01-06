@@ -7,6 +7,16 @@
 
 namespace tlmDb {
 
+class FieldDef {
+public:
+  std::string fill;
+  std::string ntoh;
+  std::string format;
+  int typeSize;
+  FieldDef(std::string Lfill,std::string Lntoh, std::string Lformat, int LtypeSize):
+	  fill(Lfill), ntoh(Lntoh), format(Lformat), typeSize(LtypeSize) {};
+};
+
 class Field {
 public:
   std::string name;  ///<Name of this field, exactly as-is in the spreadsheet. MUST be a valid C/C++ identifier
@@ -15,8 +25,8 @@ public:
   std::string unit;  ///<Units of this field, SHOULD be either an SI unit for physical values or DN or TC for digital values.
   std::string desc;  ///<Description of this field
   bool   le; ///<true if the value is little-endian, false (normal case) if the value is big-endian. Read from spreadsheet, true iff first character of this field is in [Ll].
-  int    array_size(); ///< One if scalar or one-element array, greater if array of known size, negative if unbounded array. Calculated from spreadsheet type field
-  int    element_size(); ///<size of field in bytes. If the field is an array, this is the size of one element. Calculated from spreadsheet type field
+  int    arraySize(); ///< Number of elements in field. One if scalar or one-element array, greater if array of known size, negative if unbounded array. Calculated from spreadsheet type field
+  int    elementSize(); ///<size of field in bytes. If the field is an array, this is the size of one element. Calculated from spreadsheet type field
   void set(std::vector<std::string>& sfields);
   std::string pretype;
   std::string array;
@@ -50,10 +60,7 @@ std::vector<std::string> parseCsv(std::string& line);
 std::vector<Packet> read(std::istream& in);
 std::vector<Packet> read(const std::string& infn);
 
-extern const std::map<std::string,std::string> fillv;
-extern const std::map<std::string,std::string> ntoh;
-extern const std::map<std::string,std::string> format;
-extern const std::map<std::string,int> typeSize;
+extern const std::map<std::string,FieldDef> fieldDef;
 
 }
 

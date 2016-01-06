@@ -140,36 +140,40 @@ int main(int argc, char** argv) {
     	i++;
       }
       for(;i<packet.fields.size();i++) {
-        if(packet.fields[i].ntohType=="fp") {
-          fp val=*((fp*)(buf+packet.fieldStart[i]));
-          if(!packet.fields[i].le) val=ntohf(val);
+    	auto field=packet.fields[i];
+    	unsigned char* fieldStart=buf+packet.fieldStart[i];
+        if(field.ntohType=="fp") {
+          fp val=*((fp*)fieldStart);
+          if(!field.le) val=ntohf(val);
           csv[ccsds->apid] << print("%f",val);
         } else if(packet.fields[i].ntohType=="int8_t") {
-          int8_t val=*((int8_t*)(buf+packet.fieldStart[i]));
-          csv[ccsds->apid] << print("%d",val);
+          int8_t val=*(int8_t*)fieldStart;
+          csv[ccsds->apid] << (int)val;
         } else if(packet.fields[i].ntohType=="int16_t") {
           int16_t val=*((int16_t*)(buf+packet.fieldStart[i]));
-          if(!packet.fields[i].le) val=ntohs(val);
-          csv[ccsds->apid] << print("%d",val);
+          if(!field.le) val=ntohs(val);
+          csv[ccsds->apid] << val;
         } else if(packet.fields[i].ntohType=="int32_t") {
-          int32_t val=*((int32_t*)(buf+packet.fieldStart[i]));
-          if(!packet.fields[i].le) val=ntohl(val);
-          csv[ccsds->apid] << print("%d",val);
+          int32_t val=*(int32_t*)fieldStart;
+          if(!field.le) val=ntohl(val);
+          csv[ccsds->apid] << val;
         } else if(packet.fields[i].ntohType=="uint8_t") {
-          uint8_t val=*((uint8_t*)(buf+packet.fieldStart[i]));
-          csv[ccsds->apid] << print("%u",val);
+          uint8_t val=*(uint8_t*)fieldStart;
+          csv[ccsds->apid] << (unsigned int)val;
         } else if(packet.fields[i].ntohType=="uint16_t") {
-          uint16_t val=*((uint16_t*)(buf+packet.fieldStart[i]));
-          if(!packet.fields[i].le) val=ntohs(val);
-          csv[ccsds->apid] << print("%u",val);
+          uint16_t val=*(uint16_t*)fieldStart;
+          if(!field.le) val=ntohs(val);
+          csv[ccsds->apid] << val;
         } else if(packet.fields[i].ntohType=="uint32_t") {
-          uint32_t val=*((uint32_t*)(buf+packet.fieldStart[i]));
-          if(!packet.fields[i].le) val=ntohl(val);
-          csv[ccsds->apid] << print("%u",val);
+          uint32_t val=*(uint32_t*)fieldStart;
+          if(!field.le) val=ntohl(val);
+          csv[ccsds->apid] << val;
         } else if(packet.fields[i].ntohType=="char[") {
-          csv[ccsds->apid] << buf[packet.fieldStart[i]];
+          string val((char*)fieldStart);
+          if(field.arraySize()>0) val=val.substr(0,field.arraySize());
+          csv[ccsds->apid] << val;
         } else {
-          printf("Unrecognized field type %s\n",packet.fields[i].ntohType.c_str());
+          printf("Unrecognized field type %s\n",field.ntohType.c_str());
         }
         if(i+1<packet.fields.size()) csv[ccsds->apid] << ",";
       }

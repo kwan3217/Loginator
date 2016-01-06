@@ -130,7 +130,7 @@ void writeExtractBody(vector<Packet>& packets) {
           ouf << ",";
         }
         first=false;
-        ouf << format[field.ntohType];
+        ouf << fieldDef.at(field.ntohType).format;
       }
       ouf << "\\n\","<<endl;
       if(packet.hasTC()) {
@@ -165,7 +165,8 @@ void writeExtractReverse(vector<Packet>& packets) {
     if(packet.extractor=="csv") {
       for(auto j=packet.fields.begin();j!=packet.fields.end();j++) {
         auto field=*j;
-        if(ntoh[field.ntohType]!="") ouf << "  "<<packet.shortName<<"->"<<field.name<<"="<<ntoh[field.ntohType]<<"("<<packet.shortName<<"->"<<field.name<<");"<<endl;
+        string ntoh=fieldDef.at(field.ntohType).ntoh;
+        if(ntoh!="") ouf << "  "<<packet.shortName<<"->"<<field.name<<"="<<ntoh<<"("<<packet.shortName<<"->"<<field.name<<");"<<endl;
       }
     }
     ouf.close();
@@ -184,7 +185,10 @@ void writeExtractWrite(vector<Packet>& packets) {
     }
     for(auto j=packet.fields.begin();j!=packet.fields.end();j++) {
       auto field=*j;
-      if(field.source != "") ouf << "ccsds.fill" << fillv[field.ntohType] << "(" << field.source << "); //" << field.desc << endl;
+      if(field.source != "") {
+        string fillv=fieldDef.at(field.ntohType).fill;
+    	ouf << "ccsds.fill" << fillv << "(" << field.source << "); //" << field.desc << endl;
+      }
     }
     if(packet.wrapRobot) {
       ouf << "ccsds.finish(" << packet.apidStr << ");"<<endl;
