@@ -41,6 +41,8 @@ public:
   std::vector<Field> fields;
   void set(std::vector<std::string>& sfields);
   bool hasTC() {return TC!="";};
+  std::vector<int> fieldStart;
+  void add(const Field& field);
 };
 
 bool nextField(std::string line, int& ptr, std::string& field);
@@ -48,9 +50,10 @@ std::vector<std::string> parseCsv(std::string& line);
 std::vector<Packet> read(std::istream& in);
 std::vector<Packet> read(const std::string& infn);
 
-extern std::map<std::string,std::string> fillv;
-extern std::map<std::string,std::string> ntoh;
-extern std::map<std::string,std::string> format;
+extern const std::map<std::string,std::string> fillv;
+extern const std::map<std::string,std::string> ntoh;
+extern const std::map<std::string,std::string> format;
+extern const std::map<std::string,int> typeSize;
 
 }
 

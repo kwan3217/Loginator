@@ -2,17 +2,17 @@
 #include <inttypes.h>
 #include <string.h>
 #include <libgen.h>
+#include <fstream>
+#include <ios>
 
 #include "float.h"
 #include "ccsds.h"
 #include "direntry.h"
 
-char buf[65536+7];
-struct ccsdsHeader* ccsds=(struct ccsdsHeader*)buf;
-
 #include "tlmDb.h"
 
-using namespace tlmDb;
+using std::string;
+using std::ofstream;
 
 char* KwanSync="KwanSync";
 uint32_t lastPPSTC;
@@ -47,34 +47,134 @@ void adjustMin(unsigned int TC) {
   lastTC=TC;
 }
 
+//From http://stackoverflow.com/a/21625151
+char* print(char* fmt, ...) {
+  static char buffer[80] = "";
+  va_list argptr;
+  va_start(argptr,fmt);
+  vsprintf(buffer, fmt, argptr);
+  va_end(argptr);
+  return buffer;
+}
+
+
 int main(int argc, char** argv) {
+  unsigned char buf[65536+7];
+  struct ccsdsHeader* ccsds=(struct ccsdsHeader*)buf;
   char oufn[1024],base[1024];
-  auto packets=read(argv[1]);
+  auto packets=tlmDb::read(argv[2]);
   std::map<int,tlmDb::Packet> packetsA;
   for(auto i=packets.begin();i!=packets.end();++i) {
 	packetsA[i->apid]=*i;
   }
-  strcpy(base,basename(argv[2]));
+  strcpy(base,basename(argv[1]));
   base[8]=0;
-  FILE* inf=fopen(argv[2],"rb");
+  string base2(base);
+  FILE* inf=fopen(argv[1],"rb");
   FILE* ouf[2048];
+  ofstream csv[2048];
+  static int min[2048];
+  static uint32_t lastTC[2048];
   
   for(int i=0;i<2048;i++) ouf[i]=NULL;
   fread(buf,1,8,inf);
   int seq=0;
   int qes=ntohl(seq);
+  long int fileptr;
   while(!feof(inf)) {
+	fileptr=ftell(inf);
     fread(buf,1,6,inf);
-    ccsds->apid=ntohs(ccsds->apid) & 0x07FF;
-    ccsds->seq=ntohs(ccsds->seq);
+    ccsds->apid=ntohs(ccsds->apid) & 0x07FF; //Throw away version and cmd/tlm
+    ccsds->seq=ntohs(ccsds->seq) & 0x3FFF; //Throw away segmentation flags
     ccsds->length=ntohs(ccsds->length);
     fread(buf+6,1,ccsds->length+1,inf);
+    buf[7+ccsds->length]=0; //Null-terminate the packet in case it ends with a string
     if(ouf[ccsds->apid]==NULL) {
       sprintf(oufn,"%s_%03x_%02d.sds",base,ccsds->apid,hour);
       ouf[ccsds->apid]=fopen(oufn,"wb");
     }
     fwrite(&qes,sizeof(qes),1,ouf[ccsds->apid]);
     fwrite(buf+6,1,ccsds->length+1,ouf[ccsds->apid]);
+    tlmDb::Packet packet=packetsA[ccsds->apid];
+
+    if(!csv[ccsds->apid].is_open()) {
+      if(packet.shortName!="") {
+        string csvfn=base2+"."+packet.shortName;
+	    if(packet.shortName!=packet.fileExt) csvfn+=("."+packet.fileExt);
+        csv[ccsds->apid].open(csvfn,std::ios::binary | std::ios::out);
+        if(packet.extractor=="csv") {
+          //Print the header
+          int i=0;
+          if(packet.hasTC()) {
+        	csv[ccsds->apid] << "TC,t,";
+        	i++;
+          }
+          csv[ccsds->apid] << packet.fields[i].name;
+          i++;
+          for(;i<packet.fields.size();i++) {
+        	csv[ccsds->apid] << "," << packet.fields[i].name;
+          }
+          csv[ccsds->apid] << std::endl;
+        }
+      } else {
+    	printf("No packet description for APID 0x%03x\n",ccsds->apid);
+      }
+    }
+    if(packet.extractor=="dump") {
+      //Dump packets currently ignore offsets, etc and just write the last field
+      //of the packet into the file.
+      int pos=packet.fieldStart[packet.fields.size()-1];
+
+      csv[ccsds->apid].write((char*)(buf+pos),ccsds->length+7-pos);
+    } else if(packet.extractor=="csv") {
+      int i=0;
+      if(packet.hasTC()) {
+    	uint32_t TC=*((uint32_t*)(buf+packet.fieldStart[i]));
+    	TC=ntohl(TC);
+    	if(TC<lastTC[ccsds->apid]) {
+    	  min[ccsds->apid]++;
+    	}
+    	lastTC[ccsds->apid]=TC;
+    	csv[ccsds->apid] << print("%10u",TC) << ",";
+    	csv[ccsds->apid] << print("%f",(double)(min[ccsds->apid]*60)+(double)(TC)/60'000'000)<<",";
+    	i++;
+      }
+      for(;i<packet.fields.size();i++) {
+        if(packet.fields[i].ntohType=="fp") {
+          fp val=*((fp*)(buf+packet.fieldStart[i]));
+          if(!packet.fields[i].le) val=ntohf(val);
+          csv[ccsds->apid] << print("%f",val);
+        } else if(packet.fields[i].ntohType=="int8_t") {
+          int8_t val=*((int8_t*)(buf+packet.fieldStart[i]));
+          csv[ccsds->apid] << print("%d",val);
+        } else if(packet.fields[i].ntohType=="int16_t") {
+          int16_t val=*((int16_t*)(buf+packet.fieldStart[i]));
+          if(!packet.fields[i].le) val=ntohs(val);
+          csv[ccsds->apid] << print("%d",val);
+        } else if(packet.fields[i].ntohType=="int32_t") {
+          int32_t val=*((int32_t*)(buf+packet.fieldStart[i]));
+          if(!packet.fields[i].le) val=ntohl(val);
+          csv[ccsds->apid] << print("%d",val);
+        } else if(packet.fields[i].ntohType=="uint8_t") {
+          uint8_t val=*((uint8_t*)(buf+packet.fieldStart[i]));
+          csv[ccsds->apid] << print("%u",val);
+        } else if(packet.fields[i].ntohType=="uint16_t") {
+          uint16_t val=*((uint16_t*)(buf+packet.fieldStart[i]));
+          if(!packet.fields[i].le) val=ntohs(val);
+          csv[ccsds->apid] << print("%u",val);
+        } else if(packet.fields[i].ntohType=="uint32_t") {
+          uint32_t val=*((uint32_t*)(buf+packet.fieldStart[i]));
+          if(!packet.fields[i].le) val=ntohl(val);
+          csv[ccsds->apid] << print("%u",val);
+        } else if(packet.fields[i].ntohType=="char[") {
+          csv[ccsds->apid] << buf[packet.fieldStart[i]];
+        } else {
+          printf("Unrecognized field type %s\n",packet.fields[i].ntohType.c_str());
+        }
+        if(i+1<packet.fields.size()) csv[ccsds->apid] << ",";
+      }
+      csv[ccsds->apid] << std::endl;
+    }
 
     seq++;
     qes=ntohl(seq);
