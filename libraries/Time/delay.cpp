@@ -1,4 +1,4 @@
-#include "LPC214x.h"
+#include "Time.h"
 
 void delay(unsigned int ms) {
   unsigned int TC0=TTC(0);

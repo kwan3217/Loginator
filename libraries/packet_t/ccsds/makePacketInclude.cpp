@@ -178,20 +178,20 @@ void writeExtractWrite(vector<Packet>& packets) {
   for(auto i=packets.begin();i!=packets.end();i++) {
 	auto packet=*i;
     ouf.open("write_packet_"+packet.shortName+".INC");
-    if(packet.wrapRobot) {
-      ouf << "ccsds.start(sdStore,"<<packet.apidStr;
+    if(packet.wrapRobot()) {
+      ouf << "packet.start("<<packet.buffer<<","<<packet.apidStr;
       if(packet.hasTC()) ouf<< "," <<packet.TC;
       ouf << ");" << endl;
     }
     for(auto j=packet.fields.begin();j!=packet.fields.end();j++) {
       auto field=*j;
       if(field.source != "") {
-        string fillv=fieldDef.at(field.ntohType).fill;
-    	ouf << "ccsds.fill" << fillv << "(" << field.source << "); //" << field.desc << endl;
+        string fillv=(field.specialFill==""?"fill"+fieldDef.at(field.ntohType).fill:field.specialFill);
+    	ouf << "packet." << fillv << "(" << field.source << "); //" << field.desc << endl;
       }
     }
-    if(packet.wrapRobot) {
-      ouf << "ccsds.finish(" << packet.apidStr << ");"<<endl;
+    if(packet.wrapRobot()) {
+      ouf << "packet.finish(" << packet.apidStr << ");"<<endl;
     }
     ouf.close();
   }

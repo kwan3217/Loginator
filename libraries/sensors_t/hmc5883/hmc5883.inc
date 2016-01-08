@@ -78,7 +78,7 @@ void HMC5883<P,W>::whoami(char* id) {
 }
 
 template<class P, class W>
-bool HMC5883<P,W>::fillConfig(P& ccsds) {
+bool HMC5883<P,W>::fillConfig(P& packet) {
   #include "write_packet_hmccfg.INC"
   return true;
 }

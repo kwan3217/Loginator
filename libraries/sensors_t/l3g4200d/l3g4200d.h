@@ -17,7 +17,7 @@ public:
   };
   void set_sens(char fs);
   void read(int16_t& x, int16_t& y, int16_t& z, uint8_t& t, uint8_t& status);
-  bool fillConfig(P& ccsds);
+  bool fillConfig(P& packet);
 };
 
 #include "l3g4200d.inc"

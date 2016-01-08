@@ -6,7 +6,8 @@
 // Stores all of the bmp085's calibration values into global variables
 // Calibration values are required to calculate temp and pressure
 // This function should be called at the beginning of the program
-bool BMP180::begin(unsigned int Ltimer_ch) {
+template<class Pk, class Pr, class W> inline
+bool BMP180<Pk,Pr,W>::begin(unsigned int Ltimer_ch) {
   timer_ch=Ltimer_ch;
   port->beginTransmission(ADDRESS);
   port->write(0xE0);
@@ -16,7 +17,8 @@ bool BMP180::begin(unsigned int Ltimer_ch) {
   return readCalibration();
 }
 
-bool BMP180::readCalibration() {
+template<class Pk, class Pr, class W> inline
+bool BMP180<Pk,Pr,W>::readCalibration() {
   ac1 = read_int16(0xAA);
   ac2 = read_int16(0xAC);
   ac3 = read_int16(0xAE);
@@ -33,8 +35,9 @@ bool BMP180::readCalibration() {
   return true;
 }
 
-void BMP180::printCalibration(Stream *Louf) {
-  ouf=Louf;
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::printCalibration(Pr& Louf) {
+  ouf=&Louf;
   ouf->println("BMP180 calibration constants");
   ouf->print("ac1: ");
   ouf->println(ac1,DEC);
@@ -60,7 +63,8 @@ void BMP180::printCalibration(Stream *Louf) {
   ouf->println(md,DEC);
 }
 
-void BMP180::fillCalibration(Packet& pkt) {
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::fillCalibration(Pk& pkt) {
   pkt.fill16(ac1);
   pkt.fill16(ac2);
   pkt.fill16(ac3);
@@ -76,7 +80,8 @@ void BMP180::fillCalibration(Packet& pkt) {
  
 // Calculate temperature given ut.
 // Value returned will be in units of 0.1 deg C
-int16_t BMP180::getTemperature(uint16_t ut) {
+template<class Pk, class Pr, class W> inline
+int16_t BMP180<Pk,Pr,W>::getTemperature(uint16_t ut) {
   int32_t x1, x2;
   int16_t result;
   
@@ -92,7 +97,8 @@ int16_t BMP180::getTemperature(uint16_t ut) {
 // calibration values must be known
 // b5 is also required so getTemperature(...) must be called first.
 // Value returned will be pressure in units of Pa.
-int32_t BMP180::getPressure(uint32_t up) {
+template<class Pk, class Pr, class W> inline
+int32_t BMP180<Pk,Pr,W>::getPressure(uint32_t up) {
   int32_t x1, x2, x3, b3, b6, p;
   uint32_t b4, b7;
   
@@ -124,7 +130,8 @@ int32_t BMP180::getPressure(uint32_t up) {
 }
 
 // Read 1 byte from the BMP085 at 'address'
-int8_t BMP180::read(uint8_t address) {
+template<class Pk, class Pr, class W> inline
+int8_t BMP180<Pk,Pr,W>::read(uint8_t address) {
   port->beginTransmission(ADDRESS);
   port->write(address);
   port->endTransmission();
@@ -136,7 +143,8 @@ int8_t BMP180::read(uint8_t address) {
 // Read 2 bytes from the BMP085
 // First byte will be from 'address'
 // Second byte will be from 'address'+1
-int16_t BMP180::read_int16(uint8_t address) {
+template<class Pk, class Pr, class W> inline
+int16_t BMP180<Pk,Pr,W>::read_int16(uint8_t address) {
   uint8_t msb, lsb;
   
   port->beginTransmission(ADDRESS);
@@ -150,7 +158,8 @@ int16_t BMP180::read_int16(uint8_t address) {
   return (int16_t) msb<<8 | lsb;
 }
 
-void BMP180::startMeasurementCore() {
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::startMeasurementCore() {
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
   port->beginTransmission(ADDRESS);
@@ -159,7 +168,8 @@ void BMP180::startMeasurementCore() {
   port->endTransmission();
 }
 
-void BMP180::startMeasurement() {
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::startMeasurement() {
   if(start) return; //If a measurement is already started, keep doing that one
   startMeasurementCore();
   start=true;
@@ -168,7 +178,8 @@ void BMP180::startMeasurement() {
   TC0=TTC(0);
 }
 
-bool BMP180::checkMeasurement() {
+template<class Pk, class Pr, class W> inline
+bool BMP180<Pk,Pr,W>::checkMeasurement() {
   uint32_t dtms=msPassed(TC0);
   if(!start) {
     return true;
@@ -198,12 +209,14 @@ bool BMP180::checkMeasurement() {
 
 //Manages start and checking of a measurement. Call this in a busy loop, it will return quickly if no measurement is available.
 // @return If true, a new consistent temperature and pressure are availalble through getTemperature() and getPressure().
-bool BMP180::noblockMeasurement() {
+template<class Pk, class Pr, class W> inline
+bool BMP180<Pk,Pr,W>::noblockMeasurement() {
   if(!start) startMeasurement();
   return checkMeasurement();
 }
 
-void BMP180::finishTempCore() {
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::finishTempCore() {
   // Read two bytes from registers 0xF6 and 0xF7
   UT = read_int16(0xF6);
 
@@ -216,7 +229,8 @@ void BMP180::finishTempCore() {
   port->endTransmission();
 }
 
-void BMP180::finishPresCore() {
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::finishPresCore() {
   uint8_t msb, lsb, xlsb;
     
   // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
@@ -232,7 +246,8 @@ void BMP180::finishPresCore() {
   UP = (((uint32_t) msb << 16) | ((uint32_t) lsb << 8) | (uint32_t) xlsb) >> (8-OSS);
 }
 
-void BMP180::blockMeasurement() {
+template<class Pk, class Pr, class W> inline
+void BMP180<Pk,Pr,W>::blockMeasurement() {
   startMeasurementCore();
   delay(tempDelayMS);
   finishTempCore();

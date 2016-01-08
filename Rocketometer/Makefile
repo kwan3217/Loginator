@@ -1,18 +1,18 @@
 MEDIA="/media/MICROSD 8GB"
 ATTACH=Rocketometer.brd Rocketometer.sch Rocketometer.bom Rocketometer.docx Apid.ods
 
-include ../libraries/Serial/Makefile
+include ../libraries/peripherals/Serial/Makefile
 include ../libraries/Task/Makefile
-include ../libraries/Wire/StateTwoWire/Makefile
-include ../libraries/bmp180/Makefile
-include ../libraries/ad799x/Makefile
-include ../libraries/hmc5883/Makefile
-include ../libraries/mpu60x0/Makefile
+include ../libraries/peripherals/Wire/StateTwoWire/Makefile
+include ../libraries/sensors/bmp180/Makefile
+include ../libraries/sensors/ad799x/Makefile
+include ../libraries/sensors/hmc5883/Makefile
+include ../libraries/sensors/mpu60x0/Makefile
 include ../libraries/gps/nmea/Makefile
 include ../libraries/dump/Makefile
 include ../libraries/packet/Makefile
-include ../libraries/fat/Makefile
-include ../libraries/FileCircular/Makefile
+include ../libraries/file/sdhc/Makefile
+include ../libraries/file/FileCircular/Makefile
 include ../libraries/System/Makefile
 
 format:

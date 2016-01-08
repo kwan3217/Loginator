@@ -29,20 +29,20 @@ const char syncMark[]="KwanSync";
 static const char version_string[]="Project Yukari v4.0 " __DATE__ " " __TIME__;
 const int dumpPktSize=120;
 
-StateTwoWire<CCSDS,1> Wire1;
-HMC5883<CCSDS,StateTwoWire<CCSDS,1>> hmc5883(Wire1);
-SDHC<CCSDS,HardwareSerial<0>,HardSPI0> sd(SPI);
-L3G4200D<CCSDS,HardSPI1> gyro(SPI1,25);
-SDHC_info<CCSDS,HardwareSerial<0>> sdinfo;
-Partition<CCSDS,HardwareSerial<0>,HardSPI0> p(sd);
-Cluster<CCSDS,HardwareSerial<0>,HardSPI0> fs(p);
-File<CCSDS,HardwareSerial<0>,HardSPI0> f(fs);
-FileCircular<CCSDS,HardwareSerial<0>,HardSPI0> sdStore(f);
+CCSDS packet;
+StateTwoWire<decltype(packet),1> Wire1;
+HMC5883<decltype(packet),decltype(Wire1)> hmc5883(Wire1);
+SDHC<decltype(packet),decltype(Serial),decltype(SPI)> sd(SPI);
+L3G4200D<decltype(packet),HardSPI1> gyro(SPI1,25);
+SDHC_info<decltype(packet),decltype(Serial)> sdinfo;
+Partition<decltype(packet),decltype(Serial),decltype(SPI)> p(sd);
+Cluster<decltype(packet),decltype(Serial),decltype(SPI)> fs(p);
+File<decltype(packet),decltype(Serial),decltype(SPI)> f(fs);
+FileCircular<decltype(packet),decltype(Serial),decltype(SPI)> sdStore(f);
 char serialBuf[1024];
 Circular serialStore(1024,serialBuf);
-CCSDS ccsds;
 NMEA gps;
-ReadConfig<CCSDS,HardwareSerial<0>,HardSPI0> readconfig(fs,ccsds);
+ReadConfig<decltype(packet),decltype(Serial),decltype(SPI)> readconfig(fs,packet);
 Navigate nav(config);
 Guide guide(nav,config);
 Control control(nav,guide,config);
@@ -169,9 +169,9 @@ void initHMC5883() {
   hmc5883.whoami(HMCid);
   Serial.print("HMC5883L identifier (should be 'H43'): ");
   Serial.println(HMCid);
-  ccsds.start(sdStore,0x0E);
-  hmc5883.fillConfig(ccsds);
-  ccsds.finish(0x0E);
+  packet.start(sdStore,0x0E);
+  hmc5883.fillConfig(packet);
+  packet.finish(0x0E);
   sdStore.drain();
 }
 
@@ -183,9 +183,9 @@ void initGyro() {
   Serial.print("L3G4200D identifier (should be 'D3'): ");
   Serial.println(gyroId,HEX,2);
   nav.setSens(config.gyroSens);
-  ccsds.start(sdStore,0x20);
-  gyro.fillConfig(ccsds);
-  ccsds.finish(0x20);
+  packet.start(sdStore,0x20);
+  gyro.fillConfig(packet);
+  packet.finish(0x20);
   sdStore.drain();
   //Priming read, not written anywhere but clears INT2
   uint8_t t,status;
@@ -231,19 +231,19 @@ void setup() {
 
   //Read system config
   bool worked;
-  ccsds.start(sdStore,0x22);
+  packet.start(sdStore,0x22);
   worked=readconfig.begin();
-  ccsds.finish(0x22);
+  packet.finish(0x22);
   sdStore.drain();
 //  volatile int deg=45;
 //  Serial.print(sint(deg));
-  ccsds.start(sdStore,0x28);
+  packet.start(sdStore,0x28);
   #include "write_packet_parseconfig.INC"
   for(int i=0;i<=config.nWaypoints;i++) {
-    ccsds.fillfp(config.waypoint[i][0]);
-    ccsds.fillfp(config.waypoint[i][1]);
+    packet.fillfp(config.waypoint[i][0]);
+    packet.fillfp(config.waypoint[i][1]);
   }
-  ccsds.finish(0x28);
+  packet.finish(0x28);
   Serial.print("readconfig");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(readconfig.errnum);
   if(!worked) blinklock(readconfig.errnum);
 
@@ -251,9 +251,9 @@ void setup() {
   setupWaypointPacket(0);
   control.begin();
 
-  ccsds.start(sdStore,0x12);
-  sdinfo.fill(ccsds);
-  ccsds.finish(0x12);
+  packet.start(sdStore,0x12);
+  sdinfo.fill(packet);
+  packet.finish(0x12);
   sdStore.drain();
 
   //Must be done before the I2C sensors are activated (Compass and BMP)
@@ -282,9 +282,9 @@ bool collectGPS() {
     char in=Serial.read();
     if(in=='$') {
       serialStore.mark();
-      ccsds.start(sdStore,0x1A,TTC(0));
+      packet.start(sdStore,0x1A,TTC(0));
       serialStore.drainPartial(sdStore);
-      ccsds.finish(0x1A);
+      packet.finish(0x1A);
       Serial.write('p');
     }
     serialStore.fill(in);

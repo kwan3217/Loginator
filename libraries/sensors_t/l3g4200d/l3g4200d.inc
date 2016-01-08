@@ -15,7 +15,7 @@ uint8_t L3G4200D<P,S>::begin(char sens, char odr, char bw) {
 }
 
 template<class P,class S>
-bool L3G4200D<P,S>::fillConfig(P& ccsds) {
+bool L3G4200D<P,S>::fillConfig(P& packet) {
   char buf[6];
   this->s.rx_block(this->p0,0x80 | 0x40 | 0x20,buf,6);//Read (0x80) multiple bytes (0x40) starting at address 0x20
   #include "write_packet_gyrocfg.INC"

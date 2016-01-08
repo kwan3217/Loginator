@@ -8,6 +8,7 @@ using namespace std;
 
 static const Field fieldTC={
   "TC",       //name;  ///<Name of this field, exactly as-is in the spreadsheet. MUST be a valid C/C++ identifier
+  "",         // specialFill
   "uint32_t", //type;  ///<Type of this field, exactly as-is in the spreadsheet. MUST be a valid C/C++ type. If it has empty brackets[], it is an unbounded array. If it has a bracket with a number, it is a bounded array.
   "",         //source;  ///<Code which is used to calculate the field value, in the robot execution context. MUST be a single C++ expression.
   "TC",       //unit;  ///<Units of this field, SHOULD be either an SI unit for physical values or DN or TC for digital values.
@@ -19,12 +20,13 @@ static const Field fieldTC={
 };
 
 void Field::set(vector<string>& sfields) {
-  if(sfields.size()> 6) source=sfields[ 6];
-  if(sfields.size()> 7) name  =sfields[ 7];
-  if(sfields.size()> 8) type  =sfields[ 8];
-  if(sfields.size()> 9) unit  =sfields[ 9];
-  if(sfields.size()>10) desc  =sfields[10];
-                        le=(sfields.size()>11 && (sfields[11][0]=='l' || sfields[11][0]=='L'));
+  if(sfields.size()> 6) source      =sfields[ 6];
+  if(sfields.size()> 7) name        =sfields[ 7];
+  if(sfields.size()> 8) type        =sfields[ 8];
+  if(sfields.size()> 9) unit        =sfields[ 9];
+  if(sfields.size()>10) desc        =sfields[10];
+                        le  =(sfields.size()>11 && (sfields[11][0]=='l' || sfields[11][0]=='L'));
+  if(sfields.size()>12) specialFill =sfields[12];
   pretype=type;
   ntohType=type;
   array="";
@@ -49,7 +51,7 @@ int Field::arraySize() {
 void Packet::set(vector<string>& sfields) {
   if(sfields.size()> 0) apidStr  =sfields[0];
   if(sfields.size()> 1) shortName=sfields[1];
-  if(sfields.size()> 2) wrapRobot=(sfields[2][0]=='y' || sfields[2][0]=='Y');
+  if(sfields.size()> 2) buffer   =sfields[2];
   if(sfields.size()> 3) fileExt  =sfields[3];
   if(sfields.size()> 4) TC       =sfields[4];
   if(sfields.size()> 5) extractor=sfields[5];

@@ -47,9 +47,10 @@
    has a 7-bit address of either 0x28 or 0x29.  
    */
 
+template<class W>
 class AD799x {
   private:
-    TwoWire &port;
+    W& port;
     bool read(uint8_t *data, int num);
     bool write(uint8_t data);
     uint8_t ADDRESS;  // I2C address of AD799x
@@ -57,7 +58,7 @@ class AD799x {
     uint8_t nChannels;
     uint8_t channels;
   public:
-    AD799x(TwoWire &Lport, int a0=0);
+    AD799x(W& Lport, int a0=0);
     bool begin(uint8_t Lchannels, bool vref=false);
     bool read(uint16_t ch[]);
     void format(uint16_t ch[]);
@@ -69,5 +70,7 @@ class AD799x {
      */
     bool writeConfig(uint8_t Lchannels, bool vref=false);
 };
+
+#include "ad799x.inc"
 
 #endif

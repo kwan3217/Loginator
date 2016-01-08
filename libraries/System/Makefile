@@ -57,6 +57,7 @@ uniq = $(call reduce,check_uniq,$1)
 SRC:=$(call uniq,$(SRC))
 SRCARM:=$(call uniq,$(SRCARM))
 CPPSRC:=$(call uniq,$(CPPSRC))
+EMBCPPSRC:=$(call uniq,$(EMBCPPSRC))
 CPPSRCARM:=$(call uniq,$(CPPSRCARM))
 ASRC:=$(call uniq,$(ASRC))
 ASRCARM:=$(call uniq,$(ASRCARM))
@@ -418,7 +419,7 @@ FW.SFE: $(TARGET).bin
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(CPPOBJARM)
 
-ALLOBJ=$(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(GENCPPOBJ) $(CPPOBJARM) $(EXTRAO)
+ALLOBJ=$(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) $(CPPOBJ) $(GENCPPOBJ) $(CPPOBJARM) $(EXTRAO) $(EMBCPPOBJ)
 
 
 $(TARGET).elf: $(ALLOBJ) $(SOURCEOBJ) $(TARGET).nosource.elf 

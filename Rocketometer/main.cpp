@@ -11,13 +11,12 @@
 #include "DirectTask.h"
 #include "LPC214x.h"
 #include "dump.h"
-#include "packet.h"
+#include "ccsds.h"
 #include "sdhc.h"
 #include "Partition.h"
 #include "cluster.h"
 #include "direntry.h"
 #include "file.h"
-static const int blockSize=SDHC::BLOCK_SIZE;
 #include "FileCircular.h"
 #include "nmea.h"
 
@@ -36,28 +35,26 @@ volatile unsigned int drainTC0,drainTC1;
 
 const uint32_t readPeriodMs=3;
 
-inline uint32_t abs(int in) {
-  return in>0?in:-in;
-}
-
-StateTwoWire Wire1(0);
-SDHC sd(&SPI,15);
-SDHC_info sdinfo;
-Partition p(sd);
-Cluster fs(p);
-File f(fs);
-Hd sector(Serial);
-BMP180 bmp180(Wire1);
-HMC5883 hmc5883(Wire1);
-MPU6050 mpu6050(Wire1,0);
-AD799x ad799x(Wire1);
+CCSDS packet;
+StateTwoWire<decltype(packet),1> Wire1;
+SDHC<decltype(packet),decltype(Serial),decltype(SPI)> sd(SPI);
+SDHC_info<decltype(packet),decltype(Serial)> sdinfo;
+Partition<decltype(packet),decltype(Serial),decltype(SPI)> p(sd);
+Cluster<decltype(packet),decltype(Serial),decltype(SPI)> fs(p);
+File<decltype(packet),decltype(Serial),decltype(SPI)> f(fs);
+Hd<decltype(Serial)> sector(Serial);
+BMP180<decltype(packet),decltype(Serial),StateTwoWire<decltype(packet),1>> bmp180(Wire1);
+HMC5883<decltype(packet),decltype(Wire1)> hmc5883(Wire1);
+MPU6050<decltype(packet),StateTwoWire<decltype(packet),1>> mpu6050(Wire1,0);
+AD799x<decltype(Wire1)> ad799x(Wire1);
 const int dumpPktSize=120;
-FileCircular sdStore(f);
+FileCircular<decltype(packet),decltype(Serial),decltype(SPI)> sdStore(f);
 char measBuf[1024],serialBuf[1024];
 Circular measStore(1024,measBuf),serialStore(1024,serialBuf);
-CCSDS ccsds;
 unsigned short pktseq[32];
 NMEA gps;
+
+static const int blockSize=SDHC<decltype(packet),decltype(Serial),decltype(SPI)>::BLOCK_SIZE;
 
 const char syncMark[]="KwanSync";
 
@@ -95,7 +92,7 @@ int16_t mgx,mgy,mgz; //MPU60x0 gyro
 int16_t mt;          //MPU60x0 temp
 int16_t bx,by,bz;    //compass (bfld)
 uint16_t hx[4];      //HighAcc
-bool wantPrint;
+bool wantPrint,wantBmp;
 uint32_t TC,TC1;
 int temperatureRaw,pressureRaw;
 int16_t temperature;
@@ -118,9 +115,7 @@ void collectData(void* stuff) {
     return; 
   }
   if(oldOvr!=measStore.getBufOverflow()) {
-    ccsds.start(measStore,0x15,pktseq,TC);
-    ccsds.fill(measStore.getBufOverflow());
-    ccsds.finish(0x15);
+    #include "write_packet_pktOverflow.INC"
     oldOvr=measStore.getBufOverflow();
   }
   hmcPhase++;
@@ -130,93 +125,78 @@ void collectData(void* stuff) {
   mpu6050.read(max,may,maz,mgx,mgy,mgz,mt);
   ad799x.read(hx);
   TC1=TTC(0);
-  ccsds.start(measStore,0x10,pktseq,TC);
-  ccsds.fill16(max);ccsds.fill16(may); ccsds.fill16(maz); ccsds.fill16(mgx); ccsds.fill16(mgy); ccsds.fill16(mgz); ccsds.fill16(mt);
-  ccsds.fill((char*)hx,8);
-  ccsds.fill32(TC1);
-  ccsds.finish(0x10);
+  #include "write_packet_rktoFast.INC"
   if(vbus!=old_vbus) {
-    ccsds.start(measStore,0x13,pktseq,TC);
-    ccsds.fill(old_vbus);
-    ccsds.fill(vbus);
-    ccsds.finish(0x13);
+    #include "write_packet_vbusPower.INC"
     old_vbus=vbus;
   }
   if(hmcPhase>=hmcMaxPhase) {
     //Only read the compass once every n times we read the 6DoF
     TC=TTC(0);
     hmc5883.read(bx,by,bz);
-    ccsds.start(measStore,0x04,pktseq,TC);
     //Sensor registers are in X, Z, Y order, not XYZ. Old code didn't know this,
     //wrote sensor registers in order, therefore wrote xzy order unintentionally.
     //We will keep this order to maintain compatibility with old data, including
     //flight 36.290
-    ccsds.fill16(bx);  ccsds.fill16(bz);  ccsds.fill16(by);
-    ccsds.finish(0x04);
+    #include "write_packet_mag.INC"
     hmcPhase=0;
   }
   if(bmpPhase>=bmpMaxPhase) {
     //Only read the pressure sensor once every n times we read the 6DoF
     bmpTC=TTC(0);  
-    bmp180.startMeasurement();
+    bmp180.noblockMeasurement();
     wantPrint=true;
+    wantBmp=true;
     bmpPhase=0;
   }
-  if(bmp180.ready) {
+  if(wantBmp && bmp180.noblockMeasurement()) {
     temperatureRaw=bmp180.getTemperatureRaw();
     pressureRaw=bmp180.getPressureRaw();
     temperature=bmp180.getTemperature();
     pressure=bmp180.getPressure();
-    bmp180.ready=false;
+    wantBmp=false;
     TC1=TTC(0);
-    ccsds.start(measStore,0x0A,pktseq,bmpTC);
-    ccsds.fill16(temperatureRaw);
-    ccsds.fill32(pressureRaw);
-    ccsds.fill16(temperature);
-    ccsds.fill32(pressure);
-    ccsds.fill32(TC1);
-    ccsds.finish(0x0A);
+    #include "write_packet_bmpData.INC"
   }
   //Why here? Because since creation of packets is interrupt driven, and there
   //is only a single buffer, only the interrupt routine is allowed to write
   if(writeDrain) {
-    ccsds.start(measStore,0x08,pktseq,drainTC0);
-    ccsds.fill32(drainTC1);
-    ccsds.finish(0x08);
+    #include "write_packet_sdDrain.INC"
     writeDrain=false;
   }
+  /* No GPS in flight 36.290 Rocketometer
   if(gps.writePPS) {
-    ccsds.start(measStore,0x16,pktseq,gps.PPSTC);
+    packet.start(measStore,0x16,pktseq,gps.PPSTC);
     gps.writePPS=false;
-    ccsds.finish(0x16);
+    packet.finish(0x16);
   }
   if(gps.writeZDA) {
-    ccsds.start(measStore,0x17,pktseq,TTC(0));
-    ccsds.fill32(gps.zdaHMS);
-    ccsds.fill(gps.zdaDD);
-    ccsds.fill(gps.zdaMM);
-    ccsds.fill(gps.zdaYYYY-2000);
+    packet.start(measStore,0x17,pktseq,TTC(0));
+    packet.fill32(gps.zdaHMS);
+    packet.fill(gps.zdaDD);
+    packet.fill(gps.zdaMM);
+    packet.fill(gps.zdaYYYY-2000);
     gps.writeZDA=false;
-    ccsds.finish(0x17);
+    packet.finish(0x17);
   }
   if(gps.writeGGA) {
-    ccsds.start(measStore,0x18,pktseq,TTC(0));
-    ccsds.fill32(gps.lat);
-    ccsds.fill32(gps.lon);
-    ccsds.fill32(gps.alt);
-    ccsds.fill(gps.altScale);
+    packet.start(measStore,0x18,pktseq,TTC(0));
+    packet.fill32(gps.lat);
+    packet.fill32(gps.lon);
+    packet.fill32(gps.alt);
+    packet.fill(gps.altScale);
     gps.writeGGA=false;
-    ccsds.finish(0x18);
+    packet.finish(0x18);
   }
   if(gps.writeVTG) {
-    ccsds.start(measStore,0x19,pktseq,TTC(0));
-    ccsds.fill32(gps.vtgCourse);
-    ccsds.fill(gps.vtgCourseScale);
-    ccsds.fill32(gps.vtgSpeedKt);
-    ccsds.fill(gps.vtgSpeedKtScale);
+    packet.start(measStore,0x19,pktseq,TTC(0));
+    packet.fill32(gps.vtgCourse);
+    packet.fill(gps.vtgCourseScale);
+    packet.fill32(gps.vtgSpeedKt);
+    packet.fill(gps.vtgSpeedKtScale);
     gps.writeVTG=false;
-    ccsds.finish(0x19);
-  }
+    packet.finish(0x19);
+  } */
   directTaskManager.reschedule(1,readPeriodMs,0,collectData,0); 
 }
 
@@ -234,6 +214,7 @@ void setup() {
   Wire1.begin();
 
   bool worked;
+  sd.p0=15; //Note that this is different from the Loginator and Logomatic
   worked=sd.begin();
 
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errnum);
@@ -260,26 +241,23 @@ void setup() {
   int len=source_end-source_start;
   char* base=source_start;
   while(len>0) {
-    ccsds.start(sdStore,0x03,pktseq);
-    ccsds.fill16(base-source_start);
-    ccsds.fill(base,len>dumpPktSize?dumpPktSize:len);
-    ccsds.finish(0x03);
+    #include "write_packet_source.INC"
     sdStore.drain(); 
     base+=dumpPktSize;
     len-=dumpPktSize;
   }
 
-  ccsds.start(sdStore,0x12,pktseq);
-  sdinfo.fill(ccsds);
-  ccsds.finish(0x12);
+  packet.start(sdStore,0x12);
+  sdinfo.fill(packet);
+  packet.finish(0x12);
   sdStore.drain(); 
 
   mpu6050.begin(3,3);
   Serial.print("MPU6050 identifier (should be 0x68): 0x");
   Serial.println(mpu6050.whoami(),HEX);
-  ccsds.start(sdStore,0x0F);
-  mpu6050.fillConfig(ccsds);
-  ccsds.finish(0x0F);
+  packet.start(sdStore,0x0F);
+  mpu6050.fillConfig(packet);
+  packet.finish(0x0F);
   sdStore.drain();
 
   hmc5883.begin();
@@ -287,21 +265,21 @@ void setup() {
   hmc5883.whoami(HMCid);
   Serial.print("HMC5883L identifier (should be 'H43'): ");
   Serial.println(HMCid);
-  ccsds.start(sdStore,0x0E);
-  hmc5883.fillConfig(ccsds);
-  ccsds.finish(0x0E);
+  packet.start(sdStore,0x0E);
+  hmc5883.fillConfig(packet);
+  packet.finish(0x0E);
   sdStore.drain();
 
   char channels=0x0B;
   worked=ad799x.begin(channels);
   Serial.print("ad799x");Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(0);
   if(!worked) blinklock(0xAAAA5555);
-  ccsds.start(sdStore,0x0D);
-  ccsds.fill(ad799x.getAddress());
-  ccsds.fill(channels);
-  ccsds.fill(ad799x.getnChannels());
-  ccsds.fill((uint8_t)worked);
-  ccsds.finish(0x0D);
+  packet.start(sdStore,0x0D);
+  packet.fill(ad799x.getAddress());
+  packet.fill(channels);
+  packet.fill(ad799x.getnChannels());
+  packet.fill((uint8_t)worked);
+  packet.finish(0x0D);
   sdStore.drain();
 
   worked=bmp180.begin(2);
@@ -309,31 +287,17 @@ void setup() {
   Serial.print("BMP180 identifier (should be 0x55): 0x");
   Serial.println(bmp180.whoami(),HEX);
   if(!worked) blinklock(0x5555AAAA);
-  bmp180.printCalibration(&Serial);
+  bmp180.printCalibration(Serial);
 
   bmp180.ouf=0;
-  ccsds.start(sdStore,0x02);
+  packet.start(sdStore,0x02);
 
-  bmp180.fillCalibration(ccsds);
+  bmp180.fillCalibration(packet);
 
-  ccsds.finish(0x02);
+  packet.finish(0x02);
   sdStore.drain();
 
-  ccsds.start(sdStore,0x0C);
-  ccsds.fill32(HW_TYPE);
-  ccsds.fill32(HW_SERIAL);
-  ccsds.fill(MAMCR);
-  ccsds.fill(MAMTIM);
-  ccsds.fill16(PLL0STAT);
-  ccsds.fill(VPBDIV);
-  ccsds.fill32(FOSC);                   //Crystal frequency, Hz
-  ccsds.fill32(CCLK);                   //Core Clock rate, Hz
-  ccsds.fill32(PCLK);                   //Peripheral Clock rate, Hz
-  ccsds.fill32(PREINT);
-  ccsds.fill32(PREFRAC);
-  ccsds.fill(CCR);
-  ccsds.fill(version_string);
-  ccsds.finish(0x0C);
+  #include "write_packet_version.INC"
   sdStore.drain();
 
   //Set USB_ON to GPIO read

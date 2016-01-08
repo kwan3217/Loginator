@@ -18,7 +18,7 @@ class HMC5883 {
     void begin();
     void whoami(char* id);
     void read(int16_t& x, int16_t& y, int16_t& z);
-    bool fillConfig(P& ccsds);
+    bool fillConfig(P& packet);
 };
 
 #include "hmc5883.inc"
