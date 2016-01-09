@@ -93,7 +93,7 @@ void Cluster::calcTableCluster(uint32_t cluster, uint32_t& sectorsPerTable, uint
   entryOffset=tableOffset % bytesPerSector;
 }
 
-#define FAIL_BAD(n) {errnum=(n);return BAD;}
+#define FAIL_BAD(n) {errnum=(n);return BAD_cluster;}
 uint32_t Cluster::readTable(uint32_t cluster) {
   if(tableEntrySize!=12) {
     uint32_t sectorsPerTable, entrySector, entryOffset;
@@ -158,7 +158,7 @@ filled. The default value starts searching at the beginning of the table.
 uint32_t Cluster::findFreeCluster(uint32_t startCluster) {
   if(tableEntrySize==12) FAIL_BAD(14);
   uint32_t cluster=startCluster;
-  uint32_t sectorsPerTable, entrySector, entryOffset,lastEntrySector=BAD;
+  uint32_t sectorsPerTable, entrySector, entryOffset,lastEntrySector=BAD_cluster;
   uint32_t entry;
   char* pentry=(char*)(&entry);
 //  Serial.println("Searching second half of table");
@@ -188,7 +188,7 @@ uint32_t Cluster::findFreeCluster(uint32_t startCluster) {
     if(entry==0) return cluster;
   }
   errnum=19;
-  return BAD;
+  return BAD_cluster;
 }
 
 
