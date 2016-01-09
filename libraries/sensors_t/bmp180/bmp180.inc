@@ -9,10 +9,10 @@
 template<class Pk, class Pr, class W> inline
 bool BMP180<Pk,Pr,W>::begin(unsigned int Ltimer_ch) {
   timer_ch=Ltimer_ch;
-  port->beginTransmission(ADDRESS);
-  port->write(0xE0);
-  port->write(0x6B);
-  port->endTransmission();
+  port.beginTransmission(ADDRESS);
+  port.write(0xE0);
+  port.write(0x6B);
+  port.endTransmission();
   delay(25);
   return readCalibration();
 }
@@ -132,12 +132,12 @@ int32_t BMP180<Pk,Pr,W>::getPressure(uint32_t up) {
 // Read 1 byte from the BMP085 at 'address'
 template<class Pk, class Pr, class W> inline
 int8_t BMP180<Pk,Pr,W>::read(uint8_t address) {
-  port->beginTransmission(ADDRESS);
-  port->write(address);
-  port->endTransmission();
+  port.beginTransmission(ADDRESS);
+  port.write(address);
+  port.endTransmission();
   
-  port->requestFrom(ADDRESS, 1);
-  return (int8_t)port->read();
+  port.requestFrom(ADDRESS, 1);
+  return (int8_t)port.read();
 }
 
 // Read 2 bytes from the BMP085
@@ -147,13 +147,13 @@ template<class Pk, class Pr, class W> inline
 int16_t BMP180<Pk,Pr,W>::read_int16(uint8_t address) {
   uint8_t msb, lsb;
   
-  port->beginTransmission(ADDRESS);
-  port->write(address);
-  port->endTransmission();
+  port.beginTransmission(ADDRESS);
+  port.write(address);
+  port.endTransmission();
   
-  port->requestFrom(ADDRESS, 2);
-  msb = port->read();
-  lsb = port->read();
+  port.requestFrom(ADDRESS, 2);
+  msb = port.read();
+  lsb = port.read();
   
   return (int16_t) msb<<8 | lsb;
 }
@@ -162,10 +162,10 @@ template<class Pk, class Pr, class W> inline
 void BMP180<Pk,Pr,W>::startMeasurementCore() {
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
-  port->beginTransmission(ADDRESS);
-  port->write(0xF4);
-  port->write(0x2E);
-  port->endTransmission();
+  port.beginTransmission(ADDRESS);
+  port.write(0xF4);
+  port.write(0x2E);
+  port.endTransmission();
 }
 
 template<class Pk, class Pr, class W> inline
@@ -223,10 +223,10 @@ void BMP180<Pk,Pr,W>::finishTempCore() {
   //Start pressure measurement 
   // Write 0x34+(OSS<<6) into register 0xF4
   // Request a pressure reading w/ oversampling setting
-  port->beginTransmission(ADDRESS);
-  port->write(0xF4);
-  port->write(0x34 | (OSS<<6));
-  port->endTransmission();
+  port.beginTransmission(ADDRESS);
+  port.write(0xF4);
+  port.write(0x34 | (OSS<<6));
+  port.endTransmission();
 }
 
 template<class Pk, class Pr, class W> inline
@@ -234,14 +234,14 @@ void BMP180<Pk,Pr,W>::finishPresCore() {
   uint8_t msb, lsb, xlsb;
     
   // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
-  port->beginTransmission(ADDRESS);
-  port->write(0xF6);
-  port->endTransmission();
-  port->requestFrom(ADDRESS, 3);
+  port.beginTransmission(ADDRESS);
+  port.write(0xF6);
+  port.endTransmission();
+  port.requestFrom(ADDRESS, 3);
   
-  msb = port->read();
-  lsb = port->read();
-  xlsb = port->read();
+  msb = port.read();
+  lsb = port.read();
+  xlsb = port.read();
   
   UP = (((uint32_t) msb << 16) | ((uint32_t) lsb << 8) | (uint32_t) xlsb) >> (8-OSS);
 }

@@ -54,7 +54,7 @@ bool MPU60x0<T>::begin(uint8_t gyro_scale, uint8_t acc_scale, uint8_t bandwidth,
                                  //                    bus so that the host can see the auxillary sensor(s) directly.
   Serial.print("Int1 config: 0x");Serial.println(int1_config,HEX,2);
   static_cast<T*>(this)->write(0x37,int1_config);
-  Serial.print("User ctrl: 0x");Serial.println(read(0x6B),HEX,2);
+  Serial.print("User ctrl: 0x");Serial.println(static_cast<T*>(this)->read(0x6B),HEX,2);
   //In order for passthrough to work, the 9150 I2C bus master must be disabled, but this is default, so we don't do anything with it
   return true;
 }

@@ -21,7 +21,7 @@ uint8_t L3G4200D::begin(char sens, char odr, char bw) {
   return 1;
 }
 
-bool L3G4200D::fillConfig(Packet& ccsds) {
+bool L3G4200D::fillConfig(Packet& packet) {
   char buf[6];
   s->rx_block(p0,0x80 | 0x40 | 0x20,buf,6);//Read (0x80) multiple bytes (0x40) starting at address 0x20
   #include "write_packet_gyrocfg.INC"

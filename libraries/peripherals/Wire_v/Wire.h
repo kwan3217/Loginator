@@ -6,7 +6,7 @@
 /** Abstract driver for I2C bus. Concrete implementations of this class can implement
   the bus with bit-banging or with any hardware support the chip provides.
 */
-class TwoWire:public Stream<TwoWire> {
+class TwoWire:public Stream {
   public:
     static const int BUFFER_LENGTH=32;
   private:

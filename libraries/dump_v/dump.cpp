@@ -1,17 +1,5 @@
 #include "dump.h"
 
-void Dump::region(const char* p, size_t base, size_t len, unsigned int rec_len) {
-  begin();
-  while(len>0) {
-    if(rec_len>len) rec_len=len;
-    line(p,base,rec_len);
-    base+=rec_len;
-    p+=rec_len;
-    len-=rec_len;
-  }
-  end();
-}
-
 void IntelHex::print_byte(unsigned char b) {
   checksum+=b;
   out.print(b>>4,HEX);

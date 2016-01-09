@@ -75,7 +75,7 @@ void HMC5883::whoami(char* id) {
   id[3]=0;
 }
 
-bool HMC5883::fillConfig(Packet& ccsds) {
+bool HMC5883::fillConfig(Packet& packet) {
   #include "write_packet_hmccfg.INC"
   return true;
 }

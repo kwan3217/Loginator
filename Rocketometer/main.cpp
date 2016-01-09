@@ -52,7 +52,7 @@ FileCircular<decltype(packet),decltype(Serial),decltype(SPI)> sdStore(f);
 char measBuf[1024],serialBuf[1024];
 Circular measStore(1024,measBuf),serialStore(1024,serialBuf);
 unsigned short pktseq[32];
-NMEA gps;
+//NMEA gps;
 
 static const int blockSize=SDHC<decltype(packet),decltype(Serial),decltype(SPI)>::BLOCK_SIZE;
 
@@ -302,7 +302,7 @@ void setup() {
 
   //Set USB_ON to GPIO read
   set_pin(23,0,0);
-  gps.begin();
+  // gps.begin();
   Serial.println("t,tc,bx,by,bz,max,may,maz,mgx,mgy,mgz,mt,h0,h1,h2,h3,T,P,vbus,ovr");
 //  Serial.println("t,tc,Traw,Praw");
 
@@ -332,10 +332,10 @@ void loop() {
     blinklock(sdStore.errnum);
   }
   if(wantPrint) {
-    Serial.print(RTCHOUR,DEC,2);
-    Serial.print(":");Serial.print(RTCMIN,DEC,2);
-    Serial.print(":");Serial.print(RTCSEC,DEC,2);
-    Serial.print(".");Serial.print(CTC&0x7FFF,HEX,4);
+    Serial.print(RTCHOUR(),DEC,2);
+    Serial.print(":");Serial.print(RTCMIN(),DEC,2);
+    Serial.print(":");Serial.print(RTCSEC(),DEC,2);
+    Serial.print(".");Serial.print(CTC()&0x7FFF,HEX,4);
     Serial.print(",");Serial.print(((unsigned int)(TC)),DEC,10);
     Serial.print(",");Serial.print(bx, DEC); 
     Serial.print(",");Serial.print(by, DEC); 
@@ -355,12 +355,12 @@ void loop() {
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
     Serial.print(",");Serial.print(vbus, DEC); 
-    Serial.print(",");Serial.print(DirEntry::packTime(RTCHOUR,RTCMIN,RTCSEC),HEX,4); 
-    Serial.print(",");Serial.print(DirEntry::packDate(RTCYEAR,RTCMONTH,RTCDOM),HEX,4); 
+    Serial.print(",");Serial.print(DirEntry<decltype(packet),decltype(Serial),decltype(SPI)>::packTime(RTCHOUR(),RTCMIN(),RTCSEC()),HEX,4);
+    Serial.print(",");Serial.print(DirEntry<decltype(packet),decltype(Serial),decltype(SPI)>::packDate(RTCYEAR(),RTCMONTH(),RTCDOM()),HEX,4);
     Serial.println();
     wantPrint=false;
   }
-  gps.process();
+//  gps.process();
 }
 
 

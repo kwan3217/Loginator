@@ -88,8 +88,8 @@ public:
   uint32_t readTable(uint32_t cluster);
   bool writeTable(uint32_t cluster, uint32_t entry);
   uint32_t findFreeCluster(uint32_t clusterToStart=1);
-  static const uint32_t BAD=0x0FFFFFF7;
-  static const uint32_t EOF=0x0FFFFFFF;
+  static const uint32_t BAD_cluster=0x0FFFFFF7;
+  static const uint32_t EOF_cluster=0x0FFFFFFF;
 };
 
 #endif

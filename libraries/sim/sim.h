@@ -186,7 +186,7 @@ public:
 
 class SimId: public SimSubId {
 public:
-  virtual uint32_t read_HW_TYPE()   override { return HW_TYPE_SIMULATOR; };
+  virtual uint32_t read_HW_SIM()    override { return 1; };
   virtual uint32_t read_HW_SERIAL() override { return 1; };
 };
 

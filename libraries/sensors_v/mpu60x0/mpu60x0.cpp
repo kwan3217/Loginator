@@ -6,8 +6,8 @@
   the registers:
 
 */
-bool MPU6050::fillConfig(Packet& ccsds) {
-  #include "write_packet_mpucfg.inc"
+bool MPU6050::fillConfig(Packet& packet) {
+  #include "write_packet_mpucfg.INC"
   return true;
 }
 

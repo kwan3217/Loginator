@@ -17,13 +17,13 @@
 
 template <class T>
 class MPU60x0 {
-private:
+protected:
 //  virtual unsigned char read(unsigned char addr)=0;
 //  virtual void write(unsigned char addr, unsigned char data)=0;
 /*  virtual*/int16_t read16(unsigned char addr) {return ((int16_t)read(addr))<<8 | ((int16_t)read(addr+1));};
 public:
   MPU60x0() {};
-  unsigned char whoami() {return read(0x75);};
+  unsigned char whoami() {return static_cast<T*>(this)->read(0x75);};
 /*  virtual*/ bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
   bool begin(uint8_t gyro_scale, uint8_t acc_scale, uint8_t bandwidth=0x03, uint8_t sample_rate=0); ///<Do anything necessary to init the part. Bus is available at this point.
 };
@@ -40,12 +40,14 @@ private:
   uint8_t ADDRESS;  ///< I2C address of part
   static const char addr_msb=0x68; ///<ORed with low bit of a0 to get actual address
   int A0;
-  virtual unsigned char read(unsigned char addr);
-  virtual void write(unsigned char addr, unsigned char data);
-  virtual int16_t read16(unsigned char addr);
+  /*virtual*/ int16_t read16(unsigned char addr);
 public:
+  //The following need to be public since accessed through CRTP
+  /*virtual*/ void write(unsigned char addr, unsigned char data);
+  /*virtual*/ unsigned char read(unsigned char addr);
+
   MPU6050(W& Lport,int LA0):port(Lport),ADDRESS(addr_msb+LA0) {};
-  virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
+  /*virtual*/ bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
   bool fillConfig(P& packet);
 };
 
