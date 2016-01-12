@@ -365,7 +365,7 @@ program: $(LPC21ISP_FLASHFILE)
 	$(LPC21ISP) $(LPC21ISP_OPTIONS) $(LPC21ISP_DEBUG) $(LPC21ISP_FLASHFILE) $(LPC21ISP_PORT) $(LPC21ISP_BAUD) $(LPC21ISP_XTAL)
 
 # Create final output file (.hex) from ELF output file.
-%.hex: FW.SFE
+$(TARGET).hex: FW.SFE
 	@echo
 	@echo $(MSG_FLASH) $@
 	srec_cat -O $@ -I $< -bin

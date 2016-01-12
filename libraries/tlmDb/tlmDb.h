@@ -58,8 +58,6 @@ public:
   void add(const Field& field);
 };
 
-bool nextField(std::string line, int& ptr, std::string& field);
-std::vector<std::string> parseCsv(std::string& line);
 std::vector<Packet> read(std::istream& in);
 std::vector<Packet> read(const std::string& infn);
 

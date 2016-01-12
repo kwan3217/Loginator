@@ -37,9 +37,7 @@ ro0(id,HW_SIM,   HW_ID_BASE_ADDR+0x08);
 //Each block has a consistent format.
 //Block offset  Description    value   Value description
 //------------  -------------  -----   -----------------
-// 0x00         presence       0,1     There is a part in this block
-//                             unk     No part in this block, or any subsequent
-// 0x04         part type      0       SD card
+// 0x00         part type      0       SD card
 //                             1       MPU60x0/9150 (just inertial part)
 //                             2       L3G4200D 3 axis rotation sensor
 //                             3       AD799x ADC
@@ -48,20 +46,27 @@ ro0(id,HW_SIM,   HW_ID_BASE_ADDR+0x08);
 //                                       (used in MPU9150)
 //                             6       BMP085/180 pressure sensor
 //                             7       HMC5883L 3 axis magnetometer
-//                             8       GPIO LED
+//                             8       LED
 //                             9       BMA180 3 axis accelerometer
 //                             10(0xA) NMEA GPS
-//                             11(0xB) Timer capture
+//                             11(0xB) Button/external input
 //                             12(0xC) Servo control
-//                             13(0xD) PWM LED  (RGB diode is three of these)
-// 0x08         bus type       0       SPI
+//                             unk     No part in this or any further slot
+// 0x04         port type      0       SPI
 //                             1       I2C
-// 0x0C         port number
-// 0x10         address                P0.xx pin used for CS for SPI parts
-//                                     I2C 7-bit address for I2C parts
-//                                     Py.xx pin used for this part
+//                             2       GPIO
+//                             3       PWM
+//                             4       Timer
+//                             5       UART
+// 0x08         port number
+// 0x0C         address        SPI     P0.xx pin used for CS for SPI parts
+//                             I2C     I2C 7-bit address for I2C parts
+//                             GPIO    Py.xx pin used for this part
 //                                       (y is port number from above, so P1.xx
-//                                        can be used)
+//                                        can be used).
+//                             PWM/timer P0.xx used for this device, must be one
+//                                        of the pins which support this PWM
+//                                        channel
 // 0x20         Description            C string (null-terminated) human-readable
 //                                     description of the part
 //
@@ -69,21 +74,26 @@ ro0(id,HW_SIM,   HW_ID_BASE_ADDR+0x08);
 //tree rocketometer. Block 0 overlaps the device ID, but cannot be used as
 //the device ID has a completely different form, and since we have precious data
 //in that form already, we have to keep that form.
-//The remainder of the space is three words which have an interpretation which
+//The remainder of the space is four words which have an interpretation which
 //depends on the part.
 //LED
 //Block offset      Description    value   Value description
 //------------      -------------  -----   -----------------
-// 0x14 (custom[0]) color          0       red
+// 0x10 (custom[0]) color          0       red
 //                                 1       green
 //                                 2       blue
 //                                 3       amber
-ro1(id,HW_ID_PRESENT,  N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x00);
-ro1(id,HW_ID_PART_TYPE,N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x04);
-ro1(id,HW_ID_BUS_TYPE, N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x08);
-ro1(id,HW_ID_PORT,     N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x0C);
-ro1(id,HW_ID_ADDRESS,  N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x10);
-ro2(id,HW_ID_CUSTOM,   N,3,HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x14+j*4);
+//
+//Timer Capture
+//Block offset      Description    value   Value description
+//------------      -------------  -----   -----------------
+// 0x10 (custom[0]) Capture channel         CAPy.x x value for this device, y
+//                                            is channel number above
+ro1(id,HW_ID_PART_TYPE,N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x00);
+ro1(id,HW_ID_BUS_TYPE, N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x04);
+ro1(id,HW_ID_PORT,     N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x08);
+ro1(id,HW_ID_ADDRESS,  N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x0C);
+ro2(id,HW_ID_CUSTOM,   N,3,HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x10+j*4);
 ro1(id,HW_ID_DESC,     N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+HW_ID_PERIPHERAL_DESC);
 
 #undef HW_ID_BASE_ADDR
