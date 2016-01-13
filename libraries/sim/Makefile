@@ -6,6 +6,7 @@ ATTACH+=../libraries/sim/SimSd.dot
 SIMCPPSRC+=../libraries/sim/LPC214x.cpp
 SIMCPPSRC+=../libraries/sim/SimGpio.cpp
 SIMCPPSRC+=../libraries/sim/SimI2c.cpp
+SIMCPPSRC+=../libraries/sim/SimId.cpp
 SIMCPPSRC+=../libraries/sim/SimScb.cpp
 SIMCPPSRC+=../libraries/sim/SimSd.cpp
 SIMCPPSRC+=../libraries/sim/SimSpi.cpp
@@ -20,10 +21,10 @@ CLANGLINK=-g -O0 -o $@ -lm -lstdc++ $^ -L/usr/lib/gcc/x86_64-linux-gnu/5.2.1/ -L
 
 #Rules to compile source into .o64 files
 $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(CPPSRC:.cpp=.$(SIMOBJEXT)): %.$(SIMOBJEXT): %.cpp
-	clang++ $(CLANGCOMP) 
+	g++ $(CLANGCOMP) 
 
 $(GENCPP:.CPP=.$(SIMOBJEXT)) : %.$(SIMOBJEXT): %.CPP
-	clang++ $(CLANGCOMP) 
+	g++ $(CLANGCOMP) 
 
 #Simulated SD card stuff
 

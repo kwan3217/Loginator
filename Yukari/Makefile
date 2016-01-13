@@ -18,7 +18,7 @@ SIMCPPSRC+=sim/playback.cpp
 SIMCPPSRC+=sim/PlaybackGyro.cpp
 SIMCPPSRC+=sim/PlaybackHmc.cpp
 #SIMCPPSRC+=sim/simhost.cpp
-HWDESCCSV=LoginatorOnboard.csv 11DoF.csv GPS.csv Yukari.csv
+HWDESCCSV=LoginatorHardware.csv LoginatorOnboard.csv 11DoF.csv GPS.csv Yukari.csv
 
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile

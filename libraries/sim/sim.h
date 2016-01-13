@@ -185,9 +185,23 @@ public:
 };
 
 class SimId: public SimSubId {
+private:
+  unsigned char idData[4096];
+  uint32_t get_uint32(int i) {return (((uint32_t)idData[i*4]) << 0) |
+                                     (((uint32_t)idData[i*4]) << 8) |
+                                     (((uint32_t)idData[i*4]) <<16) |
+                                     (((uint32_t)idData[i*4]) <<24) ;};
 public:
-  virtual uint32_t read_HW_SIM()    override { return 1; };
-  virtual uint32_t read_HW_SERIAL() override { return 1; };
+  SimId(char* infn);
+  virtual uint32_t read_HW_TYPE()                     override {return get_uint32(0);};
+  virtual uint32_t read_HW_SERIAL()                   override {return get_uint32(1);}
+  virtual uint32_t read_HW_SIM()                      override {return 1; };
+  virtual uint32_t read_HW_ID_PART_TYPE(int i)        override {return get_uint32(0+i*64  );};
+  virtual uint32_t read_HW_ID_BUS_TYPE (int i)        override {return get_uint32(1+i*64  );};
+  virtual uint32_t read_HW_ID_PORT     (int i)        override {return get_uint32(2+i*64  );};
+  virtual uint32_t read_HW_ID_ADDRESS  (int i)        override {return get_uint32(3+i*64  );};
+  virtual uint32_t read_HW_ID_CUSTOM   (int i, int j) override {return get_uint32(4+i*64+j);};
+  virtual uint32_t read_HW_ID_DESC     (int i, int j) override {return get_uint32(8+i*64+j);};
 };
 
 class SimSubSpi {
@@ -365,7 +379,7 @@ public:
                  SimRtc& Lrtc,
                  SimPwm& Lpwm,
                  SimAdc& Ladc
-  ):gpio(Lgpio),uart(Luart),time(Ltime),rtc(Lrtc),pwm(Lpwm),adc(Ladc) {};
+  ):gpio(Lgpio),uart(Luart),time(Ltime),rtc(Lrtc),pwm(Lpwm),adc(Ladc),id("hardwareDesc.hex") {};
 };
 
 

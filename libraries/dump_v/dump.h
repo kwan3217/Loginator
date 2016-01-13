@@ -43,11 +43,13 @@ class IntelHex: public Dump<IntelHex> {
 private:
   unsigned char checksum;
   unsigned int addr;
+public:
+  //Lower level routines
   void print_byte(unsigned char len);
   void begin_line(unsigned char len, unsigned short a, unsigned char type);
   void end_line();
   void address(size_t ia);
-public:
+  //high-level routines
   IntelHex(Print& Lout):Dump<IntelHex>(Lout,32) {};
   /*virtual*/ void begin();
   /*virtual*/ void end();
