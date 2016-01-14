@@ -135,6 +135,8 @@ private:
   bool DLAB[2],parityOn[2];
   int baud(int Lport);
 public:
+  // Transmitter holding register empty (bit 5) is always 1 since we can always send a byte
+  virtual uint32_t read_ULSR(int Lport) override {return 1 << 5;};
   virtual void write_UTHR(int Lport, uint32_t write) override;
   virtual void write_UDLL(int Lport, uint32_t write) override;
   virtual void write_UDLM(int Lport, uint32_t write) override;

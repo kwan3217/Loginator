@@ -23,9 +23,11 @@ HWDESCCSV=LoginatorHardware.csv LoginatorOnboard.csv 11DoF.csv GPS.csv Yukari.cs
 EXTRACLEAN+=CONFIG.TXT
 include ../libraries/LPCduino/Makefile
 include ../libraries/PWM/Makefile
+include ../libraries/hardwareDesc/Makefile
 include ../libraries/sensors/hmc5883/Makefile
 include ../libraries/sensors/l3g4200d/Makefile
 include ../libraries/peripherals/Serial/Makefile
+include ../libraries/tarball/Makefile
 include ../libraries/file/sdhc/Makefile
 include ../libraries/file/fat/Makefile
 include ../libraries/file/FileCircular/Makefile

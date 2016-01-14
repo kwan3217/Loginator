@@ -31,9 +31,9 @@ const int dumpPktSize=120;
 
 CCSDS packet;
 StateTwoWire Wire1(1);
-HMC5883 hmc5883;
+HMC5883 hmc5883(&Wire1);
 SDHC sd;
-L3G4200D gyro;
+L3G4200D gyro(&SPI1,25);
 SDHC_info sdinfo;
 Partition p(sd);
 Cluster fs(p);
@@ -191,21 +191,16 @@ void initGyro() {
   uint8_t t,status;
   gyro.read(gx,gy,gz,t,status);
   //set up CAP0.3 on pin P0.29 (Loginator AD2, 11DoF IG) to capture (read) gyro INT2
-  set_pin(29,2,0);
-  TCR(0,channelTCGyro)=0;
-  TCCR(0)|=(0x01 << (channelTCGyro*3)); //channel 3, 3 control bits per channel, capture on rising, not falling, no interrupt
+  setup_cap(29,true,false,false);
 }
 
 void initButtons() {
   //PPS is wired to AD5, P0.22, CAP0.0
-  set_pin(22,2,0); //Set pin to capture input
-  TCR(0,channelTCPPS)=0;      //Set timer result to 0
-  TCCR(0)|=(0x01 << (channelTCPPS*3)); //channel 0, 3 control bits per channel, capture on rising, not falling, no interrupt
+  setup_cap(22,true,false,false);
+  setup_cap(22,0x01);
   ppsTC=0;
   //Use the STOP button to start (I know). STOP is wired to P0.16, CAP0.2
-  set_pin(16,3,0); //Set pin to capture input
-  TCR(0,channelTCBtn)=0;      //Set timer result to 0
-  TCCR(0)|=(0x01 << (channelTCBtn*3)); //channel 2, 3 control bits per channel, capture on rising, not falling, no interrupt
+  setup_cap(16,true,false,false);
   btnTC=0;
 }
 

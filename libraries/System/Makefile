@@ -25,8 +25,6 @@ ifndef TARGET
 TARGET=$(TARGETBASE)
 endif
 
-include ../libraries/tarball/Makefile
-
 LIBMAKE+=Makefile ../libraries/System/Makefile
 
 ifndef MEDIA
@@ -430,8 +428,7 @@ $(TARGET).elf: $(ALLOBJ) $(SOURCEOBJ) $(TARGET).nosource.elf
 $(TARGET).nosource.elf:  $(ALLOBJ)
 	@echo
 	@echo $(MSG_LINKING) $@
-	$(CPP) $(THUMB) $^ --output $(TARGET).nosource.elf $(LDFLAGS)
-
+	$(CPP) $(THUMB) $^ --output $@ $(LDFLAGS)
 
 # Compile: create object files from C source files. ARM/Thumb
 $(COBJ) : %.$(OBJEXT) : %.c
@@ -539,13 +536,24 @@ clean_list :
 	$(REMOVE) $(CPPSRC:.cpp=.s) 
 	$(REMOVE) $(CPPSRC:.cpp=.d)
 	$(REMOVE) $(CPPSRC:.cpp=.e)
+	echo rm cppsrc $(SIMOBJEXT)
 	$(REMOVE) $(CPPSRC:.cpp=.$(SIMOBJEXT))
+	echo rm cppsrc .ii
+	$(REMOVE) $(notdir $(CPPSRC:.cpp=.ii))
+	$(REMOVE) $(notdir $(CPPSRC:.cpp=.s))
 	$(REMOVE) $(EMBCPPSRC:.cpp=.s) 
 	$(REMOVE) $(EMBCPPSRC:.cpp=.d)
 	$(REMOVE) $(EMBCPPSRC:.cpp=.e)
+	echo rm simcppsrc .s
 	$(REMOVE) $(SIMCPPSRC:.cpp=.s) 
+	echo rm simcppsrc .d
 	$(REMOVE) $(SIMCPPSRC:.cpp=.d)
+	echo rm simcppsrc .e
 	$(REMOVE) $(SIMCPPSRC:.cpp=.e)
+	echo rm simcppsrc .ii
+	$(REMOVE) $(notdir $(SIMCPPSRC:.cpp=.ii))
+	$(REMOVE) $(notdir $(SIMCPPSRC:.cpp=.s))
+	echo rm simcppsrc $(SIMOBJEXT)
 	$(REMOVE) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT))
 	$(REMOVE) $(CPPSRCARM:.cpp=.s) 
 	$(REMOVE) $(CPPSRCARM:.cpp=.d)
@@ -554,6 +562,9 @@ clean_list :
 	$(REMOVE) $(GENCPP:.CPP=.s) 
 	$(REMOVE) $(GENCPP:.CPP=.d)
 	$(REMOVE) $(GENCPP:.CPP=.e)
+	echo rm gencppsrc .ii
+	$(REMOVE) $(notdir $(GENCPP:.cpp=.ii))
+	$(REMOVE) $(notdir $(GENCPP:.cpp=.s))
 	$(REMOVE) $(GENCPP:.CPP=.svg)
 	$(REMOVE) $(GENCPP:.CPP=.unfix.dot)
 	$(REMOVE) $(GENCPP:.CPP=.dot)

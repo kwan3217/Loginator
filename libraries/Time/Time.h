@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include "LPC214x.h"
-
+#include "gpio.h"
 /** Crystal Oscillator rate in Hz. 12MHz in original Logomatic, all Loginator and Rocketometer circuits, and any LPC214x which is intended to use USB */
 static const int32_t FOSC=12000000;
 /** Peripheral clock rate in Hz */
@@ -19,6 +19,7 @@ extern int32_t dtc01;
 /** Number of ticks between a read of one timer and an immediately subsequent read of the other */
 extern int32_t timer_read_ticks;
 
+void measurePCLK(void);
 void setup_clock(void);
 /**Busy wait accurate delay. Relies on Timer0 running without pause at PCLK and resetting
  at timerSec seconds, as by setup_clock(). Code only reads, never writes, Timer0 registers.
@@ -70,5 +71,42 @@ static inline uint32_t timer1_to_timer0(uint32_t ttc1) {
   if(ttc0>=(PCLK*timerSec)) ttc0-=(PCLK*timerSec);
   return ttc0;
 }
+
+static constexpr uint32_t capPortShift=4;
+static constexpr uint32_t capChanShift=0;
+static constexpr uint32_t capPinsShift=12;
+
+#define p(instance, channel, pinsel) (instance << capPortShift) | (channel << capChanShift) | (pinsel << capPinsShift)
+#define F 0xFFFF
+constexpr uint16_t capConnect[32]={F       ,F       ,p(0,0,2),F       , // 0- 3
+		                           p(0,1,2),F       ,p(0,2,2),F       , // 4- 7
+			     				   F       ,F       ,p(1,0,2),p(1,1,2), // 8-11
+				    			   F       ,F       ,F       ,F       , //12-15
+					    		   p(0,2,3),p(1,2,1),p(1,3,1),p(1,2,1), //16-19
+						    	   F       ,p(1,3,3),p(0,0,2),F       , //20-23
+							       F       ,F       ,F       ,F       , //24-27
+							       p(0,2,2),p(0,3,2),p(0,0,3),F       };//28-31
+#undef p
+#undef F
+
+//These shifts make the values readable in little-endian hex dumps. Port will
+//appear in first nybble, channel in second, pinshift in third
+static inline constexpr uint16_t getCapPort(int i)     {return (capConnect[i] >> capPortShift) & 0xF;}
+static inline constexpr uint16_t getCapChannel(int i)  {return (capConnect[i] >> capChanShift) & 0xF;}
+static inline constexpr uint16_t getCapPinshift(int i) {return (capConnect[i] >> capPinsShift) & 0xF;}
+
+static inline void setup_cap(int pin, int intr_edge) {
+  set_pin(pin,getCapPinshift(pin),0);
+  TCR(getCapPort(pin),getCapChannel(pin))=0;
+  TCCR(getCapPort(pin))|=((intr_edge & 0x07) << (getCapChannel(pin)*3));
+}
+
+static inline void setup_cap(int pin, bool rising, bool falling, bool intr) {
+  setup_cap(pin,((rising ?1:0)<<0) |
+		        ((falling?1:0)<<1) |
+		        ((intr   ?1:0)<<2));
+}
+
+
 #endif
 

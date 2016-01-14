@@ -67,6 +67,8 @@ port(Lport) {
 // Public Methods //////////////////////////////////////////////////////////////
 
 void HardwareSerial::begin(unsigned int baud) {
+  measurePCLK();
+
   //Set up the pins
   if(port==0) {
     gpio_set_write(0);

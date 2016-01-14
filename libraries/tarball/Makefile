@@ -5,6 +5,9 @@
 LIBMAKE+=../libraries/tarball/Makefile
 EXTRAINCDIRS+=../libraries/tarball/
 ZPAQDIR=../libraries/tarball
+ifndef OBJEXT
+OBJEXT = o
+endif
 
 HDEP = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq))
 INCDEP = $(subst sinShort.h,,$(shell cat .dep/* | sed -n 's/\([^:]*.inc\)\s*:/\1/gp' | sort | uniq))
