@@ -31,9 +31,9 @@ const int dumpPktSize=120;
 
 CCSDS packet;
 StateTwoWire Wire1(1);
-HMC5883 hmc5883(&Wire1);
+HMC5883 hmc5883;
 SDHC sd;
-L3G4200D gyro(&SPI1,25);
+L3G4200D gyro;
 SDHC_info sdinfo;
 Partition p(sd);
 Cluster fs(p);

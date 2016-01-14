@@ -197,11 +197,11 @@ public:
   virtual uint32_t read_HW_SERIAL()                   override {return get_uint32(1);}
   virtual uint32_t read_HW_SIM()                      override {return 1; };
   virtual uint32_t read_HW_ID_PART_TYPE(int i)        override {return get_uint32(0+i*64  );};
-  virtual uint32_t read_HW_ID_BUS_TYPE (int i)        override {return get_uint32(1+i*64  );};
-  virtual uint32_t read_HW_ID_PORT     (int i)        override {return get_uint32(2+i*64  );};
+  virtual uint32_t read_HW_ID_PORT_TYPE(int i)        override {return get_uint32(1+i*64  );};
+  virtual uint32_t read_HW_ID_PORT_NUM (int i)        override {return get_uint32(2+i*64  );};
   virtual uint32_t read_HW_ID_ADDRESS  (int i)        override {return get_uint32(3+i*64  );};
   virtual uint32_t read_HW_ID_CUSTOM   (int i, int j) override {return get_uint32(4+i*64+j);};
-  virtual uint32_t read_HW_ID_DESC     (int i, int j) override {return get_uint32(8+i*64+j);};
+  virtual uint32_t read_HW_ID_DESC     (int i)        override {return get_uint32(8+i*64  );};
 };
 
 class SimSubSpi {
