@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
 
   setup(); //Run robot setup code
   //matrixTest does everything in setup() so we don't even run loop(), just exit
-//  for(;;) {
-//    loop();
-//  }
+  for(;;) {
+    loop();
+  }
 }

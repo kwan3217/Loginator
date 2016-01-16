@@ -2,6 +2,7 @@
 #include "LPCduino.h"
 #include "Serial.h"
 #include "kalmanEigen.h"
+#include <random>
 
 extern "C" {
 void __attribute__ ((weak)) _exit(int status) {};
@@ -20,34 +21,34 @@ class KalmanVelocity: public Kalman<2,1,KalmanVelocity> {
 
 };
 
+class KalmanConstant: public Kalman<1,1,KalmanConstant> {
+
+};
+
+uint32_t ticks;
+fp t;
+const fp dt=0.01;
+KalmanConstant kc;
+const fp sig_z=0.1;
+std::default_random_engine generator;
+std::normal_distribution<fp> distribution(0.0,sig_z);
+Eigen::Matrix<fp,1,1> z;
+
 void setup() {
   pinMode(13,OUTPUT);
   Serial.begin(4800);
   Serial.println("Begin");
-  KalmanVelocity kv;
-  fp dt=0.1;
-  fp sig_z=0.1;
-  fp sig_v=0.1;
-  kv.A << 1, dt,
-		  0,  1;
-  kv.H << 1,  0;
-  kv.Q << dt*dt*dt*dt/4, dt*dt*dt   /2,
-		  dt*dt*dt   /2, dt*dt        ;
-  kv.Q*=sig_v;
-  kv.R << sig_z*sig_z;
-  kv.P << 1, 0,
-		  0, 1;
-  kv.xh << 0.5,
-		   0.0;
-  Eigen::Matrix<fp,1,1> z;
-  z << 1.0;
-  kv.step(dt,z);
-  Serial.print("xh[0]: ");
-  Serial.println(kv.xh(0));
-  Serial.print("xh[1]: ");
-  Serial.println(kv.xh(1));
+  kc.A << 1;
+  kc.H << 1;
+  kc.Q << 0;
+  kc.R << sig_z*sig_z;
+  kc.P << 1;
+  kc.xh << 0;
 }
 
 void loop() {
-
+  z << 0.5+distribution(generator);
+  kc.step(dt,z);
+  Serial.print("xh[0]: ");
+  Serial.println(kc.xh(0),6);
 }

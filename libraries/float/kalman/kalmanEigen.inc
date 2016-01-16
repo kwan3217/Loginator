@@ -43,7 +43,7 @@ void Kalman<n_state,n_meas,T,Scalar>::step(Scalar dt_i, Eigen::Matrix<Scalar,n_m
     Gamma+=R(j);
 
     //K=S*Gamma^-1, or since Gamma is scalar, K=S/Gamma;
-    K=S/(1.0/Gamma);
+    K=S/Gamma;
     //4a - Measurement deviation y_i=z_i-xh_i.
     y=z(j)-zh(j);
     //4b - Measurement update of state deviation Xh_i=Xh_im+K*(Z_i-H_i*Xh_im)

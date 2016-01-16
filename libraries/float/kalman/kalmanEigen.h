@@ -1,7 +1,7 @@
 #ifndef KALMAN_H
 #define KALMAN_H
 
-#include <Eigen/Core>
+#include "Eigen/Core"
 
 /**Code to run the Extended Kalman Filter. This particular implementation is
 restricted to filters using a vector measurement with uncorrelated uncertainty

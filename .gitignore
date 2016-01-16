@@ -32,4 +32,6 @@ gccversion.txt
 sdcard
 *.sds
 *.SDS
+*.bc
+*.ii
 
