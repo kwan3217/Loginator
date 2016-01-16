@@ -51,6 +51,8 @@ reduce = $(if $(strip $2),$(call reduce,$1,$(wordlist 2,$(words $2),$2),$(call $
 check_uniq = $(if $(filter $1,$2),$2,$2 $1)
 
 uniq = $(call reduce,check_uniq,$1)
+HDEP = $(shell cat .dep/* | sed -n 's/\([^:]*.h\)\s*:/\1/gp' | sort | uniq)
+INCDEP = $(shell cat .dep/* | sed -n 's/\([^:]*.inc\)\s*:/\1/gp' | sort | uniq)
 
 SRC:=$(call uniq,$(SRC))
 SRCARM:=$(call uniq,$(SRCARM))
@@ -139,9 +141,9 @@ ADEFS +=  -D$(RUN_MODE)
 CFLAGS += $(DEBUG) -D$(HARDWARE) -DLPC2148
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += $(OPT)
-CFLAGS += -Wall -Wcast-align
-CFLAGS += -Wpointer-arith -Wswitch
-CFLAGS += -Wredundant-decls -Wreturn-type -Wshadow -Wunused -Wno-attributes
+CFLAGS += -Wall 
+#The following are not enabled by -Wall
+CFLAGS += -Wcast-align -Wpointer-arith -Wredundant-decls -Wshadow -Wno-attributes
 CFLAGS += -ffreestanding
 CFLAGS += -fverbose-asm 
 ifndef USE_CLANG
@@ -149,7 +151,8 @@ CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.s,$<) -mfloat-abi=soft
 endif
 CFLAGS += $(patsubst %,-I%,$(call uniq,$(EXTRAINCDIRS)))
 CFLAGS += -ffunction-sections -fdata-sections
-CFLAGS += -fsingle-precision-constant
+#This flag makes it impossible for Eigen to compile
+#CFLAGS += -fsingle-precision-constant
 
 # flags only for C
 CONLYFLAGS += -Wnested-externs 

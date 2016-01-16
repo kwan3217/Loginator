@@ -60,6 +60,7 @@ static inline constexpr fp poly(const fp x, const fp* P, const int order) {
   return poly(x,P,order,order);
 }
 
+namespace kwan {
 static inline constexpr fp sin(const fp x) {
   return poly(x,sinPoly,sizeof(sinPoly)/sizeof(fp)-1);
 }
@@ -67,21 +68,22 @@ static inline constexpr fp sin(const fp x) {
 static inline constexpr fp cos(const fp x) {
   return poly(x,cosPoly,sizeof(cosPoly)/sizeof(fp)-1);
 }
+}
 
-extern const fp sinTable[];
+//extern const fp sinTable[];
 
 //Angle is measured in tenths of a degree, so a full circle has 3600 parts
 //Angle must be between 0 and 3599 or else Bad Things happen
-static inline fp sint(int angle) {
-  if(angle<0) return -sint(-angle);
-  if(angle>=1800) return -sint(angle-1800);
-  if(angle>900) return sint(1800-angle);
-  return sinTable[angle];
-}
+//static inline fp sint(int angle) {
+  //if(angle<0) return -sint(-angle);
+//  if(angle>=1800) return -sint(angle-1800);
+  //if(angle>900) return sint(1800-angle);
+  //return sinTable[angle];
+//}
 
-static inline fp cost(int angle) {
-  return sint(900-angle);
-}
+//static inline fp cost(int angle) {
+  //return sint(900-angle);
+//}
 
 //From Wikipedia:Fast inverse square root. Must be float, not fp. Edited
 //to use correct types and avoid strict-aliasing warning on conversion from float to int

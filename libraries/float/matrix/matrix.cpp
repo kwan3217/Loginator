@@ -1,5 +1,4 @@
 #include "matrix.h"
-#include <math.h>
 
 #ifdef CHECK_COMPAT
 int mxerrnum=0;

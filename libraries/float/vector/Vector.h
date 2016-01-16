@@ -72,5 +72,5 @@ template<int n, typename T=fp> static inline Vector<n,T> operator/(Vector<n,T> l
 // No operator/(fp,Vector). This operation doesn't make sense
 
 template<int n, typename T=fp> static inline T dot(const Vector<n,T>& lhs, const Vector<n,T>& rhs) {T result=0;for(int i=0;i<n;i++) result+=lhs.comp[i]*rhs.comp[i];return result;};
-
+//If we wanted a cross product, we would include it similar to dot() above
 #endif

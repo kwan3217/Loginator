@@ -8,9 +8,9 @@
 #define makeSinTableD(x) makeSinTableE(x) makeSinTableE(x +  25) makeSinTableE(x+ 50)
 #define makeSinTableE(x) makeSinTableF(x) makeSinTableF(x +   5) makeSinTableF(x+ 10) makeSinTableF(x+ 15) makeSinTableF(x+ 20)
 #define makeSinTableF(x) makeSinTableG(x) makeSinTableG(x +   1) makeSinTableG(x+  2) makeSinTableG(x+  3) makeSinTableG(x+  4)
-#define makeSinTableG(x) sin(fp(x)/fp(10.0)*PI/fp(180.0)) ,
+#define makeSinTableG(x) sin(fp(x)/fp(10.0)*fp(PI)/fp(180.0)) ,
 
-const fp sinTable[] = { makeSinTableA(0) 1.0 };
+//const fp sinTable[] = { makeSinTableA(0) fp(1.0) };
 
 //Given a string representing number with a decimal point, return the number
 fp stof(char* in) {

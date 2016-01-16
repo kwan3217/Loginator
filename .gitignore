@@ -30,4 +30,6 @@ gccversion.txt
 *.CPP
 *.dot
 sdcard
+*.sds
+*.SDS
 
