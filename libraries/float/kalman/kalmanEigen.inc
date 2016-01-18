@@ -15,9 +15,32 @@ void KalmanEuler<n_state,n_meas,T,Scalar>::fA() {
   for(int i=0;i<n_state;i++) A(i,i)+=1;
 }
 */
+
+/** Perform a time update
+ * @param dt_i step size
+ *
+ */
 template<int n_state, int n_meas, class T, class Scalar>
-void Kalman<n_state,n_meas,T,Scalar>::step(Scalar dt_i, Eigen::Matrix<Scalar,n_meas,1>& z) {
+void Kalman<n_state,n_meas,T,Scalar>::timeUpdate(Scalar dt_i) {
   dt=dt_i;
+  //xh starts as xh_{i-1}
+  //P starts as P_{i-1}
+  if(dt>0) {
+	(static_cast<T*>(this))->fA(); //calculate A
+	(static_cast<T*>(this))->stateUpdate(); //Project state (updated A is available if needed)
+    //Equation 1A and 1B.
+    //xh is now xh_im
+    //Equation 2. P_n+1=A*P_n*A'+Q;
+    AP=A*P;
+    P=AP*A.transpose(); //P_n+1=A*P_n*A'
+    P+=Q;
+  }
+}
+
+/** Perform a measurement update
+ @param dt_i Time step size*/
+template<int n_state, int n_meas, class T, class Scalar>
+void Kalman<n_state,n_meas,T,Scalar>::measUpdate(Eigen::Matrix<Scalar,n_meas,1>& z) {
   (static_cast<T*>(this))->fH(); //calculate H from xh
   (static_cast<T*>(this))->fg(); //calcualte zh from xh
   //xh starts as xh_{i-1}
