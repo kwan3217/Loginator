@@ -9,6 +9,7 @@ typedef double fp;
 #else
 typedef float fp;
 #define atan2 atan2f
+#define exp expf
 //#define sqrt sqrtf
 #endif
 

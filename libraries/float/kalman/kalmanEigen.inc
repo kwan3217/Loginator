@@ -21,7 +21,7 @@ void KalmanEuler<n_state,n_meas,T,Scalar>::fA() {
  *
  */
 template<int n_state, int n_meas, class T, class Scalar>
-void Kalman<n_state,n_meas,T,Scalar>::timeUpdate(Scalar dt_i) {
+inline void Kalman<n_state,n_meas,T,Scalar>::timeUpdate(Scalar dt_i) {
   dt=dt_i;
   //xh starts as xh_{i-1}
   //P starts as P_{i-1}
@@ -40,20 +40,9 @@ void Kalman<n_state,n_meas,T,Scalar>::timeUpdate(Scalar dt_i) {
 /** Perform a measurement update
  @param dt_i Time step size*/
 template<int n_state, int n_meas, class T, class Scalar>
-void Kalman<n_state,n_meas,T,Scalar>::measUpdate(Eigen::Matrix<Scalar,n_meas,1>& z) {
+inline void Kalman<n_state,n_meas,T,Scalar>::measUpdate(Eigen::Matrix<Scalar,n_meas,1>& z) {
   (static_cast<T*>(this))->fH(); //calculate H from xh
   (static_cast<T*>(this))->fg(); //calcualte zh from xh
-  //xh starts as xh_{i-1}
-  //P starts as P_{i-1}
-  if(dt>0) {
-	(static_cast<T*>(this))->fA(); //calculate A
-    //Equation 1A and 1B.
-    //xh is now xh_im
-    //Equation 2. P_n+1=A*P_n*A'+Q;
-    AP=A*P;
-    P=AP*A.transpose(); //P_n+1=A*P_n*A'
-    P+=Q;
-  }
 
   //This is the part where we take each element of the observation in turn.
   for(int j=0;j<n_meas;j++) {

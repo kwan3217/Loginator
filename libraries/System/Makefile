@@ -8,6 +8,7 @@
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
 include ../libraries/LPC214x/Makefile
+#USE_CLANG=1
 CPPSRC += main.cpp
 CPPSRC += ../libraries/System/Stringex.cpp #usable by both embedded and sim
 CPPSRC += ../libraries/System/Startup2.cpp #Startup stuff usable by both embedded and sim
@@ -107,7 +108,9 @@ AT91LIBNOWARN = no
 
 # Debugging format.
 # Needed in order to get source code listings in .lst and .lss files
+ifndef USE_CLANG
 DEBUG = -gstabs
+endif
 #DEBUG = -gdwarf-2
 
 # List any extra directories to look for include files here.
@@ -244,7 +247,7 @@ ifndef USE_CLANG
 CC = $(ABI)-gcc
 CPP = $(ABI)-g++
 else
-CLANG_SUFFIX= -v -target armv4-unknown-none-eabi -I/usr/local/arm/include/ -I /usr/local/arm/arm-none-eabi/include/ -I /usr/local/arm/arm-none-eabi/include/c++/4.9.2/ -I /usr/local/arm/arm-none-eabi/include/c++/4.9.2/arm-none-eabi/
+CLANG_SUFFIX= -v -target armv4-unknown-none-eabi -I/usr/local/arm/include/ -I /usr/local/arm/arm-none-eabi/include/ -I /usr/local/arm/arm-none-eabi/include/c++/5.1.0/ -I /usr/local/arm/arm-none-eabi/include/c++/5.1.0/arm-none-eabi/ -Rpass=.*
 COLLECT_GCC = $(ABI)-g++
 CC = clang $(CLANG_SUFFIX)
 CPP = clang++ $(CLANG_SUFFIX)

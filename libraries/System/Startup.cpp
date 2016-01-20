@@ -150,7 +150,7 @@ then repeatedly calls loop() to run user main loop code.
 - No setup code because stack isn't available yet
  -No cleanup code because function won't return (what would it return to?)
  */
-extern "C" void __attribute__ ((naked)) __attribute__ ((noreturn)) Reset_Handler() {
+extern "C" void /*__attribute__ ((naked))*/ __attribute__ ((noreturn)) Reset_Handler() {
   //Set up stacks...
   register int* stack=_ram_end; //If this doesn't end up in a register, we are in trouble 
   //For each of the modes, switch to that mode with hardware interrupts disabled, 

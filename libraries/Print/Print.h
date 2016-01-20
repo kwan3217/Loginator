@@ -24,6 +24,8 @@
 #include <stddef.h> // for size_t
 #include "float.h"
 //#include "WString.h"
+#include <streambuf>
+#include <ostream>
 
 //#define U64
 
@@ -33,7 +35,7 @@
 #define BIN 2
 #define BYTE 0
 
-class Print {
+class Print: public std::streambuf, public std::ostream {
   private:
     void printNumber(unsigned int, int,int);
 #ifdef U64
@@ -41,7 +43,7 @@ class Print {
 #endif
     void printFloat(fp, unsigned char);
   public:
-    Print() {};
+    Print() {rdbuf(this);};
     virtual void write(unsigned char) = 0;
     virtual void write(const char *str);
     virtual void write(const char *buffer, size_t size);
