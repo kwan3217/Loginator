@@ -70,7 +70,7 @@ fp flareConst(int tick) {
 }
 
 void loop() {
-  fp True=flareConst(ticks);
+  fp True=flareWein(ticks);
   z << True+distribution(generator);
   kc.step(z,dt);
   Serial.print  (fp(ticks)/tps);Serial.print(',');
