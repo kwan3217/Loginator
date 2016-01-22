@@ -230,4 +230,7 @@ uint8_t StateTwoWire::twi_writeTo(uint8_t Laddress, const char* Ldata, uint8_t L
   return 0;
 }
 
+StateTwoWire Wire(0);
+StateTwoWire Wire1(1);
+TwoWire* WireA[] {&Wire,&Wire1};
 

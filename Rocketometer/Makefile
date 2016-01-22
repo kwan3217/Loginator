@@ -1,5 +1,6 @@
 MEDIA="/media/MICROSD 8GB"
-ATTACH=Rocketometer.brd Rocketometer.sch Rocketometer.bom Rocketometer.docx Apid.ods
+ATTACH+=Rocketometer.brd Rocketometer.sch Rocketometer.bom Rocketometer.docx
+HWDESCCSV=RocketometerHardware.csv RocketometerOnboard.csv
 
 include ../libraries/peripherals/Serial/Makefile
 include ../libraries/Task/Makefile
@@ -13,7 +14,10 @@ include ../libraries/dump/Makefile
 include ../libraries/packet/Makefile
 include ../libraries/file/sdhc/Makefile
 include ../libraries/file/FileCircular/Makefile
+include ../libraries/hardwareDesc/Makefile
 include ../libraries/System/Makefile
+
+SIMOBJ = $(CPPSRC:.cpp=.$(SIMOBJEXT)) $(SIMCPPSRC:.cpp=.$(SIMOBJEXT)) $(GENCPP:.CPP=.$(SIMOBJEXT)) 
 
 format:
 	sudo umount -f /dev/sde1 ; sudo mkfs.vfat -v -s 128 -f 1 -F 32 -n RKTO3 /dev/sde1

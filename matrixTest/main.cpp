@@ -6,7 +6,7 @@
 
 //These are a "scarlet letter". If you need these to compile, it means that Eigen
 //is trying to print a message, and your code could (almost certainly will) fail.
-#define SCARLET_LETTER
+//#define SCARLET_LETTER
 #ifdef SCARLET_LETTER
 extern "C" {
 void __attribute__ ((weak)) _exit(int status) {};

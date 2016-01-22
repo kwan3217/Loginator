@@ -51,6 +51,6 @@ class TwoWire:public Stream {
     virtual void flush(void) {};
 };
 
-//No ambient Wire ports
+extern TwoWire* WireA[];
 
 #endif

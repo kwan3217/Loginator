@@ -36,25 +36,24 @@ volatile unsigned int drainTC0,drainTC1;
 const uint32_t readPeriodMs=3;
 
 CCSDS packet;
-StateTwoWire<decltype(packet),1> Wire1;
-SDHC<decltype(packet),decltype(Serial),decltype(SPI)> sd(SPI);
-SDHC_info<decltype(packet),decltype(Serial)> sdinfo;
-Partition<decltype(packet),decltype(Serial),decltype(SPI)> p(sd);
-Cluster<decltype(packet),decltype(Serial),decltype(SPI)> fs(p);
-File<decltype(packet),decltype(Serial),decltype(SPI)> f(fs);
-Hd<decltype(Serial)> sector(Serial);
-BMP180<decltype(packet),decltype(Serial),StateTwoWire<decltype(packet),1>> bmp180(Wire1);
-HMC5883<decltype(packet),decltype(Wire1)> hmc5883(Wire1);
-MPU6050<decltype(packet),StateTwoWire<decltype(packet),1>> mpu6050(Wire1,0);
-AD799x<decltype(Wire1)> ad799x(Wire1);
+SDHC sd;
+SDHC_info sdinfo;
+Partition p(sd);
+Cluster fs(p);
+File f(fs);
+//Hd sector(Serial);
+BMP180 bmp180;
+HMC5883 hmc5883;
+MPU6050 mpu6050;
+AD799x ad799x;
 const int dumpPktSize=120;
-FileCircular<decltype(packet),decltype(Serial),decltype(SPI)> sdStore(f);
+FileCircular sdStore(f);
 char measBuf[1024],serialBuf[1024];
 Circular measStore(1024,measBuf),serialStore(1024,serialBuf);
 unsigned short pktseq[32];
 //NMEA gps;
 
-static const int blockSize=SDHC<decltype(packet),decltype(Serial),decltype(SPI)>::BLOCK_SIZE;
+static const int blockSize=SDHC::BLOCK_SIZE;
 
 const char syncMark[]="KwanSync";
 
@@ -287,7 +286,7 @@ void setup() {
   Serial.print("BMP180 identifier (should be 0x55): 0x");
   Serial.println(bmp180.whoami(),HEX);
   if(!worked) blinklock(0x5555AAAA);
-  bmp180.printCalibration(Serial);
+  bmp180.printCalibration(&Serial);
 
   bmp180.ouf=0;
   packet.start(sdStore,0x02);
@@ -355,8 +354,8 @@ void loop() {
     Serial.print(".");Serial.print(temperature%10, DEC);    
     Serial.print(",");Serial.print((unsigned int)pressure, DEC); 
     Serial.print(",");Serial.print(vbus, DEC); 
-    Serial.print(",");Serial.print(DirEntry<decltype(packet),decltype(Serial),decltype(SPI)>::packTime(RTCHOUR(),RTCMIN(),RTCSEC()),HEX,4);
-    Serial.print(",");Serial.print(DirEntry<decltype(packet),decltype(Serial),decltype(SPI)>::packDate(RTCYEAR(),RTCMONTH(),RTCDOM()),HEX,4);
+    Serial.print(",");Serial.print(DirEntry::packTime(RTCHOUR(),RTCMIN(),RTCSEC()),HEX,4);
+    Serial.print(",");Serial.print(DirEntry::packDate(RTCYEAR(),RTCMONTH(),RTCDOM()),HEX,4);
     Serial.println();
     wantPrint=false;
   }

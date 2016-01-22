@@ -4,7 +4,16 @@
 
 #undef AD799x_DEBUG 
 
-AD799x::AD799x(TwoWire &Lport, int a0):port(Lport),ADDRESS(addr_msb | (a0 & 0x01)) {}
+AD799x::AD799x(TwoWire *Lport, int a0):port(Lport),ADDRESS(addr_msb | (a0 & 0x01)) {}
+
+AD799x::AD799x() {
+  int i=1;
+  while(i<N_ID && HW_ID_PART_TYPE(i)!=3) i++;
+  if(i==N_ID) return;
+  int a0=HW_ID_ADDRESS(i) & 0x01; //Just pick off the low bit
+  ADDRESS=addr_msb+a0;
+  port=WireA[HW_ID_PORT_NUM(i)];
+}
 
 bool AD799x::begin(uint8_t Lchannels, bool vref) {
   return writeConfig(Lchannels,vref);
@@ -12,15 +21,15 @@ bool AD799x::begin(uint8_t Lchannels, bool vref) {
 
 // Read n bytes from the device at 'address'
 bool AD799x::read(uint8_t *data, int n) {
-  if(!port.requestFrom(ADDRESS, n)) return false;
-  for(int i=0;i<n;i++) data[i]=(uint8_t)port.read();
+  if(!port->requestFrom(ADDRESS, n)) return false;
+  for(int i=0;i<n;i++) data[i]=(uint8_t)port->read();
   return true;
 }
 
 bool AD799x::write(uint8_t data) {
-  port.beginTransmission(ADDRESS);
-  port.write(data);
-  port.endTransmission();
+  port->beginTransmission(ADDRESS);
+  port->write(data);
+  port->endTransmission();
   return true;
 }
 

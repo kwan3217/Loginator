@@ -1,4 +1,12 @@
 #include "hmc5883.h"
+#include "LPC214x.h"
+
+HMC5883::HMC5883() {
+  int i=1;
+  while(i<N_ID && HW_ID_PART_TYPE(i)!=7) i++;
+  if(i==N_ID) return;
+  port=WireA[HW_ID_PORT_NUM(i)];
+}
 
 // Sets the configuration and mode registers such that the part is continuously
 // generating measurements. This function should be called at the beginning of 

@@ -58,8 +58,8 @@ class HardSPI0:public HardSPI {
 };
 
 //Ambient SPI objects
-extern HardSPI0& SPI;
-extern HardSPI1& SPI1;
-extern HardSpi*  SPIA[];
+extern HardSPI0 SPI;
+extern HardSPI1 SPI1;
+extern HardSPI* SPIA[];
 
 #endif
