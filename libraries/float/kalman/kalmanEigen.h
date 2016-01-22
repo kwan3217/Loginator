@@ -72,6 +72,7 @@ private:
       In general, this is a n_state row by n_meas column matrix.
       In scalar aspect, this works out to be a n_state column vector*/
   Eigen::Matrix<Scalar,n_state,1> K;
+  Eigen::Matrix<Scalar,n_state,1> Ky;
   /** Decrease in estimate covariance due to this measurement. n_state x n_state matrix so as to be compatible by subtraction with P. */
   Eigen::Matrix<Scalar,n_state,n_state> KST;
   Scalar dt;

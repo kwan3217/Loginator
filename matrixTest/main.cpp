@@ -56,34 +56,30 @@ fp flare(int tick) {
   fp t=fp(tick)/tps;
   if(t<flareStartTime) return 20;
   const fp flarePeakDt=1; //Number of seconds from start to peak
-  const fp flareA=log(2)/flarePeakDt;
-  return 20+20*4*(expf(-flareA*(t-flareStartTime))-expf(-2*flareA*(t-flareStartTime)));
+  const fp flareA=std::log(2)/flarePeakDt;
+  return 20+20*4*(std::exp(-flareA*(t-flareStartTime))-std::exp(-2*flareA*(t-flareStartTime)));
 }
 
 fp flareWein(int tick) {
   fp t=fp(tick)/tps;
-  return 20+20*(t*t*t)*expf(-t);
+  return 20+20*(t*t*t)*std::exp(-t);
+}
+
+fp flareConst(int tick) {
+  return 20;
 }
 
 void loop() {
-  fp True=flareWein(ticks);
+  fp True=flareConst(ticks);
   z << True+distribution(generator);
   kc.step(z,dt);
-  Serial << fp(ticks)/tps << ",";
-//  Serial.print(",");
-  Serial.print(True,6);
-  Serial.print(",");
-  Serial.print(z(0),6);
-  Serial.print(",");
-  Serial.print(kc.xh(0),6);
-  Serial.print(",");
-  Serial.print(kc.xh(1),6);
-  Serial.print(",");
-  Serial.print(kc.P(0,0),6);
-  Serial.print(",");
-  Serial.print(kc.P(1,1),6);
-  Serial.print(",");
-  Serial.println(kc.P(0,1),6);
-  ticks++;
+  Serial.print  (fp(ticks)/tps);Serial.print(',');
+  Serial.print  (True,6);       Serial.print(',');
+  Serial.print  (z(0),6);       Serial.print(',');
+  Serial.print  (kc.xh(0),6);   Serial.print(',');
+  Serial.print  (kc.xh(1),6);   Serial.print(',');
+  Serial.print  (kc.P(0,0),6);  Serial.print(',');
+  Serial.print  (kc.P(1,1),6);  Serial.print(',');
+  Serial.println(kc.P(0,1),6);  ticks++;
   if(ticks==1000) blinklock(1000);
 }

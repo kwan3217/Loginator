@@ -31,8 +31,8 @@ inline void Kalman<n_state,n_meas,T,Scalar>::timeUpdate(Scalar dt_i) {
     //Equation 1A and 1B.
     //xh is now xh_im
     //Equation 2. P_n+1=A*P_n*A'+Q;
-    AP=A*P;
-    P=AP*A.transpose(); //P_n+1=A*P_n*A'
+    AP.noalias()=A*P;
+    P.noalias()=AP*A.transpose(); //P_n+1=A*P_n*A'
     P+=Q;
   }
 }
@@ -48,7 +48,7 @@ inline void Kalman<n_state,n_meas,T,Scalar>::measUpdate(Eigen::Matrix<Scalar,n_m
   for(int j=0;j<n_meas;j++) {
     //3B - Kalman gain K=P*H'/(H*P*H'+R);
 	//S=P*H'
-    S=P*H.row(j).transpose();
+    S.noalias()=P*H.row(j).transpose();
 	//Gamma=H*P*H'+R
     //     =H*S   +R
     Gamma=H.row(j)*S;
@@ -64,11 +64,12 @@ inline void Kalman<n_state,n_meas,T,Scalar>::measUpdate(Eigen::Matrix<Scalar,n_m
     //step 5 is done first, but we do this so we can keep everything around for
     //debugging purposes. We have memory, and assign is a quick O(m) function.
     //4c - Measurement update of reference state
-    xh+=K*y;
+    Ky.noalias()=K*y;
+    xh+=Ky;
     //5 - Measurement update of estimate covariance.
     //P_i=(1-KH)P=P_im-K*H*P_im. K*(H*P) is mx1 by
     //1xm for mxm. We calculated HP above.
-    KST=K*S.transpose();
+    KST.noalias()=K*S.transpose();
     P-=KST;   //Subtract KHP from P
   }
 }
