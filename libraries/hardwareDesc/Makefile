@@ -1,5 +1,6 @@
 LIBMAKE+=../libraries/hardwareDesc/Makefile
 EXTRAINCDIRS +=../libraries/hardwareDesc/
+include ../libraries/dump/Makefile
 include ../libraries/hostCsv/Makefile
 
 HWDESCSOURCE+=../libraries/hardwareDesc/hardwareDesc.cpp

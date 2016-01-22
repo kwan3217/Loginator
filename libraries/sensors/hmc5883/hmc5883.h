@@ -13,9 +13,8 @@ class HMC5883 {
     int8_t read(uint8_t address);
     int16_t read16(uint8_t address);
   public:
-    HMC5883(TwoWire* Lport):port(Lport) {};
+    HMC5883();
     void begin();
-    void begin(TwoWire* Lport) {port=Lport;begin();};
     void whoami(char* id);
     void read(int16_t& x, int16_t& y, int16_t& z);
     bool fillConfig(Packet& ccsds);

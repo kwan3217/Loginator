@@ -2,6 +2,16 @@
 #include "Serial.h"
 #include "Time.h"
 
+MPU6050::MPU6050() {
+  int i=1;
+  //Specifically look for an MPU60x0 on the I2C bus
+  while(i<N_ID && HW_ID_PART_TYPE(i)!=1 && HW_ID_PORT_TYPE(i)!=1) i++;
+  if(i==N_ID) return;
+  A0=HW_ID_ADDRESS(i) & 0x01; //Just pick off the low bit
+  ADDRESS=addr_msb+A0;
+  port=WireA[HW_ID_PORT_NUM(i)];
+}
+
 /** Write the configuration registers out to a packet. This writes the hardware address, followed by
   the registers:
 
@@ -71,12 +81,12 @@ bool MPU60x0::begin(uint8_t gyro_scale, uint8_t acc_scale, uint8_t bandwidth, ui
 @param  address register address to read from
 */
 unsigned char MPU6050::read(uint8_t address) {
-  port.beginTransmission(ADDRESS);
-  port.write(address);
-  port.endTransmission();
+  port->beginTransmission(ADDRESS);
+  port->write(address);
+  port->endTransmission();
 
-  port.requestFrom(ADDRESS, 1);
-  return port.read();
+  port->requestFrom(ADDRESS, 1);
+  return port->read();
 }
 
 /** Read a 16-bit integer in big-endian format from the sensor
@@ -85,14 +95,14 @@ unsigned char MPU6050::read(uint8_t address) {
 */
 int16_t MPU6050::read16(uint8_t address) {
 
-  port.beginTransmission(ADDRESS);
-  port.write(address);
-  port.endTransmission();
+  port->beginTransmission(ADDRESS);
+  port->write(address);
+  port->endTransmission();
 
-  port.requestFrom(ADDRESS, 2);
+  port->requestFrom(ADDRESS, 2);
   int msb, lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   return msb<<8 | lsb;
 }
 
@@ -101,10 +111,10 @@ int16_t MPU6050::read16(uint8_t address) {
 @param data value to write to the register
 */
 void MPU6050::write(uint8_t address, uint8_t data) {
-  port.beginTransmission(ADDRESS);
-  port.write(address);
-  port.write(data);
-  port.endTransmission();
+  port->beginTransmission(ADDRESS);
+  port->write(address);
+  port->write(data);
+  port->endTransmission();
 }
 
 /** Read the sensor data values. This isn't optimized for any particular bus, and therefore doesn't do burst
@@ -139,31 +149,31 @@ bool MPU60x0::read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& 
 */
 bool MPU6050::read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t) {
   int msb, lsb;
-  port.beginTransmission(ADDRESS);
-  port.write(0x3B);
-  port.endTransmission();
+  port->beginTransmission(ADDRESS);
+  port->write(0x3B);
+  port->endTransmission();
 
-  port.requestFrom(ADDRESS, 14);
-  msb = port.read();
-  lsb = port.read();
+  port->requestFrom(ADDRESS, 14);
+  msb = port->read();
+  lsb = port->read();
   ax= msb<<8 | lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   ay= msb<<8 | lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   az= msb<<8 | lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   t= msb<<8 | lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   gx= msb<<8 | lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   gy= msb<<8 | lsb;
-  msb = port.read();
-  lsb = port.read();
+  msb = port->read();
+  lsb = port->read();
   gz= msb<<8 | lsb;
   return true;
 }

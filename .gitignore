@@ -34,4 +34,5 @@ sdcard
 *.SDS
 *.bc
 *.ii
+*.INC
 

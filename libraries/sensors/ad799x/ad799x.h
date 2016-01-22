@@ -49,7 +49,7 @@
 
 class AD799x {
   private:
-    TwoWire &port;
+    TwoWire *port;
     bool read(uint8_t *data, int num);
     bool write(uint8_t data);
     uint8_t ADDRESS;  // I2C address of AD799x
@@ -57,7 +57,8 @@ class AD799x {
     uint8_t nChannels;
     uint8_t channels;
   public:
-    AD799x(TwoWire &Lport, int a0=0);
+    AD799x(TwoWire *Lport, int a0=0);
+    AD799x();
     bool begin(uint8_t Lchannels, bool vref=false);
     bool read(uint16_t ch[]);
     void format(uint16_t ch[]);

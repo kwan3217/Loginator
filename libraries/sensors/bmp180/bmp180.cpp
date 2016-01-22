@@ -1,7 +1,14 @@
 #include "bmp180.h"
 #include "Time.h"
 
-#undef BMP180_DEBUG 
+#undef BMP180_DEBUG
+
+BMP180::BMP180():OSS(3),presDelayMS(2+(3<<OSS)) {
+  int i=1;
+  while(i<N_ID && HW_ID_PART_TYPE(i)!=6) i++;
+  if(i==N_ID) return;
+  port=WireA[HW_ID_PORT_NUM(i)];
+}
 
 // Stores all of the bmp085's calibration values into global variables
 // Calibration values are required to calculate temp and pressure

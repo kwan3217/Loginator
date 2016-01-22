@@ -11,7 +11,7 @@
 #define BOOTSTRAP_BASE_ADDR 0x0007'D000
 #define HW_ID_PERIPHERAL_BLOCK_SIZE 0x40
 #define HW_ID_PERIPHERAL_DESC HW_ID_PERIPHERAL_BLOCK_SIZE/2
-#define N (BOOTSTRAP_BASE_ADDR-HW_ID_BASE_ADDR)/HW_ID_PERIPHERAL_BLOCK_SIZE
+#define N_ID (BOOTSTRAP_BASE_ADDR-HW_ID_BASE_ADDR)/HW_ID_PERIPHERAL_BLOCK_SIZE
 //The first describes the hardware type:
 // 0 for Logomatic
 // 1 for Loginator
@@ -58,6 +58,7 @@ ro0(id,HW_SIM,   HW_ID_BASE_ADDR+0x08);
 //                             4       UART
 // 0x08         port number    GPIO    Py.xx y number
 //                             PWM     channel number
+//                             I2C     port number
 // 0x0C         address        SPI     P0.xx pin used for CS for SPI parts
 //                             I2C     I2C 7-bit address for I2C parts
 //                             GPIO    Py.xx pin used for this part
@@ -98,14 +99,13 @@ ro0(id,HW_SIM,   HW_ID_BASE_ADDR+0x08);
 //------------      -------------  -----   -----------------
 // 0x10 (custom[0]) color          0       steering
 //                                 1       throttle
-ro1(id,HW_ID_PART_TYPE,N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x00);
-ro1(id,HW_ID_PORT_TYPE,N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x04);
-ro1(id,HW_ID_PORT_NUM, N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x08);
-ro1(id,HW_ID_ADDRESS,  N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x0C);
-ro2(id,HW_ID_CUSTOM,   N,4,HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x10+j*4);
-ro1(id,HW_ID_DESC,     N,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+HW_ID_PERIPHERAL_DESC);
+ro1(id,HW_ID_PART_TYPE,N_ID,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x00);
+ro1(id,HW_ID_PORT_TYPE,N_ID,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x04);
+ro1(id,HW_ID_PORT_NUM, N_ID,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x08);
+ro1(id,HW_ID_ADDRESS,  N_ID,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x0C);
+ro2(id,HW_ID_CUSTOM,   N_ID,4,HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+0x10+j*4);
+ro1(id,HW_ID_DESC,     N_ID,  HW_ID_BASE_ADDR+i*HW_ID_PERIPHERAL_BLOCK_SIZE+HW_ID_PERIPHERAL_DESC);
 
-#undef HW_ID_BASE_ADDR
-#undef HW_ID_PERIPHERAL_BLOCK_SIZE
-#undef HW_ID_PERIPHERAL_DESC
-#undef N
+//#undef HW_ID_BASE_ADDR
+//#undef HW_ID_PERIPHERAL_BLOCK_SIZE
+//#undef HW_ID_PERIPHERAL_DESC

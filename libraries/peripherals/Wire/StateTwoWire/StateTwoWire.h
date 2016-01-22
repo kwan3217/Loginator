@@ -30,4 +30,7 @@ class StateTwoWire:public TwoWire {
     StateTwoWire(int);
 };
 
+extern StateTwoWire Wire;
+extern StateTwoWire Wire1;
+
 #endif

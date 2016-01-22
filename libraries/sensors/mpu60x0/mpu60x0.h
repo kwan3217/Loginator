@@ -21,14 +21,14 @@ public:
   MPU60x0() {};
   unsigned char whoami() {return read(0x75);};
   virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
-  bool begin(uint8_t gyro_scale, uint8_t acc_scale, uint8_t bandwidth, uint8_t sample_rate); ///<Do anything necessary to init the part. Bus is available at this point.
+  bool begin(uint8_t gyro_scale, uint8_t acc_scale, uint8_t bandwidth=0, uint8_t sample_rate=0); ///<Do anything necessary to init the part. Bus is available at this point.
 };
 
 /** I2C version of MPU60x0
 */
 class MPU6050: public MPU60x0 {
 private:
-  TwoWire& port;
+  TwoWire* port;
   uint8_t ADDRESS;  ///< I2C address of part
   static const char addr_msb=0x68; ///<ORed with low bit of a0 to get actual address
   int A0;
@@ -36,7 +36,7 @@ private:
   virtual void write(unsigned char addr, unsigned char data);
   virtual int16_t read16(unsigned char addr);
 public:
-  MPU6050(TwoWire& Lport,int LA0):port(Lport),ADDRESS(addr_msb+LA0) {};
+  MPU6050();
   virtual bool read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& gy, int16_t& gz, int16_t& t);
   bool fillConfig(Packet& ccsds);
 };
