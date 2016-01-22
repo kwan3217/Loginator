@@ -168,6 +168,7 @@ void HardwareSerial::flush(void) {rxBuf.empty();};
 #endif
 // Preinstantiate Objects //////////////////////////////////////////////////////
 
-HardwareSerial Serial(0);
-HardwareSerial Serial1(1);
+HardwareSerial  Serial(0);
+HardwareSerial  Serial1(1);
+HardwareSerial* SerialA[] {&Serial,&Serial1};
 

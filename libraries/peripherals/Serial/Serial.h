@@ -53,7 +53,9 @@ class HardwareSerial: public Stream {
     using Print::write; // pull in write(str) and write(buf, size) from Print
 };
 
-extern HardwareSerial Serial;
-extern HardwareSerial Serial1;
+//Ambient serial ports
+extern HardwareSerial  Serial;
+extern HardwareSerial  Serial1;
+extern HardwareSerial* SerialA[];
 
 #endif

@@ -8,6 +8,7 @@
 
 HardSPI0 SPI;
 HardSPI1 SPI1;
+HardSPI* SPIA[]={&SPI,&SPI1};
 
 void HardSPI::select_cs(int p0) {
   gpio_write(p0,0); //Lower the CS pin (active low)

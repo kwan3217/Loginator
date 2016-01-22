@@ -57,7 +57,9 @@ class HardSPI0:public HardSPI {
     virtual void stop(void);
 };
 
-extern HardSPI0 SPI;
-extern HardSPI1 SPI1;
+//Ambient SPI objects
+extern HardSPI0& SPI;
+extern HardSPI1& SPI1;
+extern HardSpi*  SPIA[];
 
 #endif
