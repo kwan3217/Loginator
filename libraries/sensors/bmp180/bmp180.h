@@ -49,9 +49,12 @@ class BMP180 {
     unsigned int timer_ch;
     static const unsigned int tempDelayMS=5; ///<It takes this many milliseconds after measurement kickoff for temperature measurement to become valid
                  unsigned int presDelayMS;   ///<It takes this many more milliseconds after temperature is done for pressure measurement to become valid
+    static constexpr unsigned int calcPresDelay(int oss) {return 2+(3<<oss);};
+    static int i_hwDesc;
   public:
     Stream *ouf;
     BMP180();
+    BMP180(TwoWire& Lport):port(&Lport),OSS(3),presDelayMS(calcPresDelay(OSS)) {};
     bool begin(unsigned int Ltimer_ch);
     bool readCalibration();
     void printCalibration(Stream *Louf);

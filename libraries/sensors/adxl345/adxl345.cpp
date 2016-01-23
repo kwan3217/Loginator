@@ -1,5 +1,16 @@
 #include "adxl345.h"
 
+ADXL345::ADXL345() {
+  i_hwDesc++;
+  while(HW_ID_PART_TYPE(i_hwDesc)!=partType::unknown &&
+		HW_ID_PART_TYPE(i_hwDesc)!=partType::adxl345) {
+	i_hwDesc++;
+  }
+  if(HW_ID_PART_TYPE(i_hwDesc)==partType::unknown) return;
+  p0=HW_ID_ADDRESS(i_hwDesc); //Don't use set_p0 as that releases current p0
+  port=SPIA[HW_ID_PORT_NUM(i_hwDesc)];
+}
+
 uint8_t ADXL345::whoami() {
   char buf[2];
   s->rx_block(p0,0x80,buf,2);

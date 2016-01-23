@@ -11,13 +11,6 @@ class CoutPrint:public Print {
   virtual void write(unsigned char out) override {cout << out;}
 };
 
-void print_32(IntelHex dump, uint32_t value) {
-  dump.print_byte((value >> (8*0)) & 0xFF);
-  dump.print_byte((value >> (8*1)) & 0xFF);
-  dump.print_byte((value >> (8*2)) & 0xFF);
-  dump.print_byte((value >> (8*3)) & 0xFF);
-}
-
 vector<string> part_types={
   "SD",
   "MPU60x0",
@@ -58,7 +51,7 @@ vector<vector<string>> custom0_values {
 	{"steer","throttle"}  //Servo
 };
 
-int main() {
+int main(int argc, char** argv) {
   ofstream ouf("hardwareDesc.H");
   ouf << "#ifndef hardwareDesc_H"<<endl;
   ouf << "#define hardwareDesc_H"<<endl;
@@ -78,6 +71,7 @@ int main() {
   }
   ouf << "#endif" << endl;
   ouf.close();
+  //ifstream inf(argv[1]);
   string line;
   vector<string> sfields;
   CoutPrint coutPrint;
@@ -101,25 +95,25 @@ int main() {
 		if(part_type==unknown && sfields[0][0]>='0' && sfields[0][0]<='9') part_type=stoi(sfields[0]);
 		if(part_type!=unknown) {
 		  dump.begin_line(32,addr & 0xFFFF,0);
-		  print_32(dump,part_type);
+		  dump.print32(part_type);
 		  port_type=unknown;
 		  if(sfields[1].length()>0) {
             for(int i=0;i<port_types.size()-1;i++) if(sfields[1]==port_types[i]) port_type=i;
 	        if(port_type==unknown && sfields[1][0]>='0' && sfields[1][0]<='9') port_type=stoi(sfields[1]);
 		  }
-		  print_32(dump,port_type);
-		  print_32(dump,sfields[2].length()>0?stoi(sfields[2]):unknown);
-		  print_32(dump,sfields[3].length()>0?stoi(sfields[3]):unknown);
+		  dump.print32(port_type);
+		  dump.print32(sfields[2].length()>0?stoi(sfields[2]):unknown);
+		  dump.print32(sfields[3].length()>0?stoi(sfields[3]):unknown);
 		  int custom0=unknown;
 		  if(sfields[4].length()>0) {
 			for(int i=0;i<custom0_values[part_type].size();i++) if(sfields[4]==custom0_values[part_type][i]) custom0=i;
 			if(custom0==unknown && sfields[4][0]>='0' && sfields[4][0]<='9') custom0=stoi(sfields[4]);
 			if(custom0==unknown) cerr<<"Unrecognized custom0 "<<sfields[4]<<endl;
 		  }
-		  print_32(dump,custom0);
-		  print_32(dump,sfields[5].length()>0?stoi(sfields[5]):unknown);
-		  print_32(dump,sfields[6].length()>0?stoi(sfields[6]):unknown);
-		  print_32(dump,sfields[7].length()>0?stoi(sfields[7]):unknown);
+		  dump.print32(custom0);
+		  dump.print32(sfields[5].length()>0?stoi(sfields[5]):unknown);
+		  dump.print32(sfields[6].length()>0?stoi(sfields[6]):unknown);
+		  dump.print32(sfields[7].length()>0?stoi(sfields[7]):unknown);
 		  dump.end_line();
 		  addr+=32;
 		  dump.begin_line(32,addr & 0xFFFF,0);

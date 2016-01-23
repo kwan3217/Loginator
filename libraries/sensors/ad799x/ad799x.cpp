@@ -1,18 +1,21 @@
 #include "ad799x.h"
 #include "Task.h"
 #include "Time.h"
+#include "hardwareDesc.h"
 
 #undef AD799x_DEBUG 
 
-AD799x::AD799x(TwoWire *Lport, int a0):port(Lport),ADDRESS(addr_msb | (a0 & 0x01)) {}
+AD799x::AD799x(TwoWire& Lport, int a0):port(&Lport),ADDRESS(addr_msb | (a0 & 0x01)) {}
 
 AD799x::AD799x() {
-  int i=1;
-  while(i<N_ID && HW_ID_PART_TYPE(i)!=3) i++;
-  if(i==N_ID) return;
-  int a0=HW_ID_ADDRESS(i) & 0x01; //Just pick off the low bit
-  ADDRESS=addr_msb+a0;
-  port=WireA[HW_ID_PORT_NUM(i)];
+  i_hwDesc++;
+  while(HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::unknown) &&
+		HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::ad799x)) {
+	i_hwDesc++;
+  }
+  if(HW_ID_PART_TYPE(i_hwDesc)==static_cast<unsigned int>(partType::unknown)) return;
+  ADDRESS=addr_msb|(HW_ID_ADDRESS(i_hwDesc) & 0x01); //Just pick off the low bit
+  port=WireA[HW_ID_PORT_NUM(i_hwDesc)];
 }
 
 bool AD799x::begin(uint8_t Lchannels, bool vref) {
@@ -60,5 +63,6 @@ void AD799x::format(uint16_t ch[]) {
   if(nChannels>=3) ch[(ch3>>12) & 0x03]=ch3 & 0xFFF;  
 } 
 
+int AD799x::i_hwDesc;
 
 

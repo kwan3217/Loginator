@@ -84,7 +84,7 @@ void closeLog() {
                //object on a new file.
 }
 
-static const char version_string[]="Rocketometer v1.1 using Kwan FAT/SD library " __DATE__ " " __TIME__;
+static const char version_string[]="Rocketometer v2.0 " __DATE__ " " __TIME__;
 
 int16_t max,may,maz; //MPU60x0 acc
 int16_t mgx,mgy,mgz; //MPU60x0 gyro
@@ -213,7 +213,6 @@ void setup() {
   Wire1.begin();
 
   bool worked;
-  sd.p0=15; //Note that this is different from the Loginator and Logomatic
   worked=sd.begin();
 
   Serial.print("sd");    Serial.print(".begin ");Serial.print(worked?"Worked":"didn't work");Serial.print(". Status code ");Serial.println(sd.errnum);

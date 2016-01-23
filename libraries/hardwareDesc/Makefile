@@ -3,7 +3,7 @@ EXTRAINCDIRS +=../libraries/hardwareDesc/
 include ../libraries/dump/Makefile
 include ../libraries/hostCsv/Makefile
 
-HWDESCSOURCE+=../libraries/hardwareDesc/hardwareDesc.cpp
+HWDESCSOURCE+=../libraries/hardwareDesc/hardwareDesc.cpp ../libraries/Print/Print.cpp ../libraries/dump/dump.cpp
 ATTACH+=$(HWDESCSOURCE) $(HWDESCCSV:.csv=.ods)
 EXTRADOC+=$(HWDESCSOURCE)
 EXTRACLEAN+=$(HWDESCSOURCE:.cpp=.o64) $(HWDESCCSV) hardwareDesc.H hardwareDesc.exe hardwareDesc.hex

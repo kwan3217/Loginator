@@ -46,6 +46,8 @@ private:
 public:
   //Lower level routines
   void print_byte(unsigned char len);
+  void print16(unsigned short b);
+  void print32(unsigned int b);
   void begin_line(unsigned char len, unsigned short a, unsigned char type);
   void end_line();
   void address(size_t ia);

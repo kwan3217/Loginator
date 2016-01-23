@@ -1,13 +1,17 @@
 #include "bmp180.h"
 #include "Time.h"
+#include "hardwareDesc.h"
 
 #undef BMP180_DEBUG
 
-BMP180::BMP180():OSS(3),presDelayMS(2+(3<<OSS)) {
-  int i=1;
-  while(i<N_ID && HW_ID_PART_TYPE(i)!=6) i++;
-  if(i==N_ID) return;
-  port=WireA[HW_ID_PORT_NUM(i)];
+BMP180::BMP180():OSS(3),presDelayMS(calcPresDelay(OSS)) {
+  i_hwDesc++;
+  while(HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::unknown) &&
+		HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::bmp180)  ) {
+	i_hwDesc++;
+  }
+  if(HW_ID_PART_TYPE(i_hwDesc)==static_cast<unsigned int>(partType::unknown)) return;
+  port=WireA[HW_ID_PORT_NUM(i_hwDesc)];
 }
 
 // Stores all of the bmp085's calibration values into global variables
@@ -249,5 +253,5 @@ void BMP180::blockMeasurement() {
   UPshadow=UP;
 }
 
-
+int BMP180::i_hwDesc;
 

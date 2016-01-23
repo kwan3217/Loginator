@@ -1,4 +1,18 @@
 #include "l3g4200d.h"
+#include "hardwareDesc.h"
+#include "LPC214x.h"
+
+int L3G4200D::i_hwDesc;
+
+L3G4200D::L3G4200D() {
+  i_hwDesc++;
+  while(HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::unknown) &&
+		HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::l3g4200d)  ) {
+	i_hwDesc++;
+  }
+  if(HW_ID_PART_TYPE(i_hwDesc)==static_cast<unsigned int>(partType::unknown)) return;
+  s=SPIA[HW_ID_PORT_NUM(i_hwDesc)];
+}
 
 uint8_t L3G4200D::whoami() {
   char buf[2];

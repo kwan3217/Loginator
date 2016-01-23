@@ -1,15 +1,20 @@
 #include "mpu60x0.h"
 #include "Serial.h"
 #include "Time.h"
+#include "hardwareDesc.h"
 
 MPU6050::MPU6050() {
-  int i=1;
+  i_hwDesc++;
   //Specifically look for an MPU60x0 on the I2C bus
-  while(i<N_ID && HW_ID_PART_TYPE(i)!=1 && HW_ID_PORT_TYPE(i)!=1) i++;
-  if(i==N_ID) return;
-  A0=HW_ID_ADDRESS(i) & 0x01; //Just pick off the low bit
-  ADDRESS=addr_msb+A0;
-  port=WireA[HW_ID_PORT_NUM(i)];
+  while(HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::unknown) &&
+		HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::mpu60x0) &&
+		HW_ID_PORT_TYPE(i_hwDesc)!=static_cast<unsigned int>(portType::I2C)     ) {
+	i_hwDesc++;
+  }
+  if(HW_ID_PART_TYPE(i_hwDesc)==static_cast<unsigned int>(partType::unknown)) return;
+  int A0=HW_ID_ADDRESS(i_hwDesc) & 0x01; //Just pick off the low bit
+  ADDRESS=addr_msb | A0;
+  port=WireA[HW_ID_PORT_NUM(i_hwDesc)];
 }
 
 /** Write the configuration registers out to a packet. This writes the hardware address, followed by
@@ -177,6 +182,8 @@ bool MPU6050::read(int16_t& ax, int16_t& ay, int16_t& az, int16_t& gx, int16_t& 
   gz= msb<<8 | lsb;
   return true;
 }
+
+int MPU6050::i_hwDesc;
 
 
 

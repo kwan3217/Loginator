@@ -5,8 +5,11 @@
 #include "packet.h"
 
 class ADXL345: public spi_user {
+private:
+  static int i_hwDesc;
 public:
-  ADXL345(HardSPI *Ls, int Lp0):spi_user(Ls,Lp0){};
+  ADXL345();
+  ADXL345(HardSPI &Ls, int Lp0):spi_user(&Ls,Lp0){};
   bool fillConfig(Packet& ccsds);
   bool begin();
   uint8_t whoami();

@@ -6,6 +6,18 @@ void IntelHex::print_byte(unsigned char b) {
   out.print(b & 0x0F,HEX);
 }
 
+void IntelHex::print16(unsigned short b) {
+  print_byte((b >> (8*0)) & 0xFF);
+  print_byte((b >> (8*1)) & 0xFF);
+}
+
+void IntelHex::print32(unsigned int b) {
+  print_byte((b >> (8*0)) & 0xFF);
+  print_byte((b >> (8*1)) & 0xFF);
+  print_byte((b >> (8*2)) & 0xFF);
+  print_byte((b >> (8*3)) & 0xFF);
+}
+
 void IntelHex::begin_line(unsigned char len, unsigned short a, unsigned char type) {
   checksum=0;
   out.print(":");

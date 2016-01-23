@@ -9,6 +9,7 @@
 #include "sdhc.h"
 #include "gpio.h" //for delay(), and gpio_read() for sdhc::available()
 #include "Time.h" //for delay(), and gpio_read() for sdhc::available()
+#include "hardwareDesc.h"
 
 //#define SD_DEBUG
 #ifdef SD_DEBUG
@@ -19,6 +20,19 @@
 Hd dump(Serial,32);
 
 const uint32_t special_block=0x5B70;
+
+int SDHC::i_hwDesc;
+
+SDHC::SDHC() {
+  i_hwDesc++;
+  while(HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::unknown) &&
+		HW_ID_PART_TYPE(i_hwDesc)!=static_cast<unsigned int>(partType::sdCard)) {
+	i_hwDesc++;
+  }
+  if(HW_ID_PART_TYPE(i_hwDesc)==static_cast<unsigned int>(partType::unknown)) return;
+  p0=HW_ID_ADDRESS(i_hwDesc); //Don't use set_p0 as that releases current p0
+  port=SPIA[HW_ID_PORT_NUM(i_hwDesc)];
+}
 
 bool SDHC::begin() {
   // enable outputs for MOSI, SCK, SS, input for MISO 

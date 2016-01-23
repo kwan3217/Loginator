@@ -73,6 +73,7 @@ public:
 
 class SDHC {
 private:
+  HardSPI *port;
   static const int CMD_GO_IDLE_STATE         =  0; ///< response R1 
   static const int CMD_SEND_OP_COND          =  1; ///< response R1 
   static const int CMD_SEND_IF_COND          =  8; ///< response R7 
@@ -148,6 +149,7 @@ static const int CMD_CRC_ON_OFF            = 0x3b;
 #ifdef SDHC_PKT
   char buf_data[256];
 #endif
+  static int i_hwDesc;
 public:
 #ifdef SDHC_PKT
   Circular buf; 
@@ -157,7 +159,8 @@ public:
   unsigned int errnum;
   bool begin(void);
   bool available(void);
-  SDHC() {};
+  SDHC(HardSPI& Lport, int Lp0):port(&Lport),p0(Lp0) {};
+  SDHC();
 //  bool read(uint32_t offset, char* buffer) {return read(offset,buffer,0,BLOCK_SIZE);}; 
   bool read(uint32_t offset, char* buffer, int start=0, int len=BLOCK_SIZE);
   bool write(uint32_t offset, const char* buffer, uint32_t trace);

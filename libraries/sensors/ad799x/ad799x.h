@@ -56,8 +56,13 @@ class AD799x {
     static const char addr_msb=0x28; //ORed with low bit of a0 to get actual address
     uint8_t nChannels;
     uint8_t channels;
+    static int i_hwDesc;
   public:
-    AD799x(TwoWire *Lport, int a0=0);
+    /** Init part directly
+      @param Lport I2C port to use with this part
+      @param a0 least significant bit of part address */
+    AD799x(TwoWire &Lport, int a0=0);
+    /** Init part based on hardware description */
     AD799x();
     bool begin(uint8_t Lchannels, bool vref=false);
     bool read(uint16_t ch[]);
