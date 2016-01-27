@@ -28,7 +28,7 @@ public:
 
 template<class T> inline
 void Dump<T>::region(const char* p, size_t base, size_t len, unsigned int rec_len) {
-	static_cast<T*>(this)->begin();
+  static_cast<T*>(this)->begin();
   while(len>0) {
     if(rec_len>len) rec_len=len;
     static_cast<T*>(this)->line(p,base,rec_len);
