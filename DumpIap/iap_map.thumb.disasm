@@ -5,6 +5,132 @@ iap_map.elf:     file format elf32-littlearm
 Disassembly of section .sec1:
 
 7fffd000-7fffd21c is arm code and constants
+;This doesn't appear to be an actual interrupt table, but just the start of code
+7fffd000 <.sec1>:
+7fffd000:	e59f4034 	ldr	r4, [pc, #52]	; 0x7fffd03c (value is 0xE01FC000, base of system control block and MAMCR)
+7fffd004:	e3a05002 	mov	r5, #2
+7fffd008:	e5845000 	str	r5, [r4]        ; MAMCR=2
+7fffd00c:	e3a05003 	mov	r5, #3
+7fffd010:	e5845004 	str	r5, [r4, #4]    ; MAMTIM=3
+7fffd014:	e59f201c 	ldr	r2, [pc, #28]	; 0x7fffd038 (value is 0xE002C014, PINSEL2)
+7fffd018:	e3a03000 	mov	r3, #0
+7fffd01c:	e1020093 	swp	r0, r3, [r2]    ; R0=old PINSEL2, PINSEL2=0
+7fffd020:	e2822028 	add	r2, r2, #40	; 0x28 r2 is now 0xE002C03C, unknown register
+7fffd024:	e1021093 	swp	r1, r3, [r2]    ; R1=old unknown register, unknown register=0
+7fffd028:	e3c03007 	bic	r3, r0, #7      ; R3=clear bits 2:0 of value of unknown register
+7fffd02c:	e5023028 	str	r3, [r2, #-40]	; write those cleared bits to PINSEL2
+7fffd030:	e51ff004 	ldr	pc, [pc, #-4]	; long jump to next word (PC-4 because due to prefetch, PC has already advanced 2 words) 
+7fffd034:	7fffd1c4 	svcvc	0x00ffd1c4      ; long jump target
+7fffd038:	e002c014 	&PINSEL2
+7fffd03c:	e01fc000 	&MAMCR, base of system control block
+7fffd040:	0402ff25 	streq	pc, [r2], #-3877	; 0xfffff0db
+7fffd044:	0000020d 	andeq	r0, r0, sp, lsl #4
+7fffd048:	40000000 	;Start of ram
+7fffd04c:	40007fff 	;Last addressable byte in ram
+7fffd050:	0000001a 	;Number of highest sector of flash
+7fffd054:	0000000a 	andeq	r0, r0, sl
+7fffd058:	0000000e 	andeq	r0, r0, lr
+7fffd05c:	00000001 	andeq	r0, r0, r1
+7fffd060:	00000190 	muleq	r0, r0, r1
+7fffd064:	000000c8 	andeq	r0, r0, r8, asr #1
+7fffd068:	00000000 	andeq	r0, r0, r0
+7fffd06c:	0007cfff 	;Last writable byte in flash
+7fffd070:	00000002 	;Chip revision number
+	...
+7fffd0b0:	00000000 	;Start address of flash sector 0
+7fffd0b4:	00001000 	;                              1
+7fffd0b8:	00002000 	;                              2
+7fffd0bc:	00003000 	
+7fffd0c0:	00004000 	
+7fffd0c4:	00005000 	
+7fffd0c8:	00006000 	
+7fffd0cc:	00007000 	
+7fffd0d0:	00008000 	
+7fffd0d4:	00010000 	
+7fffd0d8:	00018000 	
+7fffd0dc:	00020000 	
+7fffd0e0:	00028000 	
+7fffd0e4:	00030000 	
+7fffd0e8:	00038000 	
+7fffd0ec:	00040000 	
+7fffd0f0:	00048000 	
+7fffd0f4:	00050000 	
+7fffd0f8:	00058000 	
+7fffd0fc:	00060000 	
+7fffd100:	00068000 	
+7fffd104:	00070000 	
+7fffd108:	00078000 	
+7fffd10c:	00079000 	
+7fffd110:	0007a000 	
+7fffd114:	0007b000 	
+7fffd118:	0007c000 	;Start address of last flash sector
+7fffd11c:	ffffffff 	;Would be address of next sector, marks that there is none such
+7fffd120:	ffffffff 	;"
+7fffd124:	ffffffff 	;"
+7fffd128:	ffffffff 	;"
+7fffd12c:	ffffffff 	;"
+7fffd130:	00000fff 	;End of flash sector 0
+7fffd134:	00001fff 	
+7fffd138:	00002fff 	
+7fffd13c:	00003fff 	
+7fffd140:	00004fff 	
+7fffd144:	00005fff 	
+7fffd148:	00006fff 	
+7fffd14c:	00007fff 	
+7fffd150:	0000ffff 	
+7fffd154:	00017fff 	
+7fffd158:	0001ffff 	
+7fffd15c:	00027fff 	
+7fffd160:	0002ffff 	
+7fffd164:	00037fff 	
+7fffd168:	0003ffff 	
+7fffd16c:	00047fff 	
+7fffd170:	0004ffff 	
+7fffd174:	00057fff 	
+7fffd178:	0005ffff 	
+7fffd17c:	00067fff 	
+7fffd180:	0006ffff 	
+7fffd184:	00077fff 	
+7fffd188:	00078fff 	
+7fffd18c:	00079fff 	
+7fffd190:	0007afff 	
+7fffd194:	0007bfff 	
+7fffd198:	0007cfff 	;end of last flash sector
+7fffd19c:	ffffffff 	;Would be end of next sector, marks that there is none such
+7fffd1a0:	ffffffff 	
+7fffd1a4:	ffffffff 	
+7fffd1a8:	ffffffff 	
+7fffd1ac:	ffffffff 	
+7fffd1b0:	001817be 			; <UNDEFINED> instruction: 0x001817be
+7fffd1b4:	000001fc 	;Address of write protect value in user code
+7fffd1b8:	87654321 	;CRP2 signal
+7fffd1bc:	43218765 	;CRP3 signal
+7fffd1c0:	12345678 	;CRP1 signal
+Jump here from start block:
+7fffd1c4:	e59f2044 	ldr	r2, [pc, #68]	; 0x7fffd210 ;r2=&CSPR
+7fffd1c8:	e51f301c 	ldr	r3, [pc, #-28]	; 0x7fffd1b4 ;r3=0x1FC
+7fffd1cc:	e51f5018 	ldr	r5, [pc, #-24]	; 0x7fffd1bc ;r5=CRP3
+7fffd1d0:	e51f6018 	ldr	r6, [pc, #-24]	; 0x7fffd1c0 ;r6=CRP1
+7fffd1d4:	e5934000 	ldr	r4, [r3]        ; r4=CSPR
+7fffd1d8:	e1540005 	cmp	r4, r5          ; CSPR=CRP3?
+7fffd1dc:	11540006 	cmpne	r4, r6          ; If not, CSPR=CRP1?
+7fffd1e0:	1a000000 	bne	0x7fffd1e8      ; If neither, skip this.
+7fffd1e4:	e51f4034 	ldr	r4, [pc, #-52]	; r4=write protect value in user code
+Jump target:
+7fffd1e8:	e5824000 	str	r4, [r2]        ; write to CSPR
+7fffd1ec:	e59f4020 	ldr	r4, [pc, #32]	; 0x7fffd214 ;r4=&MAMCR
+7fffd1f0:	e3a05000 	mov	r5, #0          ; r5=0
+7fffd1f4:	e5845000 	str	r5, [r4]        ; MAMCR=0
+7fffd1f8:	e3a05007 	mov	r5, #7          ; r5=7
+7fffd1fc:	e5845004 	str	r5, [r4, #4]    ; [SCB base+4]=7 (another hidden register?)
+7fffd200:	e51f21bc 	ldr	r2, [pc, #-444]	; r2=address of last addressable byte in ram
+7fffd204:	e242d01f 	sub	sp, r2, #31     ; sp=31 bytes below that (reserve 32 bytes above stack)
+7fffd208:	e59f2008 	ldr	r2, [pc, #8]	; 0x7fffd218 (r2=long jump target 0x7fffd3df, note switch to thumb mode)
+7fffd20c:	e12fff12 	bx	r2              ; jump to r2, switch to thumb if requested (and we are)
+7fffd210:	e01fc184 	; &CSPR (in SCB)
+7fffd214:	e01fc000 	; &MAMCR (base of SCB)
+7fffd218:	7fffd3df 	; jump target for thumb start
+Thumb code from here for a while
 7fffd21c:	b5fe      	push	{r1, r2, r3, r4, r5, r6, r7, lr}
 7fffd21e:	4f8b      	ldr	r7, [pc, #556]	; (0x7fffd44c)
 7fffd220:	4d8b      	ldr	r5, [pc, #556]	; (0x7fffd450)
@@ -133,6 +259,7 @@ Disassembly of section .sec1:
 7fffd32c:	bcf8      	pop	{r3, r4, r5, r6, r7}
 7fffd32e:	bc08      	pop	{r3}
 7fffd330:	4718      	bx	r3
+reinvokeISP:
 7fffd332:	484e      	ldr	r0, [pc, #312]	; (0x7fffd46c)
 7fffd334:	b570      	push	{r4, r5, r6, lr}
 7fffd336:	6800      	ldr	r0, [r0, #0]
@@ -1436,6 +1563,7 @@ target1:
 7fffde4e:	dddc      	ble.n	0x7fffde0a
 7fffde50:	1c48      	adds	r0, r1, #1
 7fffde52:	e7d2      	b.n	0x7fffddfa
+compare2:
 7fffde54:	2300      	movs	r3, #0
 7fffde56:	2200      	movs	r2, #0
 7fffde58:	b430      	push	{r4, r5}
@@ -1457,6 +1585,7 @@ target1:
 7fffde78:	600b      	str	r3, [r1, #0]
 7fffde7a:	bc30      	pop	{r4, r5}
 7fffde7c:	4770      	bx	lr
+compare2 end:
 7fffde7e:	2001      	movs	r0, #1
 7fffde80:	e7fb      	b.n	0x7fffde7a
 7fffde82:	b5b0      	push	{r4, r5, r7, lr}
@@ -1496,6 +1625,7 @@ target1:
 7fffdec8:	4770      	bx	lr
 7fffdeca:	2000      	movs	r0, #0
 7fffdecc:	4770      	bx	lr
+compare1:
 7fffdece:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
 7fffded0:	1c1f      	adds	r7, r3, #0
 7fffded2:	1c0e      	adds	r6, r1, #0
@@ -1504,7 +1634,7 @@ target1:
 7fffded8:	2800      	cmp	r0, #0
 7fffdeda:	d008      	beq.n	0x7fffdeee
 7fffdedc:	1c31      	adds	r1, r6, #0
-7fffdede:	f7ff ffb9 	bl	0x7fffde54
+7fffdede:	f7ff ffb9 	bl	0x7fffde54 ;call compare2
 7fffdee2:	2800      	cmp	r0, #0
 7fffdee4:	d003      	beq.n	0x7fffdeee
 7fffdee6:	200c      	movs	r0, #12
@@ -1782,51 +1912,51 @@ target1:
 7fffe120:	8000      	strh	r0, [r0, #0]
 7fffe122:	e000      	b.n	0x7fffe126
 command57:  (reinvoke ISP)
-7fffe124:	48ec      	ldr	r0, [pc, #944]	; (0x7fffe4d8)
+7fffe124:	48ec      	ldr	r0, [pc, #944]	; (r0=[0x7fffe4d8]=0xe002c000, &PINSEL0)
 7fffe126:	b580      	push	{r7, lr}
-7fffe128:	6801      	ldr	r1, [r0, #0]
-7fffe12a:	200c      	movs	r0, #12
-7fffe12c:	4aea      	ldr	r2, [pc, #936]	; (0x7fffe4d8)
-7fffe12e:	4381      	bics	r1, r0
-7fffe130:	6011      	str	r1, [r2, #0]
-7fffe132:	49ea      	ldr	r1, [pc, #936]	; (0x7fffe4dc)
-7fffe134:	6889      	ldr	r1, [r1, #8]
-7fffe136:	2202      	movs	r2, #2
-7fffe138:	4391      	bics	r1, r2
-7fffe13a:	4ae8      	ldr	r2, [pc, #928]	; (0x7fffe4dc)
-7fffe13c:	6091      	str	r1, [r2, #8]
-7fffe13e:	4ae8      	ldr	r2, [pc, #928]	; (0x7fffe4e0)
-7fffe140:	2100      	movs	r1, #0
-7fffe142:	6011      	str	r1, [r2, #0]
-7fffe144:	4ae7      	ldr	r2, [pc, #924]	; (0x7fffe4e4)
-7fffe146:	60d1      	str	r1, [r2, #12]
-7fffe148:	6111      	str	r1, [r2, #16]
-7fffe14a:	4be6      	ldr	r3, [pc, #920]	; (0x7fffe4e4)
-7fffe14c:	3340      	adds	r3, #64	; 0x40
-7fffe14e:	6b1a      	ldr	r2, [r3, #48]	; 0x30
-7fffe150:	4002      	ands	r2, r0
-7fffe152:	631a      	str	r2, [r3, #48]	; 0x30
-7fffe154:	4ae4      	ldr	r2, [pc, #912]	; (0x7fffe4e8)
-7fffe156:	2010      	movs	r0, #16
-7fffe158:	6290      	str	r0, [r2, #40]	; 0x28
-7fffe15a:	48e1      	ldr	r0, [pc, #900]	; (0x7fffe4e0)
-7fffe15c:	38c0      	subs	r0, #192	; 0xc0
-7fffe15e:	6001      	str	r1, [r0, #0]
-7fffe160:	f7ff f8e7 	bl	0x7fffd332
+7fffe128:	6801      	ldr	r1, [r0, #0]    ; (r1=PINSEL0)
+7fffe12a:	200c      	movs	r0, #12         ; (r0=12)
+7fffe12c:	4aea      	ldr	r2, [pc, #936]	; (r2=&PINSEL0)
+7fffe12e:	4381      	bics	r1, r0          ; clear bits 3:2
+7fffe130:	6011      	str	r1, [r2, #0]    ; set pin P0.1 to normal GPIO
+7fffe132:	49ea      	ldr	r1, [pc, #936]	; (r1=[0x7fffe4dc]=0xe0028000, GPIO base)
+7fffe134:	6889      	ldr	r1, [r1, #8]    ; (r1=IODIR0)
+7fffe136:	2202      	movs	r2, #2          ; (r2=2)
+7fffe138:	4391      	bics	r1, r2          ; clear bit 1
+7fffe13a:	4ae8      	ldr	r2, [pc, #928]	; (r2=GPIO base)
+7fffe13c:	6091      	str	r1, [r2, #8]    ; set pin P0.1 to input
+7fffe13e:	4ae8      	ldr	r2, [pc, #928]	; r2=[0x7fffe4e0]=0xe01fc100, &VPBDIV
+7fffe140:	2100      	movs	r1, #0          ;
+7fffe142:	6011      	str	r1, [r2, #0]    ; VPBDIV=0
+7fffe144:	4ae7      	ldr	r2, [pc, #924]	; r2=[0x7fffe4e4]=0xE0008000, Timer1 base
+7fffe146:	60d1      	str	r1, [r2, #12]   ; TPR(1)=0
+7fffe148:	6111      	str	r1, [r2, #16]   ; TPC(1)=0
+7fffe14a:	4be6      	ldr	r3, [pc, #920]	; r3=Timer1 base
+7fffe14c:	3340      	adds	r3, #64	; 0x40  ; r3+=0x40
+7fffe14e:	6b1a      	ldr	r2, [r3, #48]	; r2=[Timer1 base+0x70]=TCTCR(1) An odd way of doing this, thumb restriction?
+7fffe150:	4002      	ands	r2, r0          ; r0 is still 0x0C, so clear all but bits 3:2
+7fffe152:	631a      	str	r2, [r3, #48]	; TCTR(1)=r2, this leaves count input select as-is but forces timer mode
+7fffe154:	4ae4      	ldr	r2, [pc, #912]	; r2=[0x7fffe4e8]=0xE000C000, UART0 base
+7fffe156:	2010      	movs	r0, #16         ; r0=0x10
+7fffe158:	6290      	str	r0, [r2, #40]	; UFDR(0)=0x10
+7fffe15a:	48e1      	ldr	r0, [pc, #900]	; r2=[0x7fffe4e0]=0xE01FC100, &VPBDIV
+7fffe15c:	38c0      	subs	r0, #192	; r2-=0xC0, so now 0xE01FC040, &MEMMAP
+7fffe15e:	6001      	str	r1, [r0, #0]    ; MEMMAP=0, set vector table memory mapping back to boot block
+7fffe160:	f7ff f8e7 	bl	0x7fffd332      ; call ISP entry, we don't expect to return, but the compiler is stupid
 7fffe164:	bc80      	pop	{r7}
 7fffe166:	bc08      	pop	{r3}
 7fffe168:	4718      	bx	r3
 command56:  ;compare
 7fffe16a:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
-7fffe16c:	2600      	movs	r6, #0
-7fffe16e:	1c0d      	adds	r5, r1, #0
-7fffe170:	1c01      	adds	r1, r0, #0
-7fffe172:	1c33      	adds	r3, r6, #0
-7fffe174:	1c04      	adds	r4, r0, #0
-7fffe176:	310c      	adds	r1, #12
-7fffe178:	2264      	movs	r2, #100	; 0x64
-7fffe17a:	2000      	movs	r0, #0
-7fffe17c:	f7ff fea7 	bl	0x7fffdece
+7fffe16c:	2600      	movs	r6, #0          ; r6=0
+7fffe16e:	1c0d      	adds	r5, r1, #0      ; r5=[return value 0]
+7fffe170:	1c01      	adds	r1, r0, #0      ; r1=[command value 0]
+7fffe172:	1c33      	adds	r3, r6, #0      ; r3=0
+7fffe174:	1c04      	adds	r4, r0, #0      ; r4=[command value 0]
+7fffe176:	310c      	adds	r1, #12         ; r1=[command value 3]
+7fffe178:	2264      	movs	r2, #100	; r2=0x64
+7fffe17a:	2000      	movs	r0, #0          ; r0=0
+7fffe17c:	f7ff fea7 	bl	0x7fffdece      ; call compare1
 7fffe180:	6028      	str	r0, [r5, #0]
 7fffe182:	2800      	cmp	r0, #0
 7fffe184:	d11d      	bne.n	0x7fffe1c2
@@ -1868,19 +1998,22 @@ command56:  ;compare
 7fffe1d0:	d1ee      	bne.n	0x7fffe1b0
 7fffe1d2:	602e      	str	r6, [r5, #0]
 7fffe1d4:	e7f5      	b.n	0x7fffe1c2
-7fffe1d6:	4ac5      	ldr	r2, [pc, #788]	; (0x7fffe4ec)
-7fffe1d8:	6813      	ldr	r3, [r2, #0]
-7fffe1da:	4298      	cmp	r0, r3
-7fffe1dc:	d804      	bhi.n	0x7fffe1e8
-7fffe1de:	6812      	ldr	r2, [r2, #0]
-7fffe1e0:	4291      	cmp	r1, r2
-7fffe1e2:	d801      	bhi.n	0x7fffe1e8
-7fffe1e4:	4288      	cmp	r0, r1
-7fffe1e6:	d901      	bls.n	0x7fffe1ec
-7fffe1e8:	2007      	movs	r0, #7
-7fffe1ea:	4770      	bx	lr
-7fffe1ec:	2000      	movs	r0, #0
-7fffe1ee:	4770      	bx	lr
+sectors_range_check: ;on entry, r0=start sector to prepare, r1=end sector to prepare. On exit, r0=status code
+7fffe1d6:	4ac5      	ldr	r2, [pc, #788]	; r2=[0x7fffe4ec]=0x7fffd050
+7fffe1d8:	6813      	ldr	r3, [r2, #0]    ; r3=table[0]=0x1a, largest sector number
+7fffe1da:	4298      	cmp	r0, r3          ; Check if start is off the end of the sector table
+7fffe1dc:	d804      	bhi.n	0x7fffe1e8      ; if so, fail with INVALID_SECTOR
+7fffe1de:	6812      	ldr	r2, [r2, #0]    ; r2=0x1a
+7fffe1e0:	4291      	cmp	r1, r2          ; check if end is off the end of the sector table
+7fffe1e2:	d801      	bhi.n	0x7fffe1e8      ; if so, fail with INVALID_SECTOR
+7fffe1e4:	4288      	cmp	r0, r1          ; check if start is less than end
+7fffe1e6:	d901      	bls.n	0x7fffe1ec      ; if so, skip to success
+sectors_range_check.fail:
+7fffe1e8:	2007      	movs	r0, #7          ; set status to INVALID_SECTOR
+7fffe1ea:	4770      	bx	lr              ; and return
+sectors_range_check.success:
+7fffe1ec:	2000      	movs	r0, #0          ; set status to CMD_SUCCESS
+7fffe1ee:	4770      	bx	lr              ; and return
 command53:  ;blank check sectors
 7fffe1f0:	b570      	push	{r4, r5, r6, lr}
 7fffe1f2:	1c0d      	adds	r5, r1, #0
@@ -1921,82 +2054,110 @@ command53:  ;blank check sectors
 7fffe23a:	2000      	movs	r0, #0
 7fffe23c:	6028      	str	r0, [r5, #0]
 7fffe23e:	e7f6      	b.n	0x7fffe22e
-7fffe240:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
-7fffe242:	4684      	mov	ip, r0
-7fffe244:	1c10      	adds	r0, r2, #0
-7fffe246:	4eac      	ldr	r6, [pc, #688]	; (0x7fffe4f8)
-7fffe248:	9a06      	ldr	r2, [sp, #24]
-7fffe24a:	6834      	ldr	r4, [r6, #0]
-7fffe24c:	468e      	mov	lr, r1
-7fffe24e:	4fab      	ldr	r7, [pc, #684]	; (0x7fffe4fc)
-7fffe250:	3c1d      	subs	r4, #29
-7fffe252:	2100      	movs	r1, #0
-7fffe254:	004d      	lsls	r5, r1, #1
-7fffe256:	5b7d      	ldrh	r5, [r7, r5]
-7fffe258:	3101      	adds	r1, #1
-7fffe25a:	8025      	strh	r5, [r4, #0]
-7fffe25c:	3402      	adds	r4, #2
-7fffe25e:	290f      	cmp	r1, #15
-7fffe260:	dbf8      	blt.n	0x7fffe254
-7fffe262:	6834      	ldr	r4, [r6, #0]
-7fffe264:	9200      	str	r2, [sp, #0]
-7fffe266:	3c1c      	subs	r4, #28
-7fffe268:	1c02      	adds	r2, r0, #0
-7fffe26a:	4660      	mov	r0, ip
-7fffe26c:	4671      	mov	r1, lr
-7fffe26e:	f000 fb89 	bl	0x7fffe984
-7fffe272:	bcf8      	pop	{r3, r4, r5, r6, r7}
-7fffe274:	bc08      	pop	{r3}
-7fffe276:	4718      	bx	r3
-7fffe278:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
-7fffe27a:	1c0f      	adds	r7, r1, #0
-7fffe27c:	49a0      	ldr	r1, [pc, #640]	; (0x7fffe500)
-7fffe27e:	1c16      	adds	r6, r2, #0
-7fffe280:	6849      	ldr	r1, [r1, #4]
-7fffe282:	2500      	movs	r5, #0
-7fffe284:	07c9      	lsls	r1, r1, #31
-7fffe286:	d527      	bpl.n	0x7fffe2d8
-7fffe288:	1c04      	adds	r4, r0, #0
-7fffe28a:	e013      	b.n	0x7fffe2b4
-7fffe28c:	2001      	movs	r0, #1
-7fffe28e:	40a0      	lsls	r0, r4
-7fffe290:	4305      	orrs	r5, r0
-7fffe292:	4997      	ldr	r1, [pc, #604]	; (0x7fffe4f0)
-7fffe294:	00a0      	lsls	r0, r4, #2
-7fffe296:	5808      	ldr	r0, [r1, r0]
-7fffe298:	499a      	ldr	r1, [pc, #616]	; (0x7fffe504)
-7fffe29a:	6008      	str	r0, [r1, #0]
-7fffe29c:	489a      	ldr	r0, [pc, #616]	; (0x7fffe508)
-7fffe29e:	6006      	str	r6, [r0, #0]
-7fffe2a0:	2200      	movs	r2, #0
-7fffe2a2:	9200      	str	r2, [sp, #0]
-7fffe2a4:	4a97      	ldr	r2, [pc, #604]	; (0x7fffe504)
-7fffe2a6:	2302      	movs	r3, #2
-7fffe2a8:	3208      	adds	r2, #8
-7fffe2aa:	2187      	movs	r1, #135	; 0x87
-7fffe2ac:	4894      	ldr	r0, [pc, #592]	; (0x7fffe500)
-7fffe2ae:	f7ff ffc7 	bl	0x7fffe240
-7fffe2b2:	3401      	adds	r4, #1
-7fffe2b4:	42bc      	cmp	r4, r7
-7fffe2b6:	d9e9      	bls.n	0x7fffe28c
-7fffe2b8:	2e00      	cmp	r6, #0
-7fffe2ba:	d103      	bne.n	0x7fffe2c4
-7fffe2bc:	4991      	ldr	r1, [pc, #580]	; (0x7fffe504)
-7fffe2be:	6848      	ldr	r0, [r1, #4]
-7fffe2c0:	43a8      	bics	r0, r5
-7fffe2c2:	e004      	b.n	0x7fffe2ce
-7fffe2c4:	1c73      	adds	r3, r6, #1
-7fffe2c6:	d103      	bne.n	0x7fffe2d0
-7fffe2c8:	498e      	ldr	r1, [pc, #568]	; (0x7fffe504)
-7fffe2ca:	6848      	ldr	r0, [r1, #4]
-7fffe2cc:	4328      	orrs	r0, r5
-7fffe2ce:	6048      	str	r0, [r1, #4]
-7fffe2d0:	2000      	movs	r0, #0
+prepare_sector_for_write:
+; Prepare a single sector for write.
+; Write a flash control register which will cause flash to become unavailable.
+; Because of that, copy the code to actually do it (prepare_for_sector_write_ram) to ram and have that do it.
+; That code writes the register, waits for acknowledgement from flash register, then
+; waits some more for flash to become available again.
+; On entry, r0=address of first register to write, e0064000 (flash(000))
+;           r1=value to write to first register, 0x87
+;           r2=address of second register to write, 0xe0064c08 (flash(c08))
+;           r3=value to write to second register, 2
+7fffe240:	b5f8      	push	{r3, r4, r5, r6, r7, lr} ;r3=sp[0], r4=sp[1], r5=sp[2], r6=sp[3], r7=sp[4], lr=sp[5]
+7fffe242:	4684      	mov	ip, r0      ; save r0 in r12 (address of base of APB25)
+7fffe244:	1c10      	adds	r0, r2, #0  ; save r2 in r0 (address of register to write)
+7fffe246:	4eac      	ldr	r6, [pc, #688]	; r6=[0x7fffe4f8]=0x7fffd04c, pointer to last addressable byte
+7fffe248:	9a06      	ldr	r2, [sp, #24] ; r2=[sp[6]]=pushed lr
+7fffe24a:	6834      	ldr	r4, [r6, #0]  ; r4=40007fff, last addressable byte in ram
+7fffe24c:	468e      	mov	lr, r1        ; save value of r1 in lr
+7fffe24e:	4fab      	ldr	r7, [pc, #684]	; r7=[0x7fffe4fc]=7fffef50, procedure to be copied to ram
+7fffe250:	3c1d      	subs	r4, #29       ; r4=40007fE2, in block marked as used by IAP, start address of code in ram without thumb bit
+7fffe252:	2100      	movs	r1, #0        ; r1=0 loop iterator
+prepare_sector_for_write.loop:
+7fffe254:	004d      	lsls	r5, r1, #1    ; r5=r1<<1
+7fffe256:	5b7d      	ldrh	r5, [r7, r5]  ; r5=[table start+r5]
+7fffe258:	3101      	adds	r1, #1        ; increment loop counter
+7fffe25a:	8025      	strh	r5, [r4, #0]  ; [ram code pos]=r5
+7fffe25c:	3402      	adds	r4, #2        ; increment ram pointer
+7fffe25e:	290f      	cmp	r1, #15       ; Have we copied 15 words yet?
+7fffe260:	dbf8      	blt.n	0x7fffe254    ; If not, loop
+7fffe262:	6834      	ldr	r4, [r6, #0]  ; r4=40007fff, last addressable byte in ram
+7fffe264:	9200      	str	r2, [sp, #0]  ; change slot for r3 on stack to r2, old lr.
+7fffe266:	3c1c      	subs	r4, #28       ; r4=40007fe3, address of code in ram plus thumb bit
+7fffe268:	1c02      	adds	r2, r0, #0    ; restore r2 from r0 (address of register to write)
+7fffe26a:	4660      	mov	r0, ip        ; restore r0 from r12 (base of APB25)
+7fffe26c:	4671      	mov	r1, lr        ; restore value of r1 from lr, so r1=0x87
+7fffe26e:	f000 fb89 	bl	0x7fffe984    ; jumps to bx, r4, so effectively a blx (but no blx in ARMv4). r4 is correct address for prepare_sector_write_ram
+7fffe272:	bcf8      	pop	{r3, r4, r5, r6, r7} ;restore r4-r7, r3 will be overwritten by saved lr, but we need to pop and discard it anyway
+7fffe274:	bc08      	pop	{r3}          ; this is the old lr
+7fffe276:	4718      	bx	r3            ; return to caller
+prepare_sectors_for_write: 
+;on entry, r0=start sector to prepare, 
+;          r1=end sector to prepare, 
+;On exit,  r0=status code
+;flash(000):      write ram 
+;flash(004): read           - sector available. One bit for each sector, set to 0 if sector is busy
+;flash(c00):      write     - start address to prepare for write
+;flash(c04): read write     - some kind of bit field with one bit per sector
+;flash(c08): read write ram - some kind of command/ack mechanism?
+7fffe278:	b5f8      	push	{r3, r4, r5, r6, r7, lr} ;r3=sp[0], r4=sp[1], r5=sp[2], r6=sp[3], r7=sp[4], lr=sp[5]
+7fffe27a:	1c0f      	adds	r7, r1, #0      ; r7=end sector
+7fffe27c:	49a0      	ldr	r1, [pc, #640]	; r1=[0x7fffe500]=e0064000, &flash(000)
+7fffe27e:	1c16      	adds	r6, r2, #0      ; save r2 (0?) in r6
+7fffe280:	6849      	ldr	r1, [r1, #4]    ; r1=flash(004)
+7fffe282:	2500      	movs	r5, #0          ; r5=0
+7fffe284:	07c9      	lsls	r1, r1, #31     ; r1<<=31, set N flag to bit 31 of result (=bit 0 of flash(004))
+7fffe286:	d527      	bpl.n	0x7fffe2d8      ; branch if N flag is clear (IE flash(004) bit 0 was clear)
+7fffe288:	1c04      	adds	r4, r0, #0      ; r4=sector iterator (starts at start sector)
+7fffe28a:	e013      	b.n	0x7fffe2b4      ; jump to loop bottom
+prepare_sectors_for_write.loop_top:
+7fffe28c:	2001      	movs	r0, #1          ;r0=1
+7fffe28e:	40a0      	lsls	r0, r4          ;r0<<current sector
+7fffe290:	4305      	orrs	r5, r0          ; accumulate the bit of the current sector in r5
+7fffe292:	4997      	ldr	r1, [pc, #604]	; r1=[0x7fffe4f0]=base address of sector start table
+7fffe294:	00a0      	lsls	r0, r4, #2      ; r0=r4*2
+7fffe296:	5808      	ldr	r0, [r1, r0]    ; r0=sector_start[sector iterator]
+7fffe298:	499a      	ldr	r1, [pc, #616]	; r1=[0x7fffe504]=e0064c00, &flash(c00) (sector start?)
+7fffe29a:	6008      	str	r0, [r1, #0]    ; flash(c00)=r0, sector_start[sector_iterator]
+7fffe29c:	489a      	ldr	r0, [pc, #616]	; r0=[0x7fffe508]=e0064800, &flash(800) 
+7fffe29e:	6006      	str	r6, [r0, #0]    ; flash(800)=r6 (0?)
+7fffe2a0:	2200      	movs	r2, #0          ; r2=0
+7fffe2a2:	9200      	str	r2, [sp, #0]    ; write a zero over the slot for r3 on the stack, don't move stack pointer
+7fffe2a4:	4a97      	ldr	r2, [pc, #604]	; r2=[0x7fffe504]=e0064c00=&flash(c00)
+7fffe2a6:	2302      	movs	r3, #2          ; r3=2
+7fffe2a8:	3208      	adds	r2, #8          ; r2+=8=0xe0064c08, &flash(c08)
+7fffe2aa:	2187      	movs	r1, #135	; r1=0x87
+7fffe2ac:	4894      	ldr	r0, [pc, #592]	; r0=flash(0)
+7fffe2ae:	f7ff ffc7 	bl	0x7fffe240      ; call prepare_sector_for_write
+7fffe2b2:	3401      	adds	r4, #1          ; go to the next sector
+prepare_sectors_for_write.loop_bottom
+7fffe2b4:	42bc      	cmp	r4, r7          ; Are we done yet?
+7fffe2b6:	d9e9      	bls.n	0x7fffe28c      ; If still more to do, jump to loop top
+7fffe2b8:	2e00      	cmp	r6, #0          ; if we were called with r2!=0 (not from cmd50) ...
+7fffe2ba:	d103      	bne.n	0x7fffe2c4      ; ...skip this next bit (only do this bit if r2=0, IE from cmd50)
+7fffe2bc:	4991      	ldr	r1, [pc, #580]	; r1=[0x7fffe504]=e0064c00, &flash(c00)
+7fffe2be:	6848      	ldr	r0, [r1, #4]    ; r0=Flash(c04)
+7fffe2c0:	43a8      	bics	r0, r5          ; clear the bits for the sectors actually prepared
+7fffe2c2:	e004      	b.n	0x7fffe2ce      ; skip this next bit
+prepare_sectors_for_write.not_cmd50
+7fffe2c4:	1c73      	adds	r3, r6, #1      ; were we called with r2=0xFFFF'FFFF, meaning this will overflow and become zero?
+7fffe2c6:	d103      	bne.n	0x7fffe2d0      ; if not, skip this next bit
+7fffe2c8:	498e      	ldr	r1, [pc, #568]	; r1=[0x7fffe504]=&flash(c00)
+7fffe2ca:	6848      	ldr	r0, [r1, #4]    ; r0=flash(c04)
+7fffe2cc:	4328      	orrs	r0, r5          ; set bit r0 corresponding to all the flash sectors compared
+prepare_sectors_for_write.skip
+7fffe2ce:	6048      	str	r0, [r1, #4]    ; flash(c04)=r0
+prepare_sectors_for_write.skip2
+7fffe2d0:	2000      	movs	r0, #0          ; r0=0, CMD_SUCCESS
+prepare_sectors_for_write.exit
 7fffe2d2:	bcf8      	pop	{r3, r4, r5, r6, r7}
 7fffe2d4:	bc08      	pop	{r3}
-7fffe2d6:	4718      	bx	r3
-7fffe2d8:	200b      	movs	r0, #11
-7fffe2da:	e7fa      	b.n	0x7fffe2d2
+7fffe2d6:	4718      	bx	r3              ;return to caller
+prepare_sectors_for_write.fail:
+7fffe2d8:	200b      	movs	r0, #11     ; r0=11, BUSY (flash hardware is busy)
+7fffe2da:	e7fa      	b.n	0x7fffe2d2  ; get outta here
+
 7fffe2dc:	b410      	push	{r4}
 7fffe2de:	2200      	movs	r2, #0
 7fffe2e0:	2401      	movs	r4, #1
@@ -2238,31 +2399,21 @@ command51:      ;copy ram to flash (write flash)
 7fffe4d2:	bc08      	pop	{r3}
 7fffe4d4:	4718      	bx	r3
 7fffe4d6:	0000      	movs	r0, r0
-7fffe4d8:	c000      	stmia	r0!, {}
-7fffe4da:	e002      	b.n	0x7fffe4e2
-7fffe4dc:	8000      	strh	r0, [r0, #0]
-7fffe4de:	e002      	b.n	0x7fffe4e6
-7fffe4e0:	c100      	stmia	r1!, {}
-7fffe4e2:	e01f      	b.n	0x7fffe524
-7fffe4e4:	8000      	strh	r0, [r0, #0]
-7fffe4e6:	e000      	b.n	0x7fffe4ea
-7fffe4e8:	c000      	stmia	r0!, {}
-7fffe4ea:	e000      	b.n	0x7fffe4ee
-7fffe4ec:	d050      	beq.n	0x7fffe590
-7fffe4ee:	7fff      	ldrb	r7, [r7, #31]
-7fffe4f0:	d0b0      	beq.n	0x7fffe454
-7fffe4f2:	7fff      	ldrb	r7, [r7, #31]
+7fffe4d8:	e002c000 	;address of pin connect block base and PINSEL0
+7fffe4dc:	e0028000 	;address of GPIO base and IOPIN0
+7fffe4e0:	e01fc100 	;Address of VPBDIV
+7fffe4e4:	e0008000 	;address of Timer1 base 
+7fffe4e8:	e000c000 	;Address of UART0 base
+7fffe4ec:	7fffd050      	;Address of maximum number of sectors
+7fffe4f0:	7fffd0b0      	;base address of sector start table
 7fffe4f4:	d130      	bne.n	0x7fffe558
 7fffe4f6:	7fff      	ldrb	r7, [r7, #31]
 7fffe4f8:	d04c      	beq.n	0x7fffe594
 7fffe4fa:	7fff      	ldrb	r7, [r7, #31]
 7fffe4fc:	ef50 7fff 	vrecps.f<illegal width 64>	<illegal reg q11.5>, q8, <illegal reg q15.5>
-7fffe500:	4000      	ands	r0, r0
-7fffe502:	e006      	b.n	0x7fffe512
-7fffe504:	4c00      	ldr	r4, [pc, #0]	; (0x7fffe508)
-7fffe506:	e006      	b.n	0x7fffe516
-7fffe508:	4800      	ldr	r0, [pc, #0]	; (0x7fffe50c)
-7fffe50a:	e006      	b.n	0x7fffe51a
+7fffe500:	e0064000      	;address of APB peripheral 25, marked "not used" but seems to be flash write control
+7fffe504:	e0064c00      	;address deep in APB25
+7fffe508:	e0064800      	;another address in APB25
 7fffe50c:	d064      	beq.n	0x7fffe5d8
 7fffe50e:	7fff      	ldrb	r7, [r7, #31]
 7fffe510:	d060      	beq.n	0x7fffe5d4
@@ -2308,25 +2459,26 @@ command51:      ;copy ram to flash (write flash)
 7fffe564:	e7b3      	b.n	0x7fffe4ce
 command50: ;prepare sector for write
 7fffe566:	b5b0      	push	{r4, r5, r7, lr}
-7fffe568:	1c0d      	adds	r5, r1, #0
-7fffe56a:	1c04      	adds	r4, r0, #0
-7fffe56c:	1d01      	adds	r1, r0, #4
-7fffe56e:	c903      	ldmia	r1, {r0, r1}
-7fffe570:	f7ff fe31 	bl	0x7fffe1d6
-7fffe574:	6028      	str	r0, [r5, #0]
-7fffe576:	2800      	cmp	r0, #0
-7fffe578:	d105      	bne.n	0x7fffe586
-7fffe57a:	2200      	movs	r2, #0
-7fffe57c:	1d21      	adds	r1, r4, #4
-7fffe57e:	c903      	ldmia	r1, {r0, r1}
-7fffe580:	f7ff fe7a 	bl	0x7fffe278
-7fffe584:	6028      	str	r0, [r5, #0]
+7fffe568:	1c0d      	adds	r5, r1, #0 ;r5=[return[0]]
+7fffe56a:	1c04      	adds	r4, r0, #0 ;r4=[command code] start of command block
+7fffe56c:	1d01      	adds	r1, r0, #4 ;r1=[command[1]] 
+7fffe56e:	c903      	ldmia	r1, {r0, r1} ;r0=command[1] start sector to prepare, r1=command[2] end sector to prepare
+7fffe570:	f7ff fe31 	bl	0x7fffe1d6 ;call sectors_range_check, r0 is 0 (CMD_SUCCESS) if range check ok
+7fffe574:	6028      	str	r0, [r5, #0] ;write the status at this point to the return block
+7fffe576:	2800      	cmp	r0, #0       ;Did the range check pass?
+7fffe578:	d105      	bne.n	0x7fffe586   ;If not, skip to command50.fail
+7fffe57a:	2200      	movs	r2, #0       ;r2=0
+7fffe57c:	1d21      	adds	r1, r4, #4   ;r1=[r4+4]=[command[1]] address of start sector to prepare
+7fffe57e:	c903      	ldmia	r1, {r0, r1} ;r0=command[1] start sector to prepare, r1=command[2] end sector to prepare
+7fffe580:	f7ff fe7a 	bl	0x7fffe278   ; call prepare_sectors_for_write
+7fffe584:	6028      	str	r0, [r5, #0] ;write the status after preparation
+command50.fail: 
 7fffe586:	bcb0      	pop	{r4, r5, r7}
-7fffe588:	bc08      	pop	{r3}
-7fffe58a:	4718      	bx	r3
+7fffe588:	bc08      	pop	{r3} ;was lr, so is proper return value
+7fffe58a:	4718      	bx	r3   
 real_iap_entry:
 7fffe58c:	b510      	push	{r4, lr}       ; Save some registers
-7fffe58e:	6804      	ldr	r4, [r0, #0]   ; r4=first word of command block
+7fffe58e:	6804      	ldr	r4, [r0, #0]   ; r4=first word of command block=command code
 7fffe590:	2200      	movs	r2, #0         ; r2=0
 7fffe592:	3c32      	subs	r4, #50	; 0x32 ; Subtract 50 from command code
 7fffe594:	2c08      	cmp	r4, #8         ; compare to 8
@@ -2798,7 +2950,8 @@ finish_iap:
 7fffe97e:	4708      	bx	r1
 7fffe980:	4710      	bx	r2
 7fffe982:	4718      	bx	r3
-7fffe984:	4720      	bx	r4
+trampoline_r4:
+7fffe984:	4720      	bx	r4 
 7fffe986:	4728      	bx	r5
 7fffe988:	4730      	bx	r6
 7fffe98a:	4738      	bx	r7
@@ -3462,21 +3615,37 @@ finish_iap:
 7fffef4a:	0044      	lsls	r4, r0, #1
 7fffef4c:	5a5a      	ldrh	r2, [r3, r1]
 7fffef4e:	0000      	movs	r0, r0
+prepare_for_flash_write_ram: Installed in ram at 0x40007fe2. Position independent code, so it doesn't matter.
+;Must be in ram because flash is disabled during this routine
+; On entry, r0=e0064000 address of first register to write (base of APB25)
+;           r1=0x87, value to write to first register 
+;           r2=0xe0064c08, (optional) address of second register to write. Put zero here to not do the second write and wait for readback
+;           r3=2, value to write to second register
+; If we write to the second register, we wait for it to acknowledge by changing none of its bits to match the value we wrote.
+; If we DON'T write to the second register, we just wait for flash to become available before returning, since we
+; will be returning to code in flash.
 7fffef50:	b410      	push	{r4}
-7fffef52:	9c01      	ldr	r4, [sp, #4]
-7fffef54:	6001      	str	r1, [r0, #0]
-7fffef56:	2a00      	cmp	r2, #0
-7fffef58:	d005      	beq.n	0x7fffef66
-7fffef5a:	6013      	str	r3, [r2, #0]
-7fffef5c:	6810      	ldr	r0, [r2, #0]
-7fffef5e:	4018      	ands	r0, r3
-7fffef60:	d1fc      	bne.n	0x7fffef5c
+7fffef52:	9c01      	ldr	r4, [sp, #4] ; EVIL stack manipulation. r4=calling routine's sp[0], which happens to be its lr for its return.
+7fffef54:	6001      	str	r1, [r0, #0] ; write to first register
+7fffef56:	2a00      	cmp	r2, #0       ; are we going to skip writing to second register (is address zero?)
+7fffef58:	d005      	beq.n	0x7fffef66   ; If so, wait for flash to become available.
+7fffef5a:	6013      	str	r3, [r2, #0] ; write to second register
+prepare_for_flash_write_ram.busy_wait:
+7fffef5c:	6810      	ldr	r0, [r2, #0] ;read back second register
+7fffef5e:	4018      	ands	r0, r3       ;Do any of the bits match, Z flag set if result is 0 (no bits match)
+7fffef60:	d1fc      	bne.n	0x7fffef5c   ;If Z flag cleared (some bits match), loop back to busy wait. We only escape when none of write and readback bits match
+prepare_for_flash_write_ram.exit
 7fffef62:	bc10      	pop	{r4}
-7fffef64:	4770      	bx	lr
-7fffef66:	6820      	ldr	r0, [r4, #0]
-7fffef68:	2800      	cmp	r0, #0
-7fffef6a:	d0fc      	beq.n	0x7fffef66
-7fffef6c:	e7f9      	b.n	0x7fffef62
+7fffef64:	4770      	bx	lr ;Don't return to the trampoline, but the code which called that. Trampoline doesn't set lr
+prepare_for_flash_write_ram.wait_for_flash_ready:
+;This is too clever by half. If flash is not ready, it reads zero. So, we keep trying
+;to read where we are going to return to, and wait for it to be nonzero, since we
+;know that it will be an instruction, which can't be zero.
+7fffef66:	6820      	ldr	r0, [r4, #0] ;load what's pointed to by stack_table[1]
+7fffef68:	2800      	cmp	r0, #0     ;compare that value with zero
+7fffef6a:	d0fc      	beq.n	0x7fffef66 ;Loop while the value is zero
+7fffef6c:	e7f9      	b.n	0x7fffef62 ;get outta here
+
 7fffef6e:	b430      	push	{r4, r5}
 7fffef70:	2501      	movs	r5, #1
 7fffef72:	e008      	b.n	0x7fffef86
@@ -3493,6 +3662,7 @@ finish_iap:
 7fffef88:	d9f4      	bls.n	0x7fffef74
 7fffef8a:	bc30      	pop	{r4, r5}
 7fffef8c:	4770      	bx	lr
+
 7fffef8e:	0000      	movs	r0, r0
 7fffef90:	0001      	movs	r1, r0
 7fffef92:	0000      	movs	r0, r0

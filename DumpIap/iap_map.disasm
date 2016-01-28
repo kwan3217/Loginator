@@ -1331,10 +1331,10 @@ Jump target:
 7fffe4cc:	b0056028 	andlt	r6, r5, r8, lsr #32
 7fffe4d0:	bc08bcf0 	stclt	12, cr11, [r8], {240}	; 0xf0
 7fffe4d4:	00004718 	andeq	r4, r0, r8, lsl r7
-7fffe4d8:	e002c000 	and	ip, r2, r0
-7fffe4dc:	e0028000 	and	r8, r2, r0
-7fffe4e0:	e01fc100 	ands	ip, pc, r0, lsl #2
-7fffe4e4:	e0008000 	and	r8, r0, r0
+7fffe4d8:	e002c000 	;address of pin connect block base and PINSEL0
+7fffe4dc:	e0028000 	;address of GPIO base and IOPIN0
+7fffe4e0:	e01fc100 	;Address of VPBDIV
+7fffe4e4:	e0008000 	;address of Timer1 base 
 7fffe4e8:	e000c000 	and	ip, r0, r0
 7fffe4ec:	7fffd050 	svcvc	0x00ffd050
 7fffe4f0:	7fffd0b0 	svcvc	0x00ffd0b0
