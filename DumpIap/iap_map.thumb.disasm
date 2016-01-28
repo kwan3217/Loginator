@@ -7,39 +7,39 @@ Disassembly of section .sec1:
 7fffd000-7fffd21c is arm code and constants
 ;This doesn't appear to be an actual interrupt table, but just the start of code
 7fffd000 <.sec1>:
-7fffd000:	e59f4034 	ldr	r4, [pc, #52]	; 0x7fffd03c (value is 0xE01FC000, base of system control block and MAMCR)
+7fffd000:	e59f4034 	ldr	r4, [pc, #52]	## 0x7fffd03c (value is 0xE01FC000, base of system control block and MAMCR)
 7fffd004:	e3a05002 	mov	r5, #2
-7fffd008:	e5845000 	str	r5, [r4]        ; MAMCR=2
-7fffd00c:	e3a05003 	mov	r5, #3
-7fffd010:	e5845004 	str	r5, [r4, #4]    ; MAMTIM=3
-7fffd014:	e59f201c 	ldr	r2, [pc, #28]	; 0x7fffd038 (value is 0xE002C014, PINSEL2)
-7fffd018:	e3a03000 	mov	r3, #0
-7fffd01c:	e1020093 	swp	r0, r3, [r2]    ; R0=old PINSEL2, PINSEL2=0
-7fffd020:	e2822028 	add	r2, r2, #40	; 0x28 r2 is now 0xE002C03C, unknown register
-7fffd024:	e1021093 	swp	r1, r3, [r2]    ; R1=old unknown register, unknown register=0
-7fffd028:	e3c03007 	bic	r3, r0, #7      ; R3=clear bits 2:0 of value of unknown register
-7fffd02c:	e5023028 	str	r3, [r2, #-40]	; write those cleared bits to PINSEL2
-7fffd030:	e51ff004 	ldr	pc, [pc, #-4]	; long jump to next word (PC-4 because due to prefetch, PC has already advanced 2 words) 
-7fffd034:	7fffd1c4 	svcvc	0x00ffd1c4      ; long jump target
-7fffd038:	e002c014 	&PINSEL2
-7fffd03c:	e01fc000 	&MAMCR, base of system control block
-7fffd040:	0402ff25 	streq	pc, [r2], #-3877	; 0xfffff0db
-7fffd044:	0000020d 	andeq	r0, r0, sp, lsl #4
-7fffd048:	40000000 	;Start of ram
-7fffd04c:	40007fff 	;Last addressable byte in ram
-7fffd050:	0000001a 	;Number of highest sector of flash
+7fffd008:	e5845000 	str	r5, [r4]        ## MAMCR=2
+7fffd00c:	e3a05003 	mov	r5, #3           
+7fffd010:	e5845004 	str	r5, [r4, #4]    ## MAMTIM=3
+7fffd014:	e59f201c 	ldr	r2, [pc, #28]	## r2=[0x7fffd038]=0xE002C014, &PINSEL2)
+7fffd018:	e3a03000 	mov	r3, #0          
+7fffd01c:	e1020093 	swp	r0, r3, [r2]    ## R0=old PINSEL2, PINSEL2=0
+7fffd020:	e2822028 	add	r2, r2, #40	## 0x28 r2 is now &PCB[0x0A], unknown register
+7fffd024:	e1021093 	swp	r1, r3, [r2]    ## R1=PCB[0x0A], PCB[0x0A]=0
+7fffd028:	e3c03007 	bic	r3, r0, #7      ## R3=clear bits 2:0 of value of old PINSEL2
+7fffd02c:	e5023028 	str	r3, [r2, #-40]	## write those cleared bits to PINSEL2
+7fffd030:	e51ff004 	ldr	pc, [pc, #-4]	## long jump to next word (PC-4 because due to prefetch, PC has already advanced 2 words) 
+7fffd034:	7fffd1c4 	                        ## long jump target
+7fffd038:	e002c014 	
+7fffd03c:	e01fc000 	## also base of system control block
+7fffd040:	0402ff25 	
+7fffd044:	0000020d 	
+7fffd048:	40000000 	
+7fffd04c:	40007fff 	
+7fffd050:	0000001a 	
 7fffd054:	0000000a 	andeq	r0, r0, sl
 7fffd058:	0000000e 	andeq	r0, r0, lr
 7fffd05c:	00000001 	andeq	r0, r0, r1
 7fffd060:	00000190 	muleq	r0, r0, r1
 7fffd064:	000000c8 	andeq	r0, r0, r8, asr #1
 7fffd068:	00000000 	andeq	r0, r0, r0
-7fffd06c:	0007cfff 	;Last writable byte in flash
-7fffd070:	00000002 	;Chip revision number
+7fffd06c:	0007cfff 	
+7fffd070:	00000002 	
 	...
-7fffd0b0:	00000000 	;Start address of flash sector 0
-7fffd0b4:	00001000 	;                              1
-7fffd0b8:	00002000 	;                              2
+7fffd0b0:	00000000 	
+7fffd0b4:	00001000 	
+7fffd0b8:	00002000 	
 7fffd0bc:	00003000 	
 7fffd0c0:	00004000 	
 7fffd0c4:	00005000 	
@@ -63,13 +63,13 @@ Disassembly of section .sec1:
 7fffd10c:	00079000 	
 7fffd110:	0007a000 	
 7fffd114:	0007b000 	
-7fffd118:	0007c000 	;Start address of last flash sector
-7fffd11c:	ffffffff 	;Would be address of next sector, marks that there is none such
-7fffd120:	ffffffff 	;"
-7fffd124:	ffffffff 	;"
-7fffd128:	ffffffff 	;"
-7fffd12c:	ffffffff 	;"
-7fffd130:	00000fff 	;End of flash sector 0
+7fffd118:	0007c000 	
+7fffd11c:	ffffffff 	## Would be address of next sector, marks that there is none such
+7fffd120:	ffffffff 	
+7fffd124:	ffffffff 	
+7fffd128:	ffffffff 	
+7fffd12c:	ffffffff 	
+7fffd130:	00000fff 	
 7fffd134:	00001fff 	
 7fffd138:	00002fff 	
 7fffd13c:	00003fff 	
@@ -95,42 +95,40 @@ Disassembly of section .sec1:
 7fffd18c:	00079fff 	
 7fffd190:	0007afff 	
 7fffd194:	0007bfff 	
-7fffd198:	0007cfff 	;end of last flash sector
-7fffd19c:	ffffffff 	;Would be end of next sector, marks that there is none such
+7fffd198:	0007cfff 	
+7fffd19c:	ffffffff 	## Would be end of next sector, marks that there is none such
 7fffd1a0:	ffffffff 	
 7fffd1a4:	ffffffff 	
 7fffd1a8:	ffffffff 	
 7fffd1ac:	ffffffff 	
 7fffd1b0:	001817be 			; <UNDEFINED> instruction: 0x001817be
-7fffd1b4:	000001fc 	;Address of write protect value in user code
-7fffd1b8:	87654321 	;CRP2 signal
-7fffd1bc:	43218765 	;CRP3 signal
-7fffd1c0:	12345678 	;CRP1 signal
-Jump here from start block:
-7fffd1c4:	e59f2044 	ldr	r2, [pc, #68]	; 0x7fffd210 ;r2=&CSPR
-7fffd1c8:	e51f301c 	ldr	r3, [pc, #-28]	; 0x7fffd1b4 ;r3=0x1FC
-7fffd1cc:	e51f5018 	ldr	r5, [pc, #-24]	; 0x7fffd1bc ;r5=CRP3
-7fffd1d0:	e51f6018 	ldr	r6, [pc, #-24]	; 0x7fffd1c0 ;r6=CRP1
-7fffd1d4:	e5934000 	ldr	r4, [r3]        ; r4=CSPR
-7fffd1d8:	e1540005 	cmp	r4, r5          ; CSPR=CRP3?
-7fffd1dc:	11540006 	cmpne	r4, r6          ; If not, CSPR=CRP1?
-7fffd1e0:	1a000000 	bne	0x7fffd1e8      ; If neither, skip this.
-7fffd1e4:	e51f4034 	ldr	r4, [pc, #-52]	; r4=write protect value in user code
-Jump target:
-7fffd1e8:	e5824000 	str	r4, [r2]        ; write to CSPR
-7fffd1ec:	e59f4020 	ldr	r4, [pc, #32]	; 0x7fffd214 ;r4=&MAMCR
-7fffd1f0:	e3a05000 	mov	r5, #0          ; r5=0
-7fffd1f4:	e5845000 	str	r5, [r4]        ; MAMCR=0
-7fffd1f8:	e3a05007 	mov	r5, #7          ; r5=7
-7fffd1fc:	e5845004 	str	r5, [r4, #4]    ; [SCB base+4]=7 (another hidden register?)
-7fffd200:	e51f21bc 	ldr	r2, [pc, #-444]	; r2=address of last addressable byte in ram
-7fffd204:	e242d01f 	sub	sp, r2, #31     ; sp=31 bytes below that (reserve 32 bytes above stack)
-7fffd208:	e59f2008 	ldr	r2, [pc, #8]	; 0x7fffd218 (r2=long jump target 0x7fffd3df, note switch to thumb mode)
-7fffd20c:	e12fff12 	bx	r2              ; jump to r2, switch to thumb if requested (and we are)
-7fffd210:	e01fc184 	; &CSPR (in SCB)
-7fffd214:	e01fc000 	; &MAMCR (base of SCB)
-7fffd218:	7fffd3df 	; jump target for thumb start
-Thumb code from here for a while
+7fffd1b4:	000001fc 	
+7fffd1b8:	87654321 	
+7fffd1bc:	43218765 	
+7fffd1c0:	12345678 	
+7fffd1c4:	e59f2044 	ldr	r2, [pc, #68]	; 0x7fffd210 ## r2=&CSPR
+7fffd1c8:	e51f301c 	ldr	r3, [pc, #-28]	; 0x7fffd1b4 ## r3=0x1FC
+7fffd1cc:	e51f5018 	ldr	r5, [pc, #-24]	; 0x7fffd1bc ## r5=CRP3
+7fffd1d0:	e51f6018 	ldr	r6, [pc, #-24]	; 0x7fffd1c0 ## r6=CRP1
+7fffd1d4:	e5934000 	ldr	r4, [r3]        ## r4=CSPR
+7fffd1d8:	e1540005 	cmp	r4, r5          ## CSPR=CRP3?
+7fffd1dc:	11540006 	cmpne	r4, r6          ## If not, CSPR=CRP1?
+7fffd1e0:	1a000000 	bne	0x7fffd1e8      ## If neither, skip this.
+7fffd1e4:	e51f4034 	ldr	r4, [pc, #-52]	## r4=write protect value in user code
+7fffd1e8:	e5824000 	str	r4, [r2]        ## write to CSPR
+7fffd1ec:	e59f4020 	ldr	r4, [pc, #32]	## 0x7fffd214 ;r4=&MAMCR
+7fffd1f0:	e3a05000 	mov	r5, #0          ## r5=0
+7fffd1f4:	e5845000 	str	r5, [r4]        ## MAMCR=0
+7fffd1f8:	e3a05007 	mov	r5, #7          ## r5=7
+7fffd1fc:	e5845004 	str	r5, [r4, #4]    ## [SCB base+4]=7 (another hidden register?)
+7fffd200:	e51f21bc 	ldr	r2, [pc, #-444]	## r2=address of last addressable byte in ram
+7fffd204:	e242d01f 	sub	sp, r2, #31     ## sp=31 bytes below that (reserve 32 bytes above stack)
+7fffd208:	e59f2008 	ldr	r2, [pc, #8]	## 0x7fffd218 (r2=long jump target 0x7fffd3df, note switch to thumb mode)
+7fffd20c:	e12fff12 	bx	r2              ## jump to r2, switch to thumb if requested (and we are)
+7fffd210:	e01fc184 	## &CSPR (in SCB)
+7fffd214:	e01fc000 	## &MAMCR (base of SCB)
+7fffd218:	7fffd3df 	## jump target for thumb start
+$t:
 7fffd21c:	b5fe      	push	{r1, r2, r3, r4, r5, r6, r7, lr}
 7fffd21e:	4f8b      	ldr	r7, [pc, #556]	; (0x7fffd44c)
 7fffd220:	4d8b      	ldr	r5, [pc, #556]	; (0x7fffd450)
@@ -337,28 +335,28 @@ reinvokeISP:
 7fffd3da:	bc08      	pop	{r3}
 7fffd3dc:	4718      	bx	r3
 thumb_start:
-7fffd3de:	4a23      	ldr	r2, [pc, #140]	; r2=[0x7fffd46c]=7fffd1b4, &&user code protect key)
-7fffd3e0:	b490      	push	{r4, r7}        ; r4 was CSPR, r7 hasn't been used yet
-7fffd3e2:	6812      	ldr	r2, [r2, #0]    ; r2=[0x7fffd1b4]=1fc, address of code protect key in user code
-7fffd3e4:	4b1a      	ldr	r3, [pc, #104]	; r3=[0x7fffd450]=4000012c)
-7fffd3e6:	6812      	ldr	r2, [r2, #0]    ; r2=code protect key in user code
-7fffd3e8:	3b0c      	subs	r3, #12         ; r3 now equals 40000120
-7fffd3ea:	609a      	str	r2, [r3, #8]    ; [40000128]=user code protect key
-7fffd3ec:	4b19      	ldr	r3, [pc, #100]	; r3=[0x7fffd454]=7fffd1b8
-7fffd3ee:	4c17      	ldr	r4, [pc, #92]	; r4=[0x7fffd44c]=7fffd1bc
-7fffd3f0:	681b      	ldr	r3, [r3, #0]    ; r3=[0x7fffd1b8]=CRP2 signal value
-7fffd3f2:	429a      	cmp	r2, r3          ; compare code protect key in user code to CRP2
-7fffd3f4:	d009      	beq.n	0x7fffd40a      ; If they are equal, skip
-7fffd3f6:	6823      	ldr	r3, [r4, #0]    ; r3=[7fffd1bc]=CRP3 signal value
-7fffd3f8:	429a      	cmp	r2, r3          ; compare code protect key to CRP3
-7fffd3fa:	d006      	beq.n	0x7fffd40a      ; If they are equal, skip
-7fffd3fc:	4b16      	ldr	r3, [pc, #88]	; (0x7fffd458)
-7fffd3fe:	681b      	ldr	r3, [r3, #0]
-7fffd400:	429a      	cmp	r2, r3
-7fffd402:	d002      	beq.n	0x7fffd40a
-7fffd404:	4b16      	ldr	r3, [pc, #88]	; (0x7fffd460)
-7fffd406:	6158      	str	r0, [r3, #20]
-7fffd408:	63d9      	str	r1, [r3, #60]	; 0x3c
+7fffd3de:	4a23      	ldr	r2, [pc, #140]	## r2=[0x7fffd46c]=7fffd1b4, &&user code protect key)
+7fffd3e0:	b490      	push	{r4, r7}        ## r4 was CSPR, r7 hasn't been used yet
+7fffd3e2:	6812      	ldr	r2, [r2, #0]    ## r2=[0x7fffd1b4]=1fc, address of code protect key in user code
+7fffd3e4:	4b1a      	ldr	r3, [pc, #104]	## r3=[0x7fffd450]=4000012c)
+7fffd3e6:	6812      	ldr	r2, [r2, #0]    ## r2=code protect key in user code
+7fffd3e8:	3b0c      	subs	r3, #12         ## r3 now equals 40000120
+7fffd3ea:	609a      	str	r2, [r3, #8]    ## [40000128]=user code protect key
+7fffd3ec:	4b19      	ldr	r3, [pc, #100]	## r3=[0x7fffd454]=7fffd1b8
+7fffd3ee:	4c17      	ldr	r4, [pc, #92]	## r4=[0x7fffd44c]=7fffd1bc
+7fffd3f0:	681b      	ldr	r3, [r3, #0]    ## r3=[0x7fffd1b8]=CRP2 signal value
+7fffd3f2:	429a      	cmp	r2, r3          ## compare code protect key in user code to CRP2
+7fffd3f4:	d009      	beq.n	0x7fffd40a      ## If they are equal, skip
+7fffd3f6:	6823      	ldr	r3, [r4, #0]    ## r3=[0x7fffd1bc]=CRP3 signal value
+7fffd3f8:	429a      	cmp	r2, r3          ## compare code protect key to CRP3
+7fffd3fa:	d006      	beq.n	0x7fffd40a      ## If they are equal, skip
+7fffd3fc:	4b16      	ldr	r3, [pc, #88]	## r3=[0x7fffd458]=7fffd1c0, &CRP1
+7fffd3fe:	681b      	ldr	r3, [r3, #0]    ## r3=CRP1
+7fffd400:	429a      	cmp	r2, r3          ## compare code protect key in user code to CRP1
+7fffd402:	d002      	beq.n	0x7fffd40a      ## if they are equal, skip
+7fffd404:	4b16      	ldr	r3, [pc, #88]	## r3=[0x7fffd460]=e002c000, &pin connect block
+7fffd406:	6158      	str	r0, [r3, #20]   ## PINSEL(2)=
+7fffd408:	63d9      	str	r1, [r3, #60]	## r1=undocumented register PCB[F]
 target1:
 7fffd40a:	481d      	ldr	r0, [pc, #116]	; (0x7fffd480)
 7fffd40c:	491d      	ldr	r1, [pc, #116]	; (0x7fffd484)
@@ -399,11 +397,9 @@ target1:
 7fffd452:	4000      	ands	r0, r0
 7fffd454:	d1b8      	bne.n	0x7fffd3c8
 7fffd456:	7fff      	ldrb	r7, [r7, #31]
-7fffd458:	d1c0      	bne.n	0x7fffd3dc
-7fffd45a:	7fff      	ldrb	r7, [r7, #31]
+7fffd458:	7fffd1c0      	
 7fffd45c:	ef30 7fff 	vrsqrts.f<illegal width 64>	<illegal reg q3.5>, q8, <illegal reg q15.5>
-7fffd460:	c000      	stmia	r0!, {}
-7fffd462:	e002      	b.n	0x7fffd46a
+7fffd460:	e002c000      	;&IOPIN0
 7fffd464:	8000      	strh	r0, [r0, #0]
 7fffd466:	e000      	b.n	0x7fffd46a
 7fffd468:	8000      	strh	r0, [r0, #0]
@@ -417,8 +413,7 @@ target1:
 7fffd47a:	7fff      	ldrb	r7, [r7, #31]
 7fffd47c:	c040      	stmia	r0!, {r6}
 7fffd47e:	e01f      	b.n	0x7fffd4c0
-7fffd480:	d040      	beq.n	0x7fffd504
-7fffd482:	7fff      	ldrb	r7, [r7, #31]
+7fffd480:	7fffd040      	;
 7fffd484:	8000      	strh	r0, [r0, #0]
 7fffd486:	3fff      	subs	r7, #255	; 0xff
 7fffd488:	4c00      	ldr	r4, [pc, #0]	; (0x7fffd48c)
@@ -1563,28 +1558,32 @@ target1:
 7fffde4e:	dddc      	ble.n	0x7fffde0a
 7fffde50:	1c48      	adds	r0, r1, #1
 7fffde52:	e7d2      	b.n	0x7fffddfa
-compare2:
-7fffde54:	2300      	movs	r3, #0
-7fffde56:	2200      	movs	r2, #0
-7fffde58:	b430      	push	{r4, r5}
-7fffde5a:	e009      	b.n	0x7fffde70
-7fffde5c:	1c25      	adds	r5, r4, #0
-7fffde5e:	3d30      	subs	r5, #48	; 0x30
-7fffde60:	2d09      	cmp	r5, #9
-7fffde62:	d80c      	bhi.n	0x7fffde7e
-7fffde64:	1c1d      	adds	r5, r3, #0
-7fffde66:	230a      	movs	r3, #10
-7fffde68:	436b      	muls	r3, r5
-7fffde6a:	191b      	adds	r3, r3, r4
-7fffde6c:	3b30      	subs	r3, #48	; 0x30
-7fffde6e:	3201      	adds	r2, #1
-7fffde70:	5c84      	ldrb	r4, [r0, r2]
-7fffde72:	2c00      	cmp	r4, #0
-7fffde74:	d1f2      	bne.n	0x7fffde5c
-7fffde76:	2000      	movs	r0, #0
-7fffde78:	600b      	str	r3, [r1, #0]
-7fffde7a:	bc30      	pop	{r4, r5}
-7fffde7c:	4770      	bx	lr
+table_check:
+## on entry
+##   r0=pointer to zero-terminated table of bytes
+##   r1=pointer
+##   r4=something
+7fffde54:	2300      	movs	r3, #0          ## r3=0
+7fffde56:	2200      	movs	r2, #0          ## r2=0
+7fffde58:	b430      	push	{r4, r5}        
+7fffde5a:	e009      	b.n	0x7fffde70      ## skip to loop test
+7fffde5c:	1c25      	adds	r5, r4, #0      ## top of loop: r5=r4
+7fffde5e:	3d30      	subs	r5, #48	; 0x30  ## r5-=0x30
+7fffde60:	2d09      	cmp	r5, #9          ## is r5 greater than 9?
+7fffde62:	d80c      	bhi.n	0x7fffde7e      ## if so, skip to next part
+7fffde64:	1c1d      	adds	r5, r3, #0      ## r5=r3
+7fffde66:	230a      	movs	r3, #10         ## r3=10
+7fffde68:	436b      	muls	r3, r5          ## r3=r5*10
+7fffde6a:	191b      	adds	r3, r3, r4      ## r3+=r4
+7fffde6c:	3b30      	subs	r3, #48	; 0x30  ## r3-=0x30
+7fffde6e:	3201      	adds	r2, #1          ## r2+=1
+7fffde70:	5c84      	ldrb	r4, [r0, r2]    ## r4=table[r2]
+7fffde72:	2c00      	cmp	r4, #0          ## End of table?
+7fffde74:	d1f2      	bne.n	0x7fffde5c      ## If not, back to top of loop
+7fffde76:	2000      	movs	r0, #0          ## r0=0
+7fffde78:	600b      	str	r3, [r1, #0]    ## 
+7fffde7a:	bc30      	pop	{r4, r5}        ## restore registers
+7fffde7c:	4770      	bx	lr              ## return
 compare2 end:
 7fffde7e:	2001      	movs	r0, #1
 7fffde80:	e7fb      	b.n	0x7fffde7a
@@ -1618,6 +1617,11 @@ compare2 end:
 7fffdeba:	bc08      	pop	{r3}
 7fffdebc:	4718      	bx	r3
 7fffdebe:	0000      	movs	r0, r0
+dec_r1_check_r0: 
+## decrement r1, check if r1 and r0 have no bits in common
+## on exit:
+##  r0=1 if r1 and r0 have any bits in common
+##  r0=0 if r1 and r0 have no  bits in common
 7fffdec0:	3901      	subs	r1, #1
 7fffdec2:	4008      	ands	r0, r1
 7fffdec4:	d001      	beq.n	0x7fffdeca
@@ -1625,60 +1629,75 @@ compare2 end:
 7fffdec8:	4770      	bx	lr
 7fffdeca:	2000      	movs	r0, #0
 7fffdecc:	4770      	bx	lr
-compare1:
+block_check:
+## Seems to be some kind of block range check
+## on entry:
+##   r0     r1    r2    r3
+##    0          0x64    0      first call from command56, compare
+##    -      -   0x69    -      null test, always returns success
+## on exit:
+##   r0: return code, suitable for direct return from IAP. Can return one of the following:
+##      0: CMD_SUCCESS
+##      2: SRC_ADDRESS_ERROR
+##      3: DST_ADDRESS_ERROR
+##      6: COUNT_ERROR
+##     12: PARAM_ERROR
+##     13: ADDR_ERROR
 7fffdece:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
-7fffded0:	1c1f      	adds	r7, r3, #0
-7fffded2:	1c0e      	adds	r6, r1, #0
-7fffded4:	1c15      	adds	r5, r2, #0
-7fffded6:	2400      	movs	r4, #0
-7fffded8:	2800      	cmp	r0, #0
-7fffdeda:	d008      	beq.n	0x7fffdeee
-7fffdedc:	1c31      	adds	r1, r6, #0
-7fffdede:	f7ff ffb9 	bl	0x7fffde54 ;call compare2
-7fffdee2:	2800      	cmp	r0, #0
-7fffdee4:	d003      	beq.n	0x7fffdeee
-7fffdee6:	200c      	movs	r0, #12
-7fffdee8:	bcf8      	pop	{r3, r4, r5, r6, r7}
-7fffdeea:	bc08      	pop	{r3}
+7fffded0:	1c1f      	adds	r7, r3, #0 ## save r3 in r7
+7fffded2:	1c0e      	adds	r6, r1, #0 ## save r1 in r6
+7fffded4:	1c15      	adds	r5, r2, #0 ## save r2 in r5
+7fffded6:	2400      	movs	r4, #0     ## r4=0
+7fffded8:	2800      	cmp	r0, #0     ## is r0==0
+7fffdeda:	d008      	beq.n	0x7fffdeee ## if so, skip the table check and go to the case statement
+7fffdedc:	1c31      	adds	r1, r6, #0 ## r1=r6
+7fffdede:	f7ff ffb9 	bl	0x7fffde54 ## call table check
+7fffdee2:	2800      	cmp	r0, #0     ## did we succeed?
+7fffdee4:	d003      	beq.n	0x7fffdeee ## if so, skip to case statement
+7fffdee6:	200c      	movs	r0, #12 ;PARAM_ERROR
+7fffdee8:	bcf8      	pop	{r3, r4, r5, r6, r7} ## do the function return
+7fffdeea:	bc08      	pop	{r3}             
 7fffdeec:	4718      	bx	r3
-7fffdeee:	2d69      	cmp	r5, #105	; 0x69
-7fffdef0:	d101      	bne.n	0x7fffdef6
-7fffdef2:	2000      	movs	r0, #0
-7fffdef4:	e7f8      	b.n	0x7fffdee8
-7fffdef6:	2104      	movs	r1, #4
-7fffdef8:	6830      	ldr	r0, [r6, #0]
-7fffdefa:	f7ff ffe1 	bl	0x7fffdec0
-7fffdefe:	2800      	cmp	r0, #0
-7fffdf00:	d019      	beq.n	0x7fffdf36
-7fffdf02:	2d64      	cmp	r5, #100	; 0x64
-7fffdf04:	d101      	bne.n	0x7fffdf0a
-7fffdf06:	2406      	movs	r4, #6
-7fffdf08:	e047      	b.n	0x7fffdf9a
-7fffdf0a:	240d      	movs	r4, #13
-7fffdf0c:	2d67      	cmp	r5, #103	; 0x67
-7fffdf0e:	d101      	bne.n	0x7fffdf14
-7fffdf10:	2402      	movs	r4, #2
-7fffdf12:	e042      	b.n	0x7fffdf9a
-7fffdf14:	2d68      	cmp	r5, #104	; 0x68
-7fffdf16:	d047      	beq.n	0x7fffdfa8
-7fffdf18:	2c00      	cmp	r4, #0
-7fffdf1a:	d13e      	bne.n	0x7fffdf9a
-7fffdf1c:	492b      	ldr	r1, [pc, #172]	; (0x7fffdfcc)
-7fffdf1e:	6830      	ldr	r0, [r6, #0]
-7fffdf20:	6809      	ldr	r1, [r1, #0]
-7fffdf22:	4288      	cmp	r0, r1
-7fffdf24:	d31a      	bcc.n	0x7fffdf5c
-7fffdf26:	4a2a      	ldr	r2, [pc, #168]	; (0x7fffdfd0)
-7fffdf28:	19c1      	adds	r1, r0, r7
-7fffdf2a:	6812      	ldr	r2, [r2, #0]
-7fffdf2c:	3201      	adds	r2, #1
-7fffdf2e:	4291      	cmp	r1, r2
-7fffdf30:	d814      	bhi.n	0x7fffdf5c
-7fffdf32:	2101      	movs	r1, #1
-7fffdf34:	e013      	b.n	0x7fffdf5e
-7fffdf36:	2d65      	cmp	r5, #101	; 0x65
-7fffdf38:	d1f0      	bne.n	0x7fffdf1c
-7fffdf3a:	6830      	ldr	r0, [r6, #0]
+7fffdeee:	2d69      	cmp	r5, #105	## is action code 0x69?
+7fffdef0:	d101      	bne.n	0x7fffdef6      ## if not, skip to next case
+7fffdef2:	2000      	movs	r0, #0          ## r0=0. Apparently 0x69 is a dummy test which always succeeds
+7fffdef4:	e7f8      	b.n	0x7fffdee8      ## jump to return from function
+7fffdef6:	2104      	movs	r1, #4          ## r1=4
+7fffdef8:	6830      	ldr	r0, [r6, #0]    ## r0=[r1], address of number of bytes
+7fffdefa:	f7ff ffe1 	bl	0x7fffdec0      ## call dec_r1_check_r0
+7fffdefe:	2800      	cmp	r0, #0          ## Were none of the bits in common?
+7fffdf00:	d019      	beq.n	0x7fffdf36      ## If so, skip to L1, second switch
+7fffdf02:	2d64      	cmp	r5, #100	## first switch first case: is action code 0x64?
+7fffdf04:	d101      	bne.n	0x7fffdf0a      ## if not, skip to next case
+7fffdf06:	2406      	movs	r4, #6          ## r4=6
+7fffdf08:	e047      	b.n	0x7fffdf9a      ## skip to L3
+7fffdf0a:	240d      	movs	r4, #13         ## next case: r4=13
+7fffdf0c:	2d67      	cmp	r5, #103	## is action code 0x67?
+7fffdf0e:	d101      	bne.n	0x7fffdf14      ## if not, skip to next case
+7fffdf10:	2402      	movs	r4, #2          ## r4=2
+7fffdf12:	e042      	b.n	0x7fffdf9a      ## skip to L3
+7fffdf14:	2d68      	cmp	r5, #104	## is action code 0x68?
+7fffdf16:	d047      	beq.n	0x7fffdfa8      ## if so, skip to L2
+7fffdf18:	2c00      	cmp	r4, #0          ## does r4!=0
+7fffdf1a:	d13e      	bne.n	0x7fffdf9a      ## if so skip to L3
+L4:
+7fffdf1c:	492b      	ldr	r1, [pc, #172]	## r1=[0x7fffdfcc]=7fffd048
+7fffdf1e:	6830      	ldr	r0, [r6, #0]    ## r0=address of number of bytes
+7fffdf20:	6809      	ldr	r1, [r1, #0]    ## r1=[0x7fffd048]=start_ram
+7fffdf22:	4288      	cmp	r0, r1          ## is r0 below ram?
+7fffdf24:	d31a      	bcc.n	0x7fffdf5c      ## if so, skip to L5
+7fffdf26:	4a2a      	ldr	r2, [pc, #168]	## r2=[0x7fffdfd0]=7fffd04c
+7fffdf28:	19c1      	adds	r1, r0, r7      ## r1=r0+r7
+7fffdf2a:	6812      	ldr	r2, [r2, #0]    ## r2=[0x7fffd04c]=end_ram
+7fffdf2c:	3201      	adds	r2, #1          ## r2++, so pointer to one byte past end of ram
+7fffdf2e:	4291      	cmp	r1, r2          ## Is r1 above ram?
+7fffdf30:	d814      	bhi.n	0x7fffdf5c      ## if so, skip to L5
+7fffdf32:	2101      	movs	r1, #1          ## r1=1
+7fffdf34:	e013      	b.n	0x7fffdf5e      ## skip to L6
+L1:
+7fffdf36:	2d65      	cmp	r5, #101	## second switch first case: is action code 0x65?
+7fffdf38:	d1f0      	bne.n	0x7fffdf1c      ## if not, skip back up to L4
+7fffdf3a:	6830      	ldr	r0, [r6, #0]    ## 
 7fffdf3c:	1c01      	adds	r1, r0, #0
 7fffdf3e:	39ff      	subs	r1, #255	; 0xff
 7fffdf40:	3901      	subs	r1, #1
@@ -1693,10 +1712,12 @@ compare1:
 7fffdf52:	0089      	lsls	r1, r1, #2
 7fffdf54:	4288      	cmp	r0, r1
 7fffdf56:	d0e1      	beq.n	0x7fffdf1c
-7fffdf58:	2006      	movs	r0, #6
-7fffdf5a:	e7c5      	b.n	0x7fffdee8
-7fffdf5c:	2100      	movs	r1, #0
-7fffdf5e:	4a1d      	ldr	r2, [pc, #116]	; (0x7fffdfd4)
+7fffdf58:	2006      	movs	r0, #6          ## Return code 6, count error
+7fffdf5a:	e7c5      	b.n	0x7fffdee8      ## Jump to function return
+L5:
+7fffdf5c:	2100      	movs	r1, #0          ##
+L6:
+7fffdf5e:	4a1d      	ldr	r2, [pc, #116]	; (0x7fffdfd4) ## At this point, r1 is 1 if we are in ram, 0 if not
 7fffdf60:	6812      	ldr	r2, [r2, #0]
 7fffdf62:	4290      	cmp	r0, r2
 7fffdf64:	d307      	bcc.n	0x7fffdf76
@@ -1709,34 +1730,38 @@ compare1:
 7fffdf72:	2201      	movs	r2, #1
 7fffdf74:	e000      	b.n	0x7fffdf78
 7fffdf76:	2200      	movs	r2, #0
-7fffdf78:	2d66      	cmp	r5, #102	; 0x66
-7fffdf7a:	d103      	bne.n	0x7fffdf84
-7fffdf7c:	4311      	orrs	r1, r2
-7fffdf7e:	d10c      	bne.n	0x7fffdf9a
-7fffdf80:	240e      	movs	r4, #14
-7fffdf82:	e00a      	b.n	0x7fffdf9a
-7fffdf84:	2d67      	cmp	r5, #103	; 0x67
-7fffdf86:	d103      	bne.n	0x7fffdf90
-7fffdf88:	2900      	cmp	r1, #0
-7fffdf8a:	d106      	bne.n	0x7fffdf9a
-7fffdf8c:	2404      	movs	r4, #4
+7fffdf78:	2d66      	cmp	r5, #102	## is action code 0x66?
+7fffdf7a:	d103      	bne.n	0x7fffdf84      ## if not, go to next case
+7fffdf7c:	4311      	orrs	r1, r2          ## Do r1 and r2 have any set bits in common?
+7fffdf7e:	d10c      	bne.n	0x7fffdf9a      ## if so, skip to L3 to write result and return without changing r4
+7fffdf80:	240e      	movs	r4, #14         ## r4=14
+7fffdf82:	e00a      	b.n	0x7fffdf9a      ## skip to L3
+7fffdf84:	2d67      	cmp	r5, #103	## is action code 0x67?
+7fffdf86:	d103      	bne.n	0x7fffdf90      ## if not, go to next case
+7fffdf88:	2900      	cmp	r1, #0          ## Is r1 other than zero?
+7fffdf8a:	d106      	bne.n	0x7fffdf9a      ## If so, skip to L3 without changing r4
+7fffdf8c:	2404      	movs	r4, #4          ## r4=4
 7fffdf8e:	e004      	b.n	0x7fffdf9a
-7fffdf90:	2d68      	cmp	r5, #104	; 0x68
-7fffdf92:	d102      	bne.n	0x7fffdf9a
+7fffdf90:	2d68      	cmp	r5, #104	## is action code 0x68?
+7fffdf92:	d102      	bne.n	0x7fffdf9a      ## if not, skip to L3 without changing r4
 7fffdf94:	2a00      	cmp	r2, #0
 7fffdf96:	d101      	bne.n	0x7fffdf9c
 7fffdf98:	2405      	movs	r4, #5
-7fffdf9a:	e006      	b.n	0x7fffdfaa
-7fffdf9c:	21ff      	movs	r1, #255	; 0xff
-7fffdf9e:	3101      	adds	r1, #1
-7fffdfa0:	f7ff ff8e 	bl	0x7fffdec0
-7fffdfa4:	2800      	cmp	r0, #0
-7fffdfa6:	d000      	beq.n	0x7fffdfaa
-7fffdfa8:	2403      	movs	r4, #3
-7fffdfaa:	1c20      	adds	r0, r4, #0
-7fffdfac:	e79c      	b.n	0x7fffdee8
-7fffdfae:	4770      	bx	lr
-7fffdfb0:	b510      	push	{r4, lr}
+L3:
+7fffdf9a:	e006      	b.n	0x7fffdfaa    ## skip to L7 to exit without changing r4, which will be used as return code
+7fffdf9c:	21ff      	movs	r1, #255      ## r1=0xFF
+7fffdf9e:	3101      	adds	r1, #1        ## r1=0x100
+7fffdfa0:	f7ff ff8e 	bl	0x7fffdec0    ## call dec_r1_check_r0
+7fffdfa4:	2800      	cmp	r0, #0        ## was the result 0?
+7fffdfa6:	d000      	beq.n	0x7fffdfaa    ## if so, skip changing the return code and go to exit
+L2:
+7fffdfa8:	2403      	movs	r4, #3        ## r4=3
+L7:
+7fffdfaa:	1c20      	adds	r0, r4, #0    ## r0=r4=3 return code (SRC_ADDR_ERROR)
+7fffdfac:	e79c      	b.n	0x7fffdee8    ## branch to exit
+7fffdfae:	4770      	bx	lr            ## never executes unless there is a direct jump to it
+
+7fffdfb0:	b510      	push	{r4, lr}      ## this seems to start an independent function, but the literal pool for block_check is past it
 7fffdfb2:	1c0c      	adds	r4, r1, #0
 7fffdfb4:	1c01      	adds	r1, r0, #0
 7fffdfb6:	1c20      	adds	r0, r4, #0
@@ -1749,8 +1774,7 @@ compare1:
 7fffdfc6:	bc08      	pop	{r3}
 7fffdfc8:	4718      	bx	r3
 7fffdfca:	0000      	movs	r0, r0
-7fffdfcc:	d048      	beq.n	0x7fffe060
-7fffdfce:	7fff      	ldrb	r7, [r7, #31]
+7fffdfcc:	7fffd048      	
 7fffdfd0:	d04c      	beq.n	0x7fffe06c
 7fffdfd2:	7fff      	ldrb	r7, [r7, #31]
 7fffdfd4:	d068      	beq.n	0x7fffe0a8
@@ -1912,73 +1936,74 @@ compare1:
 7fffe120:	8000      	strh	r0, [r0, #0]
 7fffe122:	e000      	b.n	0x7fffe126
 command57:  (reinvoke ISP)
-7fffe124:	48ec      	ldr	r0, [pc, #944]	; (r0=[0x7fffe4d8]=0xe002c000, &PINSEL0)
+7fffe124:	48ec      	ldr	r0, [pc, #944]	## r0=[0x7fffe4d8]=0xe002c000, &PINSEL0
 7fffe126:	b580      	push	{r7, lr}
-7fffe128:	6801      	ldr	r1, [r0, #0]    ; (r1=PINSEL0)
-7fffe12a:	200c      	movs	r0, #12         ; (r0=12)
-7fffe12c:	4aea      	ldr	r2, [pc, #936]	; (r2=&PINSEL0)
-7fffe12e:	4381      	bics	r1, r0          ; clear bits 3:2
-7fffe130:	6011      	str	r1, [r2, #0]    ; set pin P0.1 to normal GPIO
-7fffe132:	49ea      	ldr	r1, [pc, #936]	; (r1=[0x7fffe4dc]=0xe0028000, GPIO base)
-7fffe134:	6889      	ldr	r1, [r1, #8]    ; (r1=IODIR0)
-7fffe136:	2202      	movs	r2, #2          ; (r2=2)
-7fffe138:	4391      	bics	r1, r2          ; clear bit 1
-7fffe13a:	4ae8      	ldr	r2, [pc, #928]	; (r2=GPIO base)
-7fffe13c:	6091      	str	r1, [r2, #8]    ; set pin P0.1 to input
-7fffe13e:	4ae8      	ldr	r2, [pc, #928]	; r2=[0x7fffe4e0]=0xe01fc100, &VPBDIV
-7fffe140:	2100      	movs	r1, #0          ;
-7fffe142:	6011      	str	r1, [r2, #0]    ; VPBDIV=0
-7fffe144:	4ae7      	ldr	r2, [pc, #924]	; r2=[0x7fffe4e4]=0xE0008000, Timer1 base
-7fffe146:	60d1      	str	r1, [r2, #12]   ; TPR(1)=0
-7fffe148:	6111      	str	r1, [r2, #16]   ; TPC(1)=0
-7fffe14a:	4be6      	ldr	r3, [pc, #920]	; r3=Timer1 base
-7fffe14c:	3340      	adds	r3, #64	; 0x40  ; r3+=0x40
-7fffe14e:	6b1a      	ldr	r2, [r3, #48]	; r2=[Timer1 base+0x70]=TCTCR(1) An odd way of doing this, thumb restriction?
-7fffe150:	4002      	ands	r2, r0          ; r0 is still 0x0C, so clear all but bits 3:2
-7fffe152:	631a      	str	r2, [r3, #48]	; TCTR(1)=r2, this leaves count input select as-is but forces timer mode
-7fffe154:	4ae4      	ldr	r2, [pc, #912]	; r2=[0x7fffe4e8]=0xE000C000, UART0 base
-7fffe156:	2010      	movs	r0, #16         ; r0=0x10
-7fffe158:	6290      	str	r0, [r2, #40]	; UFDR(0)=0x10
-7fffe15a:	48e1      	ldr	r0, [pc, #900]	; r2=[0x7fffe4e0]=0xE01FC100, &VPBDIV
-7fffe15c:	38c0      	subs	r0, #192	; r2-=0xC0, so now 0xE01FC040, &MEMMAP
-7fffe15e:	6001      	str	r1, [r0, #0]    ; MEMMAP=0, set vector table memory mapping back to boot block
-7fffe160:	f7ff f8e7 	bl	0x7fffd332      ; call ISP entry, we don't expect to return, but the compiler is stupid
+7fffe128:	6801      	ldr	r1, [r0, #0]    ## r1=PINSEL0
+7fffe12a:	200c      	movs	r0, #12         ## r0=12
+7fffe12c:	4aea      	ldr	r2, [pc, #936]	## r2=&PINSEL0
+7fffe12e:	4381      	bics	r1, r0          ## clear bits 3:2
+7fffe130:	6011      	str	r1, [r2, #0]    ## set pin P0.1 to normal GPIO
+7fffe132:	49ea      	ldr	r1, [pc, #936]	## r1=[0x7fffe4dc]=0xe0028000, GPIO base
+7fffe134:	6889      	ldr	r1, [r1, #8]    ## r1=IODIR0
+7fffe136:	2202      	movs	r2, #2          ## r2=2
+7fffe138:	4391      	bics	r1, r2          ## clear bit 1
+7fffe13a:	4ae8      	ldr	r2, [pc, #928]	## r2=GPIO base
+7fffe13c:	6091      	str	r1, [r2, #8]    ## set pin P0.1 to input
+7fffe13e:	4ae8      	ldr	r2, [pc, #928]	## r2=[0x7fffe4e0]=0xe01fc100, &VPBDIV
+7fffe140:	2100      	movs	r1, #0          
+7fffe142:	6011      	str	r1, [r2, #0]    ## VPBDIV=0
+7fffe144:	4ae7      	ldr	r2, [pc, #924]	## r2=[0x7fffe4e4]=0xE0008000, Timer1 base
+7fffe146:	60d1      	str	r1, [r2, #12]   ## TPR(1)=0
+7fffe148:	6111      	str	r1, [r2, #16]   ## TPC(1)=0
+7fffe14a:	4be6      	ldr	r3, [pc, #920]	## r3=Timer1 base
+7fffe14c:	3340      	adds	r3, #64	; 0x40  ## r3+=0x40
+7fffe14e:	6b1a      	ldr	r2, [r3, #48]	## r2=[Timer1 base+0x70]=TCTCR(1) An odd way of doing this, thumb restriction?
+7fffe150:	4002      	ands	r2, r0          ## r0 is still 0x0C, so clear all but bits 3:2
+7fffe152:	631a      	str	r2, [r3, #48]	## TCTR(1)=r2, this leaves count input select as-is but forces timer mode
+7fffe154:	4ae4      	ldr	r2, [pc, #912]	## r2=[0x7fffe4e8]=0xE000C000, UART0 base
+7fffe156:	2010      	movs	r0, #16         ## r0=0x10
+7fffe158:	6290      	str	r0, [r2, #40]	## UFDR(0)=0x10
+7fffe15a:	48e1      	ldr	r0, [pc, #900]	## r2=[0x7fffe4e0]=0xE01FC100, &VPBDIV
+7fffe15c:	38c0      	subs	r0, #192	## r2-=0xC0, so now 0xE01FC040, &MEMMAP
+7fffe15e:	6001      	str	r1, [r0, #0]    ## MEMMAP=0, set vector table memory mapping back to boot block
+7fffe160:	f7ff f8e7 	bl	0x7fffd332      ## call ISP entry, we don't expect to return, but the compiler is stupid
 7fffe164:	bc80      	pop	{r7}
 7fffe166:	bc08      	pop	{r3}
 7fffe168:	4718      	bx	r3
 command56:  ;compare
 7fffe16a:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
-7fffe16c:	2600      	movs	r6, #0          ; r6=0
-7fffe16e:	1c0d      	adds	r5, r1, #0      ; r5=[return value 0]
-7fffe170:	1c01      	adds	r1, r0, #0      ; r1=[command value 0]
-7fffe172:	1c33      	adds	r3, r6, #0      ; r3=0
-7fffe174:	1c04      	adds	r4, r0, #0      ; r4=[command value 0]
-7fffe176:	310c      	adds	r1, #12         ; r1=[command value 3]
-7fffe178:	2264      	movs	r2, #100	; r2=0x64
-7fffe17a:	2000      	movs	r0, #0          ; r0=0
-7fffe17c:	f7ff fea7 	bl	0x7fffdece      ; call compare1
-7fffe180:	6028      	str	r0, [r5, #0]
-7fffe182:	2800      	cmp	r0, #0
-7fffe184:	d11d      	bne.n	0x7fffe1c2
-7fffe186:	2266      	movs	r2, #102	; 0x66
-7fffe188:	1d21      	adds	r1, r4, #4
-7fffe18a:	68e3      	ldr	r3, [r4, #12]
-7fffe18c:	f7ff fe9f 	bl	0x7fffdece
-7fffe190:	6028      	str	r0, [r5, #0]
-7fffe192:	2800      	cmp	r0, #0
-7fffe194:	d115      	bne.n	0x7fffe1c2
-7fffe196:	2266      	movs	r2, #102	; 0x66
-7fffe198:	1c21      	adds	r1, r4, #0
-7fffe19a:	3108      	adds	r1, #8
-7fffe19c:	68e3      	ldr	r3, [r4, #12]
-7fffe19e:	f7ff fe96 	bl	0x7fffdece
-7fffe1a2:	6028      	str	r0, [r5, #0]
-7fffe1a4:	2800      	cmp	r0, #0
-7fffe1a6:	d10c      	bne.n	0x7fffe1c2
-7fffe1a8:	1d22      	adds	r2, r4, #4
-7fffe1aa:	ca05      	ldmia	r2, {r0, r2}
-7fffe1ac:	68e1      	ldr	r1, [r4, #12]
-7fffe1ae:	e00e      	b.n	0x7fffe1ce
+7fffe16c:	2600      	movs	r6, #0          ## r6=0
+7fffe16e:	1c0d      	adds	r5, r1, #0      ## r5=&return[0]
+7fffe170:	1c01      	adds	r1, r0, #0      ## r1=&command[0]
+7fffe172:	1c33      	adds	r3, r6, #0      ## r3=0
+7fffe174:	1c04      	adds	r4, r0, #0      ## r4=&command[0]
+7fffe176:	310c      	adds	r1, #12         ## r1+=12=&command[3]
+7fffe178:	2264      	movs	r2, #100	## r2=0x64
+7fffe17a:	2000      	movs	r0, #0          ## r0=0
+7fffe17c:	f7ff fea7 	bl	0x7fffdece      ## first call to dece
+7fffe180:	6028      	str	r0, [r5, #0]    ## return[0]=r0, dece return code
+7fffe182:	2800      	cmp	r0, #0          ## did dece succeed?
+7fffe184:	d11d      	bne.n	0x7fffe1c2      ## if not, skip to return below
+7fffe186:	2266      	movs	r2, #102	## r2=0x66
+7fffe188:	1d21      	adds	r1, r4, #4      ## r1=r4+4=&command[1]
+7fffe18a:	68e3      	ldr	r3, [r4, #12]   ## r3=command[3]
+7fffe18c:	f7ff fe9f 	bl	0x7fffdece      ## second call to dece
+7fffe190:	6028      	str	r0, [r5, #0]    ## return[0]=r0, dece return code
+7fffe192:	2800      	cmp	r0, #0          ## did dece succeed?
+7fffe194:	d115      	bne.n	0x7fffe1c2      ## if not, skip to return below
+7fffe196:	2266      	movs	r2, #102	## r2=0x66
+7fffe198:	1c21      	adds	r1, r4, #0      ## r1=r4,&command[0]
+7fffe19a:	3108      	adds	r1, #8          ## r1+=8=&command[2]
+7fffe19c:	68e3      	ldr	r3, [r4, #12]   ## r3=command[3]
+7fffe19e:	f7ff fe96 	bl	0x7fffdece      ## third call to dece
+7fffe1a2:	6028      	str	r0, [r5, #0]    ## return[0]=r0, dece return code
+7fffe1a4:	2800      	cmp	r0, #0          ## did dece succeed?
+7fffe1a6:	d10c      	bne.n	0x7fffe1c2      ## if not, skip to return below
+7fffe1a8:	1d22      	adds	r2, r4, #4      ## r2=r4+4=&command[1]
+7fffe1aa:	ca05      	ldmia	r2, {r0, r2}    ## r2=[r2]=command[1]
+7fffe1ac:	68e1      	ldr	r1, [r4, #12]   ## r1=[r4+12]=command[3]
+7fffe1ae:	e00e      	b.n	0x7fffe1ce      ## skip to loop test L1
+L2:
 7fffe1b0:	6813      	ldr	r3, [r2, #0]
 7fffe1b2:	6807      	ldr	r7, [r0, #0]
 7fffe1b4:	42bb      	cmp	r3, r7
@@ -1994,10 +2019,11 @@ command56:  ;compare
 7fffe1c8:	3204      	adds	r2, #4
 7fffe1ca:	3004      	adds	r0, #4
 7fffe1cc:	3904      	subs	r1, #4
-7fffe1ce:	2900      	cmp	r1, #0
-7fffe1d0:	d1ee      	bne.n	0x7fffe1b0
-7fffe1d2:	602e      	str	r6, [r5, #0]
-7fffe1d4:	e7f5      	b.n	0x7fffe1c2
+L1:
+7fffe1ce:	2900      	cmp	r1, #0         ## Is command[3] nonzero?
+7fffe1d0:	d1ee      	bne.n	0x7fffe1b0     ## if so, loop again at L2
+7fffe1d2:	602e      	str	r6, [r5, #0]   ## return[0]=0
+7fffe1d4:	e7f5      	b.n	0x7fffe1c2     ## jump to function return
 sectors_range_check: 
 ;On entry, r0=start sector
 ;          r1=end sector. 
@@ -2018,7 +2044,7 @@ sectors_range_check.success:
 7fffe1ec:	2000      	movs	r0, #0          ; set status to CMD_SUCCESS
 7fffe1ee:	4770      	bx	lr              ; and return
 command53:  ;blank check sectors. No magic here, just check for all the words in the block as 0xFFFF'FFFF
-7fffe1f0:	b570      	push	{r4, r5, r6, lr}
+7fffe1f0:	b570      	push	{r4, r5, r6, lr} ;push a bunch of registers
 7fffe1f2:	1c0d      	adds	r5, r1, #0      ; r5=r1, result block address
 7fffe1f4:	1c04      	adds	r4, r0, #0      ; r4=r0, command block address
 7fffe1f6:	1d01      	adds	r1, r0, #4      ; r1=r0+1, command block address
@@ -2049,9 +2075,9 @@ command53:  ;blank check sectors. No magic here, just check for all the words in
 7fffe22a:	6800      	ldr	r0, [r0, #0]    ; r0=the nonblank word again
 7fffe22c:	60a8      	str	r0, [r5, #8]    ; write nonblank word to result block[2]
 command53.exit:
-7fffe22e:	bc70      	pop	{r4, r5, r6}
-7fffe230:	bc08      	pop	{r3}
-7fffe232:	4718      	bx	r3
+7fffe22e:	bc70      	pop	{r4, r5, r6}    ; Thumb can't pop lr...
+7fffe230:	bc08      	pop	{r3}            ; ...so pop it into r3 instead and use that...
+7fffe232:	4718      	bx	r3              ; ...to return
 command53.loop_inc
 7fffe234:	3004      	adds	r0, #4         ; r0+=4, go to the next word
 command53.loop_end
@@ -2305,20 +2331,20 @@ command52:  ;erase sectors
 7fffe3fe:	e7f3      	b.n	0x7fffe3e8
 command51:      ;copy ram to flash (write flash)
 7fffe400:	b5f0      	push	{r4, r5, r6, r7, lr}
-7fffe402:	1c07      	adds	r7, r0, #0     ;r7=r0, save address of command block
-7fffe404:	6840      	ldr	r0, [r0, #4]   ;r0=command[1], destination address in flash
-7fffe406:	b085      	sub	sp, #20        ;allocate 5 more words on the stack
-7fffe408:	9001      	str	r0, [sp, #4]   ;write the destination address to stack[1]
-7fffe40a:	68b8      	ldr	r0, [r7, #8]   ;r0=command[2], source address in ram
-7fffe40c:	1c0d      	adds	r5, r1, #0     ;r5=r1, save address of return block
-7fffe40e:	9002      	str	r0, [sp, #8]   ;write the source address to stack[2]
-7fffe410:	68f8      	ldr	r0, [r7, #12]  ;r0=command[3], number of bytes to write
-7fffe412:	2300      	movs	r3, #0         ;r3=0
-7fffe414:	2265      	movs	r2, #101       ;r2=0x65 
-7fffe416:	9004      	str	r0, [sp, #16]  ;write number of bytes to stack[4]
-7fffe418:	2000      	movs	r0, #0         ;r0=0
-7fffe41a:	a904      	add	r1, sp, #16    ;r1=sp+16, addr of number of bytes
-7fffe41c:	f7ff fd57 	bl	0x7fffdece     ;call copy_ram_to_flash
+7fffe402:	1c07      	adds	r7, r0, #0     ## r7=r0, save address of command block
+7fffe404:	6840      	ldr	r0, [r0, #4]   ## r0=command[1], destination address in flash
+7fffe406:	b085      	sub	sp, #20        ## allocate 5 more words on the stack
+7fffe408:	9001      	str	r0, [sp, #4]   ## write the destination address to stack[1]
+7fffe40a:	68b8      	ldr	r0, [r7, #8]   ## r0=command[2], source address in ram
+7fffe40c:	1c0d      	adds	r5, r1, #0     ## r5=r1, save address of return block
+7fffe40e:	9002      	str	r0, [sp, #8]   ## write the source address to stack[2]
+7fffe410:	68f8      	ldr	r0, [r7, #12]  ## r0=command[3], number of bytes to write
+7fffe412:	2300      	movs	r3, #0         ## r3=0
+7fffe414:	2265      	movs	r2, #101       ## r2=0x65 
+7fffe416:	9004      	str	r0, [sp, #16]  ## write number of bytes to stack[4]
+7fffe418:	2000      	movs	r0, #0         ## r0=0
+7fffe41a:	a904      	add	r1, sp, #16    ## r1=sp+16, addr of number of bytes
+7fffe41c:	f7ff fd57 	bl	0x7fffdece     ## call dece
 7fffe420:	6028      	str	r0, [r5, #0]
 7fffe422:	2800      	cmp	r0, #0
 7fffe424:	d153      	bne.n	0x7fffe4ce
@@ -2487,7 +2513,7 @@ real_iap_entry:
 7fffe590:	2200      	movs	r2, #0         ; r2=0
 7fffe592:	3c32      	subs	r4, #50	; 0x32 ; Subtract 50 from command code
 7fffe594:	2c08      	cmp	r4, #8         ; compare to 8
-7fffe596:	d223      	bcs.n	0x7fffe5e0     ; branch to .L1 if unsigned higher or equal (c flag set). This will also trip if r4 was originally less than 50, since it is an unsigned compare
+7fffe596:	d223      	bcs.n	0x7fffe5e0     ; invalid command if unsigned higher or equal (c flag set). This will also trip if r4 was originally less than 50, since it is an unsigned compare
 7fffe598:	a301      	add	r3, pc, #4     ; (r3=0x7fffe5a0)
 7fffe59a:	5d1b      	ldrb	r3, [r3, r4]   ; (r3=byte at [7fffe5a0+command code])
 7fffe59c:	005b      	lsls	r3, r3, #1     ; r3*=2, so table is number of halfwords past table origin
@@ -2507,27 +2533,28 @@ finish_iap:
 7fffe5ae:   6	bc08      	pop	{r3}       
 7fffe5b0:   7	4718      	bx	r3         
 7fffe5b2:   8,9	f7ff ff25 	bl	0x7fffe400 ;command51, copy ram to flash
-7fffe5b6:   A	e7f9      	b.n	0x7fffe5ac 
+7fffe5b6:   A	e7f9      	b.n	0x7fffe5ac ;use command50's return
 7fffe5b8:   B,C f7ff fea3 	bl	0x7fffe302 ;command52
-7fffe5bc:   D   e7f6      	b.n	0x7fffe5ac 
+7fffe5bc:   D   e7f6      	b.n	0x7fffe5ac ;use command50's return
 7fffe5be:   E,F f7ff fe17 	bl	0x7fffe1f0 ;command53
-7fffe5c2:  10   e7f3      	b.n	0x7fffe5ac 
+7fffe5c2:  10   e7f3      	b.n	0x7fffe5ac ;use command50's return
 7fffe5c4: 11,12 f7ff fdd1 	bl	0x7fffe16a ;command56  
-7fffe5c8:  13   e7f0      	b.n	0x7fffe5ac 
-7fffe5ca:  14   480a      	ldr	r0, [pc, #40]	; command54 (read part ID)
-7fffe5cc:  15   600a      	str	r2, [r1, #0]                   
-7fffe5ce:  16   e001      	b.n	0x7fffe5d4  ;skip into command55                   
-7fffe5d0:  17   4809      	ldr	r0, [pc, #36]	; command55 (read boot code ver)
-7fffe5d2:  18   600a      	str	r2, [r1, #0]                   
-7fffe5d4:  19   6800      	ldr	r0, [r0, #0]                   
-7fffe5d6:  1A   6048      	str	r0, [r1, #4]                   
-7fffe5d8:  1B   e7e8      	b.n	0x7fffe5ac                     
-7fffe5da:  1C   f7ff fda3 	bl	0x7fffe124      ; command57
-7fffe5de:	e7e5      	b.n	0x7fffe5ac                     
-.L1:
-7fffe5e0:	2001      	movs	r0, #1
-7fffe5e2:	6008      	str	r0, [r1, #0]
-7fffe5e4:	e7e2      	b.n	0x7fffe5ac
+7fffe5c8:  13   e7f0      	b.n	0x7fffe5ac ;use command50's return
+7fffe5ca:  14   480a      	ldr	r0, [pc, #40]	; command54 (read part ID) r0=[0x7fffe5f4]=7fffd040
+7fffe5cc:  15   600a      	str	r2, [r1, #0]    ; response[0]=r2=0=CMD_SUCCESS               
+7fffe5ce:  16   e001      	b.n	0x7fffe5d4  ;use command55's tail
+7fffe5d0:  17   4809      	ldr	r0, [pc, #36]	; command55 (read boot code ver) r0=[0x7fffe5f8]=7fffd044
+7fffe5d2:  18   600a      	str	r2, [r1, #0]    ; response[0]=r2=0=CMD_SUCCESS
+command55_tail:                   
+7fffe5d4:  19   6800      	ldr	r0, [r0, #0]    ; r0=part id or boot code               
+7fffe5d6:  1A   6048      	str	r0, [r1, #4]    ; response[1]=part id or boot code
+7fffe5d8:  1B   e7e8      	b.n	0x7fffe5ac  ;use command50's return                       
+7fffe5da:  1C   f7ff fda3 	bl	0x7fffe124  ; command57
+7fffe5de:	e7e5      	b.n	0x7fffe5ac  ;use command50's return                   
+invalid_command:
+7fffe5e0:	2001      	movs	r0, #1      ;result=1=INVALID_COMMAND
+7fffe5e2:	6008      	str	r0, [r1, #0];store in response[0]
+7fffe5e4:	e7e2      	b.n	0x7fffe5ac  ;use command50's return
 7fffe5e6:	0000      	movs	r0, r0
 7fffe5e8:	4fc0      	ldr	r7, [pc, #768]	; (0x7fffe8ec)
 7fffe5ea:	e006      	b.n	0x7fffe5fa
@@ -2535,10 +2562,8 @@ finish_iap:
 7fffe5ee:	0000      	movs	r0, r0
 7fffe5f0:	4000      	ands	r0, r0
 7fffe5f2:	e006      	b.n	0x7fffe602
-7fffe5f4:	d040      	beq.n	0x7fffe678
-7fffe5f6:	7fff      	ldrb	r7, [r7, #31]
-7fffe5f8:	d044      	beq.n	0x7fffe684
-7fffe5fa:	7fff      	ldrb	r7, [r7, #31]
+7fffe5f4:	7fffd040      	;address of part id
+7fffe5f8:	7fffd044      	;address of boot code version
 7fffe5fc:	60a0      	str	r0, [r4, #8]
 7fffe5fe:	4770      	bx	lr
 7fffe600:	b580      	push	{r7, lr}
@@ -3056,6 +3081,7 @@ trampoline_r4:
 7fffea48:	0002      	movs	r2, r0
 7fffea4a:	e1a0      	b.n	0x7fffed8e
 7fffea4c:	ff1e e12f 	vrhadd.u16	d14, d14, d31
+
 7fffea50:	4778      	bx	pc
 7fffea52:	0000      	movs	r0, r0
 7fffea54:	100a      	asrs	r2, r1, #32
@@ -3620,36 +3646,37 @@ trampoline_r4:
 7fffef4a:	0044      	lsls	r4, r0, #1
 7fffef4c:	5a5a      	ldrh	r2, [r3, r1]
 7fffef4e:	0000      	movs	r0, r0
-prepare_for_flash_write_ram: Installed in ram at 0x40007fe2. Position independent code, so it doesn't matter.
-;Must be in ram because flash is disabled during this routine
-; On entry, r0=e0064000 address of first register to write (base of APB25)
-;           r1=0x87, value to write to first register 
-;           r2=0xe0064c08, (optional) address of second register to write. Put zero here to not do the second write and wait for readback
-;           r3=2, value to write to second register
-; If we write to the second register, we wait for it to acknowledge by changing none of its bits to match the value we wrote.
-; If we DON'T write to the second register, we just wait for flash to become available before returning, since we
-; will be returning to code in flash.
+prepare_for_flash_write_ram: 
+## Installed in ram at 0x40007fe2. Position independent code, so it doesn't matter.
+## Must be in ram because flash is disabled during this routine
+## On entry, r0=e0064000 address of first register to write (base of APB25)
+##           r1=0x87, value to write to first register 
+##           r2=0xe0064c08, (optional) address of second register to write. Put zero here to not do the second write and wait for readback
+##           r3=2, value to write to second register
+## If we write to the second register, we wait for it to acknowledge by changing none of its bits to match the value we wrote.
+## If we DON'T write to the second register, we just wait for flash to become available before returning, since we
+## will be returning to code in flash.
 7fffef50:	b410      	push	{r4}
-7fffef52:	9c01      	ldr	r4, [sp, #4] ; EVIL stack manipulation. r4=calling routine's sp[0], which happens to be its lr for its return.
-7fffef54:	6001      	str	r1, [r0, #0] ; write to first register
-7fffef56:	2a00      	cmp	r2, #0       ; are we going to skip writing to second register (is address zero?)
-7fffef58:	d005      	beq.n	0x7fffef66   ; If so, wait for flash to become available.
-7fffef5a:	6013      	str	r3, [r2, #0] ; write to second register
+7fffef52:	9c01      	ldr	r4, [sp, #4] ## EVIL stack manipulation. r4=calling routine's sp[0], which happens to be its lr for its return.
+7fffef54:	6001      	str	r1, [r0, #0] ## write to first register
+7fffef56:	2a00      	cmp	r2, #0       ## are we going to skip writing to second register (is address zero?)
+7fffef58:	d005      	beq.n	0x7fffef66   ## If so, wait for flash to become available.
+7fffef5a:	6013      	str	r3, [r2, #0] ## write to second register
 prepare_for_flash_write_ram.busy_wait:
-7fffef5c:	6810      	ldr	r0, [r2, #0] ;read back second register
-7fffef5e:	4018      	ands	r0, r3       ;Do any of the bits match, Z flag set if result is 0 (no bits match)
-7fffef60:	d1fc      	bne.n	0x7fffef5c   ;If Z flag cleared (some bits match), loop back to busy wait. We only escape when none of write and readback bits match
+7fffef5c:	6810      	ldr	r0, [r2, #0] ## read back second register
+7fffef5e:	4018      	ands	r0, r3       ## Do any of the bits match, Z flag set if result is 0 (no bits match)
+7fffef60:	d1fc      	bne.n	0x7fffef5c   ## If Z flag cleared (some bits match), loop back to busy wait. We only escape when none of write and readback bits match
 prepare_for_flash_write_ram.exit
 7fffef62:	bc10      	pop	{r4}
-7fffef64:	4770      	bx	lr ;Don't return to the trampoline, but the code which called that. Trampoline doesn't set lr
+7fffef64:	4770      	bx	lr ## Don't return to the trampoline, but the code which called that. Trampoline doesn't set lr
 prepare_for_flash_write_ram.wait_for_flash_ready:
-;This is too clever by half. If flash is not ready, it reads zero. So, we keep trying
-;to read where we are going to return to, and wait for it to be nonzero, since we
-;know that it will be an instruction, which can't be zero.
-7fffef66:	6820      	ldr	r0, [r4, #0] ;load what's pointed to by stack_table[1]
-7fffef68:	2800      	cmp	r0, #0     ;compare that value with zero
-7fffef6a:	d0fc      	beq.n	0x7fffef66 ;Loop while the value is zero
-7fffef6c:	e7f9      	b.n	0x7fffef62 ;get outta here
+## This is too clever by half. If flash is not ready, it reads zero. So, we keep trying
+## to read where we are going to return to, and wait for it to be nonzero, since we
+## know that it will be an instruction, which can't be zero.
+7fffef66:	6820      	ldr	r0, [r4, #0] ## load what's pointed to by stack_table[1]
+7fffef68:	2800      	cmp	r0, #0     ## compare that value with zero
+7fffef6a:	d0fc      	beq.n	0x7fffef66 ## Loop while the value is zero
+7fffef6c:	e7f9      	b.n	0x7fffef62 ## get outta here
 
 7fffef6e:	b430      	push	{r4, r5}
 7fffef70:	2501      	movs	r5, #1

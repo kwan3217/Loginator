@@ -1335,8 +1335,8 @@ Jump target:
 7fffe4dc:	e0028000 	;address of GPIO base and IOPIN0
 7fffe4e0:	e01fc100 	;Address of VPBDIV
 7fffe4e4:	e0008000 	;address of Timer1 base 
-7fffe4e8:	e000c000 	and	ip, r0, r0
-7fffe4ec:	7fffd050 	svcvc	0x00ffd050
+7fffe4e8:	e000c000 	;Address of UART0 base
+7fffe4ec:	7fffd050 	;table base address
 7fffe4f0:	7fffd0b0 	svcvc	0x00ffd0b0
 7fffe4f4:	7fffd130 	svcvc	0x00ffd130
 7fffe4f8:	7fffd04c 	svcvc	0x00ffd04c
@@ -2001,7 +2001,8 @@ Jump target:
 7fffef44:	53455200 	movtpl	r5, #20992	; 0x5200
 7fffef48:	00444e45 	subeq	r4, r4, r5, asr #28
 7fffef4c:	00005a5a 	andeq	r5, r0, sl, asr sl
-7fffef50:	9c01b410 	cfstrsls	mvf11, [r1], {16}
+prepare flash table start:
+7fffef50:	9c01b410 	
 7fffef54:	2a006001 	bcs	0x80016f60
 7fffef58:	6013d005 	andsvs	sp, r3, r5
 7fffef5c:	40186810 	andsmi	r6, r8, r0, lsl r8
@@ -2046,7 +2047,8 @@ Jump target:
 7ffff004:	000fffff 	strdeq	pc, [pc], -pc	; <UNPREDICTABLE>
 7ffff008:	0000001f 	andeq	r0, r0, pc, lsl r0
 7fffff90-7fffff9f: rm_init_entry, thumb code
-rm_undef_handler:
+
+qrm_undef_handler:
 7fffffa0:	eafffb2c 	b	0x7fffec58
 rm_prefetchabort_handler:
 7fffffb0:	eafffb31 	b	0x7fffec7c
