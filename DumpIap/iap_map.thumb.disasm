@@ -1998,7 +1998,10 @@ command56:  ;compare
 7fffe1d0:	d1ee      	bne.n	0x7fffe1b0
 7fffe1d2:	602e      	str	r6, [r5, #0]
 7fffe1d4:	e7f5      	b.n	0x7fffe1c2
-sectors_range_check: ;on entry, r0=start sector to prepare, r1=end sector to prepare. On exit, r0=status code
+sectors_range_check: 
+;On entry, r0=start sector
+;          r1=end sector. 
+;On exit,  r0=status code, 0 if range is ok, 7 if not
 7fffe1d6:	4ac5      	ldr	r2, [pc, #788]	; r2=[0x7fffe4ec]=0x7fffd050
 7fffe1d8:	6813      	ldr	r3, [r2, #0]    ; r3=table[0]=0x1a, largest sector number
 7fffe1da:	4298      	cmp	r0, r3          ; Check if start is off the end of the sector table
@@ -2014,46 +2017,49 @@ sectors_range_check.fail:
 sectors_range_check.success:
 7fffe1ec:	2000      	movs	r0, #0          ; set status to CMD_SUCCESS
 7fffe1ee:	4770      	bx	lr              ; and return
-command53:  ;blank check sectors
+command53:  ;blank check sectors. No magic here, just check for all the words in the block as 0xFFFF'FFFF
 7fffe1f0:	b570      	push	{r4, r5, r6, lr}
-7fffe1f2:	1c0d      	adds	r5, r1, #0
-7fffe1f4:	1c04      	adds	r4, r0, #0
-7fffe1f6:	1d01      	adds	r1, r0, #4
-7fffe1f8:	c903      	ldmia	r1, {r0, r1}
-7fffe1fa:	f7ff ffec 	bl	0x7fffe1d6
-7fffe1fe:	6028      	str	r0, [r5, #0]
-7fffe200:	2800      	cmp	r0, #0
-7fffe202:	d114      	bne.n	0x7fffe22e
-7fffe204:	6860      	ldr	r0, [r4, #4]
-7fffe206:	4aba      	ldr	r2, [pc, #744]	; (0x7fffe4f0)
-7fffe208:	68a3      	ldr	r3, [r4, #8]
-7fffe20a:	0080      	lsls	r0, r0, #2
-7fffe20c:	49b9      	ldr	r1, [pc, #740]	; (0x7fffe4f4)
-7fffe20e:	5810      	ldr	r0, [r2, r0]
-7fffe210:	009b      	lsls	r3, r3, #2
-7fffe212:	58c9      	ldr	r1, [r1, r3]
-7fffe214:	e00f      	b.n	0x7fffe236
-7fffe216:	6806      	ldr	r6, [r0, #0]
-7fffe218:	1c73      	adds	r3, r6, #1
-7fffe21a:	d00b      	beq.n	0x7fffe234
-7fffe21c:	2108      	movs	r1, #8
-7fffe21e:	6029      	str	r1, [r5, #0]
-7fffe220:	6861      	ldr	r1, [r4, #4]
-7fffe222:	0089      	lsls	r1, r1, #2
-7fffe224:	5851      	ldr	r1, [r2, r1]
-7fffe226:	1a41      	subs	r1, r0, r1
-7fffe228:	6069      	str	r1, [r5, #4]
-7fffe22a:	6800      	ldr	r0, [r0, #0]
-7fffe22c:	60a8      	str	r0, [r5, #8]
+7fffe1f2:	1c0d      	adds	r5, r1, #0      ; r5=r1, result block address
+7fffe1f4:	1c04      	adds	r4, r0, #0      ; r4=r0, command block address
+7fffe1f6:	1d01      	adds	r1, r0, #4      ; r1=r0+1, command block address
+7fffe1f8:	c903      	ldmia	r1, {r0, r1}    ; r0=start sector, r1=end sector
+7fffe1fa:	f7ff ffec 	bl	0x7fffe1d6      ; call sectors_range_check
+7fffe1fe:	6028      	str	r0, [r5, #0]    ; store preliminary result
+7fffe200:	2800      	cmp	r0, #0          ; did the range check succeed?
+7fffe202:	d114      	bne.n	0x7fffe22e      ; if not, bail out
+7fffe204:	6860      	ldr	r0, [r4, #4]    ; r0=command[1], start sector
+7fffe206:	4aba      	ldr	r2, [pc, #744]	; r2=[0x7fffe4f0]=7fffd0b0, base address of sector start table
+7fffe208:	68a3      	ldr	r3, [r4, #8]    ; r3=command[2], end sector
+7fffe20a:	0080      	lsls	r0, r0, #2      ; r0<<=2, scale start sector for use as table index
+7fffe20c:	49b9      	ldr	r1, [pc, #740]	; r1=[0x7fffe4f4]=7fffd130, base address of sector end table
+7fffe20e:	5810      	ldr	r0, [r2, r0]    ; r0=start_address[r0] 
+7fffe210:	009b      	lsls	r3, r3, #2      ; r3<<=2, scale end sector for use as table index
+7fffe212:	58c9      	ldr	r1, [r1, r3]    ; r1=end_address[r3]
+7fffe214:	e00f      	b.n	0x7fffe236      ; jump to loop end test
+7fffe216:	6806      	ldr	r6, [r0, #0]    ; r6=next word from memory
+7fffe218:	1c73      	adds	r3, r6, #1      ; r3=r6+1, if the word is blank, this will be 0
+7fffe21a:	d00b      	beq.n	0x7fffe234      ; are we zero? jump to loop inc
+7fffe21c:	2108      	movs	r1, #8          ; not blank, set return code to 8
+7fffe21e:	6029      	str	r1, [r5, #0]    ; write return code
+7fffe220:	6861      	ldr	r1, [r4, #4]    ; r1=command[1], start sector
+7fffe222:	0089      	lsls	r1, r1, #2      ; r1<<=2, scale for use as table index
+7fffe224:	5851      	ldr	r1, [r2, r1]    ; r1=start_address[r1]
+7fffe226:	1a41      	subs	r1, r0, r1      ; r1=r0-r1, offset from start to first nonblank word
+7fffe228:	6069      	str	r1, [r5, #4]    ; write offset to result block[1]
+7fffe22a:	6800      	ldr	r0, [r0, #0]    ; r0=the nonblank word again
+7fffe22c:	60a8      	str	r0, [r5, #8]    ; write nonblank word to result block[2]
+command53.exit:
 7fffe22e:	bc70      	pop	{r4, r5, r6}
 7fffe230:	bc08      	pop	{r3}
 7fffe232:	4718      	bx	r3
-7fffe234:	3004      	adds	r0, #4
-7fffe236:	4281      	cmp	r1, r0
-7fffe238:	d8ed      	bhi.n	0x7fffe216
-7fffe23a:	2000      	movs	r0, #0
-7fffe23c:	6028      	str	r0, [r5, #0]
-7fffe23e:	e7f6      	b.n	0x7fffe22e
+command53.loop_inc
+7fffe234:	3004      	adds	r0, #4         ; r0+=4, go to the next word
+command53.loop_end
+7fffe236:	4281      	cmp	r1, r0         ; is r1>r0?
+7fffe238:	d8ed      	bhi.n	0x7fffe216     ; if so, jump back into routine
+7fffe23a:	2000      	movs	r0, #0         ; if not, we are done, so...
+7fffe23c:	6028      	str	r0, [r5, #0]   ; ...write success...
+7fffe23e:	e7f6      	b.n	0x7fffe22e     ; ...and jump to exit
 prepare_sector_for_write:
 ; Prepare a single sector for write.
 ; Write a flash control register which will cause flash to become unavailable.
@@ -2299,20 +2305,20 @@ command52:  ;erase sectors
 7fffe3fe:	e7f3      	b.n	0x7fffe3e8
 command51:      ;copy ram to flash (write flash)
 7fffe400:	b5f0      	push	{r4, r5, r6, r7, lr}
-7fffe402:	1c07      	adds	r7, r0, #0
-7fffe404:	6840      	ldr	r0, [r0, #4]
-7fffe406:	b085      	sub	sp, #20
-7fffe408:	9001      	str	r0, [sp, #4]
-7fffe40a:	68b8      	ldr	r0, [r7, #8]
-7fffe40c:	1c0d      	adds	r5, r1, #0
-7fffe40e:	9002      	str	r0, [sp, #8]
-7fffe410:	68f8      	ldr	r0, [r7, #12]
-7fffe412:	2300      	movs	r3, #0
-7fffe414:	2265      	movs	r2, #101	; 0x65
-7fffe416:	9004      	str	r0, [sp, #16]
-7fffe418:	2000      	movs	r0, #0
-7fffe41a:	a904      	add	r1, sp, #16
-7fffe41c:	f7ff fd57 	bl	0x7fffdece
+7fffe402:	1c07      	adds	r7, r0, #0     ;r7=r0, save address of command block
+7fffe404:	6840      	ldr	r0, [r0, #4]   ;r0=command[1], destination address in flash
+7fffe406:	b085      	sub	sp, #20        ;allocate 5 more words on the stack
+7fffe408:	9001      	str	r0, [sp, #4]   ;write the destination address to stack[1]
+7fffe40a:	68b8      	ldr	r0, [r7, #8]   ;r0=command[2], source address in ram
+7fffe40c:	1c0d      	adds	r5, r1, #0     ;r5=r1, save address of return block
+7fffe40e:	9002      	str	r0, [sp, #8]   ;write the source address to stack[2]
+7fffe410:	68f8      	ldr	r0, [r7, #12]  ;r0=command[3], number of bytes to write
+7fffe412:	2300      	movs	r3, #0         ;r3=0
+7fffe414:	2265      	movs	r2, #101       ;r2=0x65 
+7fffe416:	9004      	str	r0, [sp, #16]  ;write number of bytes to stack[4]
+7fffe418:	2000      	movs	r0, #0         ;r0=0
+7fffe41a:	a904      	add	r1, sp, #16    ;r1=sp+16, addr of number of bytes
+7fffe41c:	f7ff fd57 	bl	0x7fffdece     ;call copy_ram_to_flash
 7fffe420:	6028      	str	r0, [r5, #0]
 7fffe422:	2800      	cmp	r0, #0
 7fffe424:	d153      	bne.n	0x7fffe4ce
@@ -2406,8 +2412,7 @@ command51:      ;copy ram to flash (write flash)
 7fffe4e8:	e000c000 	;Address of UART0 base
 7fffe4ec:	7fffd050      	;Address of maximum number of sectors
 7fffe4f0:	7fffd0b0      	;base address of sector start table
-7fffe4f4:	d130      	bne.n	0x7fffe558
-7fffe4f6:	7fff      	ldrb	r7, [r7, #31]
+7fffe4f4:	7fffd130      	;base address of sector end table
 7fffe4f8:	d04c      	beq.n	0x7fffe594
 7fffe4fa:	7fff      	ldrb	r7, [r7, #31]
 7fffe4fc:	ef50 7fff 	vrecps.f<illegal width 64>	<illegal reg q11.5>, q8, <illegal reg q15.5>
@@ -2496,12 +2501,12 @@ table_origin:
 7fffe5a5:       17 ;55  	
 7fffe5a6:   2	11 ;56
 7fffe5a7:       1c ;57  	
-7fffe5a8:   3,4	f7ff ffdd 	bl	0x7fffe566 ;command50
+7fffe5a8:   3,4	f7ff ffdd 	bl	0x7fffe566 ;command50, prepare sector for write
 finish_iap: 
 7fffe5ac:   5   bc10      	pop	{r4}       
 7fffe5ae:   6	bc08      	pop	{r3}       
 7fffe5b0:   7	4718      	bx	r3         
-7fffe5b2:   8,9	f7ff ff25 	bl	0x7fffe400 ;command51
+7fffe5b2:   8,9	f7ff ff25 	bl	0x7fffe400 ;command51, copy ram to flash
 7fffe5b6:   A	e7f9      	b.n	0x7fffe5ac 
 7fffe5b8:   B,C f7ff fea3 	bl	0x7fffe302 ;command52
 7fffe5bc:   D   e7f6      	b.n	0x7fffe5ac 
