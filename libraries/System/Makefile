@@ -80,6 +80,8 @@ HARDWARE = ROCKETOMETER
 endif
 
 # MCU name and submodel
+#MCU      = cortex-m4
+#SUBMDL   = LPC4078
 MCU      = arm7tdmi-s
 SUBMDL   = LPC2148
 #THUMB    = -mthumb
@@ -96,7 +98,7 @@ endif
 # 0 = turn off optimization. s = optimize for size.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
 ifndef OPTLEVEL
-OPTLEVEL = 3
+OPTLEVEL = 0
 endif
 OPT = -O$(OPTLEVEL) -fomit-frame-pointer
 
@@ -150,7 +152,9 @@ CFLAGS += -Wcast-align -Wpointer-arith -Wredundant-decls -Wshadow -Wno-attribute
 CFLAGS += -ffreestanding
 CFLAGS += -fverbose-asm 
 ifndef USE_CLANG
-CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.s,$<) -mfloat-abi=soft
+CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.s,$<)
+#CFLAGS  += -mfloat-abi=hard
+CFLAGS  += -mfloat-abi=soft
 endif
 CFLAGS += $(patsubst %,-I%,$(call uniq,$(EXTRAINCDIRS)))
 CFLAGS += -ffunction-sections -fdata-sections
