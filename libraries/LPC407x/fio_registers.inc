@@ -1,9 +1,0 @@
-/* Fast I/O setup */
-#define FIO_BASE_ADDR 0x3FFFC000
-rw1(fio,FIODIR ,2,FIO_BASE_ADDR+0x00+0x20*i);
-rw1(fio,FIOMASK,2,FIO_BASE_ADDR+0x10+0x20*i);
-rw1(fio,FIOPIN ,2,FIO_BASE_ADDR+0x14+0x20*i);
-rw1(fio,FIOSET ,2,FIO_BASE_ADDR+0x18+0x20*i);
-wo1(fio,FIOCLR ,2,FIO_BASE_ADDR+0x1C+0x20*i);
-
-#undef FIO_BASE_ADDR

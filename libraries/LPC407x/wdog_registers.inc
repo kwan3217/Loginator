@@ -1,9 +1,0 @@
-/* Watchdog */
-#define WDG_BASE_ADDR 0xE0000000
-
-rw0(wdog,WDMOD ,WDG_BASE_ADDR+0x00);
-rw0(wdog,WDTC  ,WDG_BASE_ADDR+0x04);
-wo0(wdog,WDFEED,WDG_BASE_ADDR+0x08);
-ro0(wdog,WDTV  ,WDG_BASE_ADDR+0x0C);
-
-#undef WDG_BASE_ADDR

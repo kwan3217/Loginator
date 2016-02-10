@@ -1,9 +1,9 @@
 /**
    \file registers.h
-   \brief Header file for Philips LPC407x/408x Family Microprocessors.
+   \brief Header file for Philips LPC214x Family Microprocessors.
 
  The header file is the super set of all hardware definition of the
- peripherals for the LPC407x family microprocessor. It defines a series of
+ peripherals for the LPC214x family microprocessor. It defines a series of
  functions which return references to unsigned ints, which can be used
  as lvalues as needed. It is the C++ way to define a reference to an absolute
  location in memory, and since almost all peripheral registers are
@@ -38,6 +38,10 @@
 
 #ifndef registers_h
 #define registers_h
+
+#define MCU_ARM7TDMI 0
+#define MCU_CORTEXM4 1
+#define MCU_SIMHOST  2
 
 /** Return a reference to an absolute location in memory. Since it is a reference,
    it can be used as an lvalue. This is used to reference memory-mapped hardware

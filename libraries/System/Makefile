@@ -11,11 +11,13 @@ endif
 
 ifeq ($(SUBMDL),LPC2148)
 MCU      = arm7tdmi-s
+MCU_D    = 0
 include ../libraries/LPC214x/Makefile
 LD_SCRIPT = ../libraries/System/lowmem_cpp_eabi.ld
 endif
 ifeq ($(SUBMDL),LPC4078)
 MCU      = cortex-m4
+MCU_D    = 1
 include ../libraries/LPC407x/Makefile
 LD_SCRIPT = ../libraries/System/LPC407x.ld
 THUMB    = -mthumb
@@ -154,7 +156,7 @@ ADEFS +=  -D$(RUN_MODE)
 #    -adhlns...: create assembler listing
 #
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
-CFLAGS += $(DEBUG) -DSUBMDL=$(SUBMDL) -DMCU=$(MCU) 
+CFLAGS += $(DEBUG) -DSUBMDL=$(SUBMDL) -DMCU=$(MCU_D) 
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += $(OPT)
 CFLAGS += -Wall 

@@ -4,8 +4,58 @@
 
 /** 
   \file Startup.cpp
-  \brief Startup code for LPC213x/214x, run at reset. 
+  \brief Startup code, run at reset. 
 
+We have three different processors with three radically different startup
+routines:
+
+1. ARMv4, with an ARM7TDMI-S in an LPC2148
+2. Cortex-M4, in an LPC4078
+3. Simulation, on a host x86_64
+
+We are going to put the startup stuff for all three here, but break them up with
+conditional compilation, and anything which can be in common, is going to be out
+of these blocks.
+
+*/
+
+/**Pointer to byte just above end of RAM. Put the stack here. The ABI in use 
+specifies a "Full-Decrementing" stack, which means that the stack pointer points
+at a value which has data (is "Full") and that you decrement the stack pointer
+when you push. The "Full" part means that the stack is predecrement, so the 
+first push will first decrement the stack pointer from _ram_end, which actually
+points past the RAM, and isn't allowed to actually hold a stack value. The value
+will then be written at the new location of the stack pointer, which is now in
+RAM. */ 
+extern int _ram_end[]; 
+
+//The docs say that a successful feed must consist of two writes with no
+//intervening APB cycles. Use asm to make sure that it is done with two
+//intervening instructions.
+void feed(int channel) {
+  asm("mov r0, %0\n\t"
+      "mov r1,#0xAA\n\t"
+      "mov r2,#0x55\n\t"
+      "str r1,[r0]\n\t"
+      "str r2,[r0]\n\t" : :"r"(&PLLFEED(channel)):"r0","r1","r2");
+//  PLLFEED(channel)=0xAA;
+//  PLLFEED(channel)=0x55;
+}
+
+#if MCU==MCU_ARM7TDMI
+
+// Standard definitions of Mode bits and Interrupt (I & F) flags in PSRs
+static const int Mode_USR=0x10; ///< CPSR User mode bits. This is the unpriveleged mode. 
+static const int Mode_FIQ=0x11; ///< CPSR Fast Interrupt mode bits. This mode is entered when a fast interrupt is triggered
+static const int Mode_IRQ=0x12; ///< CPSR Interrupt mode bits. This mode is entered when a normal hardware interrupt is triggered
+static const int Mode_SVC=0x13; ///< CPSR Supervisor mode bits. Supervisor mode is entered when a software interrupt is triggered                     
+static const int Mode_ABT=0x17; ///< CPSR Abort mode bits. This mode is entered on a Prefecth (code) or Data abort exception
+static const int Mode_UND=0x1B; ///< CPSR Undefined mode bits. This mode is entered on an Undefined Instruction exception
+static const int Mode_SYS=0x1F; ///< CPSR System mode. This mode is the same as user mode, but priveleged.
+static const int I_Bit=0x80;    ///< when CPSR I bit is set, IRQ is disabled
+static const int F_Bit=0x40;    ///< when CPSR F bit is set, FIQ is disabled
+
+/**
 Only stuff which is truly specific to this processor should be here. Other
 low-level and startup things go in System/Startup.cpp, including things like
 copying the data block, zeroing the bss block, calling the constructor blocks,
@@ -52,27 +102,6 @@ This code is free to call constructors and/or perform inline constructors
 directly. As a static function, the pointee code uses BX lr to return
 */
 
-// Standard definitions of Mode bits and Interrupt (I & F) flags in PSRs
-static const int Mode_USR=0x10; ///< CPSR User mode bits. This is the unpriveleged mode. 
-static const int Mode_FIQ=0x11; ///< CPSR Fast Interrupt mode bits. This mode is entered when a fast interrupt is triggered
-static const int Mode_IRQ=0x12; ///< CPSR Interrupt mode bits. This mode is entered when a normal hardware interrupt is triggered
-static const int Mode_SVC=0x13; ///< CPSR Supervisor mode bits. Supervisor mode is entered when a software interrupt is triggered                     
-static const int Mode_ABT=0x17; ///< CPSR Abort mode bits. This mode is entered on a Prefecth (code) or Data abort exception
-static const int Mode_UND=0x1B; ///< CPSR Undefined mode bits. This mode is entered on an Undefined Instruction exception
-static const int Mode_SYS=0x1F; ///< CPSR System mode. This mode is the same as user mode, but priveleged.
-static const int I_Bit=0x80;    ///< when CPSR I bit is set, IRQ is disabled
-static const int F_Bit=0x40;    ///< when CPSR F bit is set, FIQ is disabled
-
-/**Pointer to byte just above end of RAM. Put the stack here. The ABI in use 
-specifies a "Full-Decrementing" stack, which means that the stack pointer points
-at a value which has data (is "Full") and that you decrement the stack pointer
-when you push. The "Full" part means that the stack is predecrement, so the 
-first push will first decrement the stack pointer from _ram_end, which actually
-points past the RAM, and isn't allowed to actually hold a stack value. The value
-will then be written at the new location of the stack pointer, which is now in
-RAM. */ 
-extern int _ram_end[]; 
-
 //The docs say that a successful feed must consist of two writes with no
 //intervening APB cycles. Use asm to make sure that it is done with two
 //intervening instructions.
@@ -86,7 +115,7 @@ void feed(int channel) {
 //  PLLFEED(channel)=0x55;
 }
 
-/** Interrupt vector table. In an ARM processor, the interrupt table consists
+/** Interrupt vector table. In an ARMv4 processor, the interrupt table consists
 of actual code, in this case an LDR instruction which loads PC with the value
 specified by PC+24 bytes. So we have those instructions, then pointers to the 
 actual code to run for each interrupt. The linker fills these in for us, based
@@ -165,4 +194,77 @@ extern "C" void /*__attribute__ ((naked))*/ __attribute__ ((noreturn)) Reset_Han
   init();
 }
 
+#endif //MCU_ARM7TDMI
+
+#if MCU == MCU_CORTEXM4
+/** 
+  \file Startup.cpp
+  \brief Startup code for LPC407x/408x, run at reset. 
+
+The Cortex-M4 has a quite different reset model than the ARM7TDMI. Instead of 
+a vector table consisting of a series of actual instructions, the table consists
+of addresses to jump to, similar to the Intel x86 interrupt vector table. The
+first address of the table is the starting value for the stack pointer, the next
+is the address to go to after reset, and the rest of the table is the address
+to jump to after any particular exception or IRQ.
+
+0x00 Starting SP value
+0x04 reset handler start address
+0x08 NMI handler
+0x0C Hard Fault handler
+0x10 Memory Management fault handler
+0x14 Bus Fault handler
+0x18 Usage Fault handler
+...reserved...
+0x2C SVCall
+...reserved...
+0x38 PendSV
+0x3C SysTick
+0x40+4n IRQn
+
+This largely replaces the VIC in the ARM7TDMI. 
+
+*/
+
+/** Vector table. The Cortex-M4 has a quite different reset model than the ARM7TDMI. Instead of 
+a vector table consisting of a series of actual instructions, the table consists
+of addresses to jump to, similar to the Intel x86 interrupt vector table. The
+first address of the table is the starting value for the stack pointer, the next
+is the address to go to after reset, and the rest of the table is the address
+to jump to after any particular exception or IRQ.
+
+0x00 Starting SP value
+0x04 reset handler start address
+0x08 NMI handler
+0x0C Hard Fault handler
+0x10 Memory Management fault handler
+0x14 Bus Fault handler
+0x18 Usage Fault handler
+...reserved...
+0x2C SVCall
+...reserved...
+0x38 PendSV
+0x3C SysTick
+0x40+4n IRQn
+
+This largely replaces the VIC in the ARM7TDMI. 
+
+*/ 
+__attribute__ ((section(".vectors"))) const void* vectorg[] {
+  &_ram_end,      //0x00 Starting SP value
+  (void*)&init,   //0x04 reset handler start address
+  nullptr,        //0x08 NMI handler
+  nullptr,        //0x0C Hard Fault handler
+  nullptr,        //0x10 Memory Management fault handler
+  nullptr,        //0x14 Bus Fault handler
+  nullptr,        //0x18 Usage Fault handler
+  nullptr,nullptr,nullptr,nullptr, //0x1C-0x28, reserved
+  nullptr,        //0x2C SVCall
+  nullptr,nullptr,//0x30-0x34, reserved
+  nullptr,        //0x38 PendSV
+  nullptr,        //0x3C SysTick
+  nullptr         //0x40+4n IRQn
+};
+
+#endif
 
