@@ -154,7 +154,7 @@ ADEFS +=  -D$(RUN_MODE)
 #    -adhlns...: create assembler listing
 #
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
-CFLAGS += $(DEBUG) -D$(HARDWARE) -DLPC2148
+CFLAGS += $(DEBUG) -DSUBMDL=$(SUBMDL) -DMCU=$(MCU) 
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += $(OPT)
 CFLAGS += -Wall 
