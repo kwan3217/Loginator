@@ -2,7 +2,7 @@
 #define HARDTWOWIRE_H
 
 #include "Wire.h"
-#include "LPC214x.h"
+#include "registers.h"
 
 class StateTwoWire:public TwoWire {
   public:

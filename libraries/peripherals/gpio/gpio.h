@@ -1,7 +1,7 @@
 #ifndef gpio_h
 #define gpio_h
 
-#include "LPC214x.h"
+#include "registers.h"
 
 #define ON   1
 #define OFF  0

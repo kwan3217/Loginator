@@ -29,7 +29,7 @@
 #ifndef NOINT
 #include "Circular.h"
 #endif
-#include "LPC214x.h"
+#include "registers.h"
 
 class HardwareSerial: public Stream {
   private:

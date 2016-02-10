@@ -1,4 +1,4 @@
-#include "LPC214x.h"
+#include "registers.h"
 
 #define ro0(part,name    ,addr)
 #define rw0(part,name    ,addr) name##_class name

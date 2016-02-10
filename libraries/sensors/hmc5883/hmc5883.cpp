@@ -1,5 +1,5 @@
 #include "hmc5883.h"
-#include "LPC214x.h"
+#include "registers.h"
 
 HMC5883::HMC5883() {
   int i=1;

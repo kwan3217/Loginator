@@ -1,6 +1,6 @@
 #include "DirectTask.h"
 #include "Time.h"
-#include "LPC214x.h"
+#include "registers.h"
 #include "irq.h"
 #include "gpio.h"
 #ifdef DEBUG

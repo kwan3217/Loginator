@@ -1,13 +1,13 @@
-#ifndef LPC214x_h 
-#define LPC214x_h
+#ifndef registers_h 
+#define registers_h
 
 #include "sim.h"
 
 /**
-   \file LPC214x.h
+   \file registers.h
    \brief Header file for SIMULATED hardware control. 
    
-   This matches the syntax of the embedded LPC214x.h, while having radically
+   This matches the syntax of the embedded registers.h, while having radically
    different semantics. The embedded version declares a bunch of static
    inline functions which return values (for read-only registers) or references
    to values (for read/write or write-only registers) which resolve to reading
@@ -23,8 +23,8 @@
    embedded version, this code instead has the opportunity to call code to react
    to the assignment. The read/write version also overrides the int typecast,
    which gives the opportunity to call code on read. This version also overrides
-   several of the assignment arithmetic operators also, since some simulation 
-   code uses things like |= to do read-modify-write.  
+   several of the assignment arithmetic operators also, since some code uses 
+   things like |= to do read-modify-write.  
 */
 
 #define ro0(part,name,addr) static inline uint32_t name() {return peripherals.part.read_##name();}

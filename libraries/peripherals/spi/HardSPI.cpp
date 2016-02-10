@@ -1,6 +1,6 @@
 //SPI interface
 #include <stdlib.h>
-#include "LPC214x.h"
+#include "registers.h"
 #include "gpio.h"
 #include "Time.h"
 #include "HardSPI.h"

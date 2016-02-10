@@ -1,4 +1,3 @@
-#include "LPC214x.h"
 #include "gpio.h"
 #include "Time.h"
 const int light_pin[3]={

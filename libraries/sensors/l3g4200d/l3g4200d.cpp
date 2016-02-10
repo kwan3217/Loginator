@@ -1,6 +1,6 @@
 #include "l3g4200d.h"
 #include "hardwareDesc.h"
-#include "LPC214x.h"
+#include "registers.h"
 
 int L3G4200D::i_hwDesc;
 

@@ -3,7 +3,7 @@ LIBMAKE+=../libraries/sim/Makefile
 ATTACH+=../libraries/sim/SimSd.dot
 
 #Simulation harness
-SIMCPPSRC+=../libraries/sim/LPC214x.cpp
+SIMCPPSRC+=../libraries/sim/registers.cpp
 SIMCPPSRC+=../libraries/sim/SimGpio.cpp
 SIMCPPSRC+=../libraries/sim/SimI2c.cpp
 SIMCPPSRC+=../libraries/sim/SimId.cpp

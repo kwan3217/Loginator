@@ -1,10 +1,5 @@
 #include "Wire.h"
-#include "LPC214x.h"
-
-extern "C" {
-  #include <stdlib.h>
-  #include <inttypes.h>
-}
+#include "registers.h"
 
 void TwoWire::begin(unsigned int freq) {
   rxBufferIndex = 0;

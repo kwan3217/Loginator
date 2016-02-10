@@ -1,5 +1,5 @@
 #include "file.h"
-#include "LPC214x.h"
+#include "registers.h" //Need RTC registers for file date
 
 bool File::openr(const char* filename,uint32_t dir_cluster) {
   if(!de.find(filename,dir_cluster)) FAIL(100*de.errnum+1);

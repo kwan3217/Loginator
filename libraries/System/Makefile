@@ -4,11 +4,29 @@
 #         file. These files are not included in the tarball. They should 
 #         have the extension .CPP
 
+# MCU name and submodel
+ifndef SUBMDL
+SUBMDL     = LPC2148
+endif
+
+ifeq ($(SUBMDL),LPC2148)
+MCU      = arm7tdmi-s
+include ../libraries/LPC214x/Makefile
+LD_SCRIPT = ../libraries/System/lowmem_cpp_eabi.ld
+endif
+ifeq ($(SUBMDL),LPC4078)
+MCU      = cortex-m4
+include ../libraries/LPC407x/Makefile
+LD_SCRIPT = ../libraries/System/LPC407x.ld
+THUMB    = -mthumb
+endif
+
+#USE_CLANG=1
+
 # List C++ source files here.
 # use file-extension cpp for C++-files (use extension .cpp)
 # Every Loginator sketch uses its own main.cpp, so we reference it here.
-include ../libraries/LPC214x/Makefile
-#USE_CLANG=1
+
 CPPSRC += main.cpp
 CPPSRC += ../libraries/System/Stringex.cpp #usable by both embedded and sim
 CPPSRC += ../libraries/System/Startup2.cpp #Startup stuff usable by both embedded and sim
@@ -79,13 +97,6 @@ ifndef HARDWARE
 HARDWARE = ROCKETOMETER
 endif
 
-# MCU name and submodel
-#MCU      = cortex-m4
-#SUBMDL   = LPC4078
-MCU      = arm7tdmi-s
-SUBMDL   = LPC2148
-#THUMB    = -mthumb
-
 #This is needed to run IAP function call stuff
 ifndef USE_CLANG
 THUMB_IW = -mthumb-interwork
@@ -98,7 +109,7 @@ endif
 # 0 = turn off optimization. s = optimize for size.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
 ifndef OPTLEVEL
-OPTLEVEL = 0
+OPTLEVEL = 3
 endif
 OPT = -O$(OPTLEVEL) -fomit-frame-pointer
 

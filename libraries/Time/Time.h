@@ -2,32 +2,40 @@
 #define TIME_H
 
 #include <inttypes.h>
-#include "LPC214x.h"
+#include "registers.h"
 #include "gpio.h"
-/** Crystal Oscillator rate in Hz. 12MHz in original Logomatic, all Loginator and Rocketometer circuits, and any LPC214x which is intended to use USB */
+/** Crystal Oscillator rate in Hz. 12MHz in original Logomatic, all Loginator 
+and Rocketometer circuits, and any LPC214x which is intended to use USB */
 static const int32_t FOSC=12000000;
 /** Peripheral clock rate in Hz */
 extern unsigned int PCLK;
 extern unsigned int CCLK;
-/** Number of seconds between resets of the main timer count. Since the timer count is a 32-bit number, this must be less than 71.5 seconds (71, since it's an integer).
-Values used in the past have included 1 and 60, the current preferred value. This makes the timer roll over only once per minute. */
+/** Number of seconds between resets of the main timer count. Since the timer 
+count is a 32-bit number, this must be less than 71.5 seconds (71, since it's an
+integer). Values used in the past have included 1 and 60, the current preferred 
+value. This makes the timer roll over only once per minute. */
 static const unsigned int timerSec=60;
-/** Number of PCLK ticks per minute (number of timerSec seconds). Note that this is not minus 1, so the timer reset value should be set to one less than this */
+/** Number of PCLK ticks per minute (number of timerSec seconds). Note that this
+    is not minus 1, so the timer reset value should be set to one less than this */
 extern unsigned timerInterval;
-/** Number of ticks difference between timer0 and timer1. This value is positive if timer0 was started before timer1 (the current case by setup_clock) */
+/** Number of ticks difference between timer0 and timer1. This value is positive
+    if timer0 was started before timer1 (the current case by setup_clock) */
 extern int32_t dtc01;
-/** Number of ticks between a read of one timer and an immediately subsequent read of the other */
+/** Number of ticks between a read of one timer and an immediately subsequent 
+    read of the other */
 extern int32_t timer_read_ticks;
 
 void measurePCLK(void);
 void setup_clock(void);
-/**Busy wait accurate delay. Relies on Timer0 running without pause at PCLK and resetting
- at timerSec seconds, as by setup_clock(). Code only reads, never writes, Timer0 registers.
- Implemented in delay.cpp for embedded code, and in the main simulator code
- when simulated (so that it may be implemented in any method needed).
+/**Busy wait accurate delay. Relies on Timer0 running without pause at PCLK and 
+ resetting at timerSec seconds, as by setup_clock(). Code only reads, never 
+ writes, Timer0 registers. Implemented in delay.cpp for embedded code, and in 
+ the main simulator code when simulated (so that it may be implemented in any 
+ method needed).
   @param ms milliseconds to wait
 */
 void delay(unsigned int ms);
+
 void set_rtc(int y, int m, int d, int h, int n, int s);
 void time_mark(void);
 static inline int msPassed(uint32_t TC0) {
@@ -46,7 +54,6 @@ static inline int msPassed(uint32_t TC0) {
 //in Time.cpp, since it is device-dependent. It is implemented in Startup.cpp
 //for the embedded version, and LPC214x.cpp for the simulated version (as a no-op).
 void feed(int channel);
-
 
 /** Set up on-board phase-lock-loop clock multiplier.
 
@@ -79,13 +86,13 @@ static constexpr uint32_t capPinsShift=12;
 #define p(instance, channel, pinsel) (instance << capPortShift) | (channel << capChanShift) | (pinsel << capPinsShift)
 #define F 0xFFFF
 constexpr uint16_t capConnect[32]={F       ,F       ,p(0,0,2),F       , // 0- 3
-		                           p(0,1,2),F       ,p(0,2,2),F       , // 4- 7
-			     				   F       ,F       ,p(1,0,2),p(1,1,2), // 8-11
-				    			   F       ,F       ,F       ,F       , //12-15
-					    		   p(0,2,3),p(1,2,1),p(1,3,1),p(1,2,1), //16-19
-						    	   F       ,p(1,3,3),p(0,0,2),F       , //20-23
-							       F       ,F       ,F       ,F       , //24-27
-							       p(0,2,2),p(0,3,2),p(0,0,3),F       };//28-31
+	                           p(0,1,2),F       ,p(0,2,2),F       , // 4- 7
+     				   F       ,F       ,p(1,0,2),p(1,1,2), // 8-11
+	    			   F       ,F       ,F       ,F       , //12-15
+		    		   p(0,2,3),p(1,2,1),p(1,3,1),p(1,2,1), //16-19
+			    	   F       ,p(1,3,3),p(0,0,2),F       , //20-23
+    			           F       ,F       ,F       ,F       , //24-27
+				   p(0,2,2),p(0,3,2),p(0,0,3),F       };//28-31
 #undef p
 #undef F
 
@@ -103,8 +110,8 @@ static inline void setup_cap(int pin, int intr_edge) {
 
 static inline void setup_cap(int pin, bool rising, bool falling, bool intr) {
   setup_cap(pin,((rising ?1:0)<<0) |
-		        ((falling?1:0)<<1) |
-		        ((intr   ?1:0)<<2));
+	        ((falling?1:0)<<1) |
+	        ((intr   ?1:0)<<2));
 }
 
 

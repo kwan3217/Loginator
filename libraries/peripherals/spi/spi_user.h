@@ -8,7 +8,7 @@ protected:
   HardSPI* s;
   int p0;
   void set_port(HardSPI& Ls) {s=&Ls;};
-  spi_user();
+  spi_user() {};
 public:
   spi_user(HardSPI& Ls, int Lp0):s(&Ls),p0(Lp0){};
   void set_p0(int Lp0) {s->release_cs(p0); p0=Lp0;};

@@ -1,7 +1,5 @@
 #include "readconfig.h"
 #include "config.h"
-#include "ccsds.h"
-#include "Serial.h"
 
 Config config;
 
