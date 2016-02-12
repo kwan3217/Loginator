@@ -35,7 +35,7 @@
 #define BIN 2
 #define BYTE 0
 
-class Print /*: public std::streambuf, public std::ostream */{
+class Print {
   private:
     void printNumber(unsigned int, int,int);
 #ifdef U64
@@ -43,19 +43,9 @@ class Print /*: public std::streambuf, public std::ostream */{
 #endif
     void printFloat(fp, unsigned char);
   public:
-    /*
-    Print() {rdbuf(this);};
-    virtual std::streambuf::int_type overflow (std::streambuf::int_type c) override {
-	  if (c > 0) {
-
-		// and write the character to the standard output
-		write((unsigned char)c);
-	  }
-	  return c;
-	}; */
     virtual void write(unsigned char) = 0;
-    virtual void write(const char *str);
-    virtual void write(const char *buffer, size_t size);
+    void write(const char *str);
+    void write(const char *buffer, size_t size);
     
     void print(const char *str){write(str);};
     void print(char c, int base=BYTE, int digits=0){print((int) c, base,digits);};

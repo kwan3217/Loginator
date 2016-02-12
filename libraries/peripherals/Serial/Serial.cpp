@@ -28,38 +28,10 @@
 #include "Serial.h"
 #include "Time.h"
 #include "gpio.h"
-#ifndef NOINT
-#include "irq.h"
-
-//Actual hardware interaction
-
-static void UARTISR(int n, HardwareSerial& port) {
-  int iir=(UIIR(n)>>1) & 0x07;
-  if(0x01==iir) {//If it's a THRE int...
-    int i=0;
-    while(i<16 && port.txBuf.readylen()>0) {
-      UTHR(0)=port.txBuf.get();
-      i++;
-    }
-  } else { //presume it's a read int
-    port.rxBuf.fill(URBR(n));
-    port.rxBuf.mark();
-  }  
-  //Acknowledge the VIC
-  VICVectAddr = 0;
-}
-
-static void UARTISR0() {UARTISR(0,Serial);}
-static void UARTISR1() {UARTISR(1,Serial1);}
-
-#endif
 
 // Constructors ////////////////////////////////////////////////////////////////
 
 HardwareSerial::HardwareSerial(int Lport):
-#ifndef NOINT
-txBuf(bufSize,txBuf_loc),rxBuf(bufSize,rxBuf_loc),
-#endif
 port(Lport) {
 
 }
@@ -67,8 +39,10 @@ port(Lport) {
 // Public Methods //////////////////////////////////////////////////////////////
 
 void HardwareSerial::begin(unsigned int baud) {
+// for now, do nothing. We will use whatever the ISP had set up.
   measurePCLK();
 
+#if MCU == MCU_ARM7TDMI
   //Set up the pins
   if(port==0) {
     gpio_set_write(0);
@@ -81,6 +55,23 @@ void HardwareSerial::begin(unsigned int baud) {
     set_pin(8,1); //TX1
     set_pin(9,1); //RX1
   }
+#else
+  //This only knows how to set up UART0.
+  IODIR(0)|= (1<<2); //TX set to output
+  IODIR(0)&=~(1<<3); //RX set to input
+  IOCON(0,2)=(0b010 << 0) |  //Function TX0
+             (0b00  << 3) |  //No pullup/pulldown
+             (0b0   << 5) |  //No hysteresis
+             (0b0   << 6) |  //No inversion
+             (0b0   << 9) |  //Standard slew
+             (0b0   <<10) ;  //Not open-drain
+  IOCON(0,3)=(0b010 << 0) |  //Function RX0
+             (0b00  << 3) |  //No pullup/pulldown
+             (0b0   << 5) |  //No hysteresis
+             (0b0   << 6) |  //No inversion
+             (0b0   << 9) |  //Standard slew
+             (0b0   <<10) ;  //Not open-drain
+#endif
   ULCR(port) = (3 << 0) | //8 data bits
                (0 << 2) | //1 stop bit
                (0 << 3) | //No parity
@@ -98,28 +89,15 @@ void HardwareSerial::begin(unsigned int baud) {
 
   UDLM(port)=(UDL >> 8) & 0xFF;
   UDLL(port)=(UDL >> 0) & 0xFF;
+  UFDR(port)=0x10; //reset nilpotent value
 
   UFCR(port) = (1 << 0) |  //FIFOs on
                (1 << 1) |  //Clear rx FIFO
                (1 << 2) |  //Clear tx FIFO
                (3 << 6);   //Rx watermark=14 bytes
   ULCR(port) = ULCR(port) & ~(1<<7); //Turn of DLAB - FIFOs accessable
-#ifdef NOINT
   UIER(port)=0;
-#else
-  if(port==0) {
-    IRQHandler::install(IRQHandler::UART0,UARTISR0);
-  } else {
-    IRQHandler::install(IRQHandler::UART1,UARTISR1);
-  }
-  UIER(port) = (1 << 0) | //Int on Rx ready
-#ifdef NOBLOCK_TX    
-               (1 << 1) | //Int on Tx empty
-#endif    
-               (0 << 2) | //No int on line status
-               (0 << 8) | //No int on autobaud timeout
-               (0 << 9);  //No int on end of autobaud
-#endif
+
 }
 
 void HardwareSerial::end() {
@@ -137,35 +115,10 @@ void HardwareSerial::end() {
   }
 }
 
-void HardwareSerial::write(uint8_t c) {
-#ifdef NOINT
-  while (!(ULSR(port) & (1<<5))); //do nothing, wait for Tx FIFO to become empty;
-  UTHR(port)=c;
-#else
-  if(!txBuf.fill(c)) blinklock(1);
-  txBuf.mark();
-#ifdef NOBLOCK_TX  
-  if(ULSR(port) & (1<<5)) UTHR(port)=txBuf.get(); //If transmit fifo is empty, kick off transfer by writing first byte
-#else
-  while(!txBuf.isEmpty()) {
-    while (!(ULSR(port) & (1<<5))); //do nothing, wait for Tx FIFO to become empty;
-    UTHR(port)=txBuf.get();
-  }
-#endif
-#endif
-}
-
-#ifdef NOINT
-int HardwareSerial::available(void) {return ULSR(port) & 0x01;}; //Returns 0 or 1 if none or some bytes $
+int HardwareSerial::available(void) {return ULSR(port) & 0x01;}; //Returns 0 or 1 if none or some bytes can be read immediately
 int HardwareSerial::peek(void) {return -1;};                      //Not supported
 int HardwareSerial::read(void) {return URBR(port);};            
-void HardwareSerial::flush(void) {UFCR(port)=((1 << 0) | (1 << 1) | (1 << 2));}; //Enable FIFOs and rese$
-#else
-int HardwareSerial::available(void) {return rxBuf.readylen();};
-int HardwareSerial::peek(void) {return rxBuf.peekTail();};
-int HardwareSerial::read(void) {return rxBuf.get();};
-void HardwareSerial::flush(void) {rxBuf.empty();};
-#endif
+void HardwareSerial::flush(void) {UFCR(port)=((1 << 0) | (1 << 1) | (1 << 2));}; //Enable FIFOs and reset
 // Preinstantiate Objects //////////////////////////////////////////////////////
 
 HardwareSerial  Serial(0);

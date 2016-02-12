@@ -1,10 +1,12 @@
 /* Memory Definitions */
 MEMORY
 {
-  ROM      (RX)  : ORIGIN = 0x00000000, LENGTH = 512K-4K
-  DEVICE_ID(RX)  : ORIGIN = 0x0007F000, LENGTH = 4K
-  RAM      (RWX) : ORIGIN = 0x10000000, LENGTH = 32K
-  RAM_IAP  (RWX) : ORIGIN = 0x10000000+32K-32, LENGTH = 32
+  ROM_VECTORS(RX) : ORIGIN = 0x00000000, LENGTH = 512 /*The first 512 bytes are subject to vector table remapping */
+  ROM      (RX)   : ORIGIN = 0x00000200, LENGTH = 512K-12K-512
+  DEVICE_ID(RX)   : ORIGIN = 0x0007C000, LENGTH = 12K
+  RAM      (RWX)  : ORIGIN = 0x10000000, LENGTH = 32K
+  RAM_IAP  (RWX)  : ORIGIN = 0x10000000+32K-32, LENGTH = 32
+  PERIPH_RAM(RWX) : ORIGIN = 0x20000000, LENGTH = 32K
 }
 
 /* After consultation with the Internet, I have discovered that _[A-Z].* and __.* 
@@ -20,9 +22,14 @@ SECTIONS
 {
 
     /* first section is .text which is used for code */
-    .text :
+    .vectors :
     {
         KEEP(*(.vectors))          /* required, keep the vectors where they belong */ 
+    }
+    > ROM_VECTORS
+
+    .text :
+    {
 	*Startup.o(.text .text.*)  /* Just customary, put startup code close to front of section */
         :*.o(.text.*)           /* remaining code, only from non-library object files (my code) */
         *(.gnu.linkonce.t.*)
@@ -210,7 +217,7 @@ is in between read-only data and initialized data. */
     {
         *(.usb)
     }
-    > RAM_USB
+    > PERIPH_RAM
 
 
     /* Stabs debugging sections.  */

@@ -239,7 +239,49 @@ to jump to after any particular exception or IRQ.
 This largely replaces the VIC in the ARM7TDMI. 
 
 */ 
-template<int N> void IRQ_Handler(void) {for(;;);};
+template<int N> void IRQ_Handler(void);
+template<> __attribute__ ((noreturn)) void IRQ_Handler<0>(void) {for(;;);};
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 1>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 2>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 3>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 4>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 5>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 6>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 7>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 8>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 9>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<10>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<11>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<12>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<13>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<14>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<15>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<16>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<17>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<18>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<19>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<20>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<21>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<22>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<23>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<24>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<25>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<26>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<27>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<28>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<29>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<30>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<31>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<32>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<33>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<34>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<35>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<36>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<37>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<38>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<39>(void);
+template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler<40>(void);
+
 __attribute__ ((section(".vectors"))) const void* vectorg[] {
   &_ram_end,             //0x00 Starting SP value
   (void*)&init,          //0x04 reset handler start address
@@ -265,6 +307,35 @@ __attribute__ ((section(".vectors"))) const void* vectorg[] {
   (void*)&IRQ_Handler< 9>,   
   (void*)&IRQ_Handler<10>,   
   (void*)&IRQ_Handler<11>,   
+  (void*)&IRQ_Handler<12>,   
+  (void*)&IRQ_Handler<13>,   
+  (void*)&IRQ_Handler<14>,   
+  (void*)&IRQ_Handler<15>,   
+  (void*)&IRQ_Handler<16>,   
+  (void*)&IRQ_Handler<17>,   
+  (void*)&IRQ_Handler<18>,   
+  (void*)&IRQ_Handler<19>,   
+  (void*)&IRQ_Handler<20>,   
+  (void*)&IRQ_Handler<21>,   
+  (void*)&IRQ_Handler<22>,   
+  (void*)&IRQ_Handler<23>,   
+  (void*)&IRQ_Handler<24>,   
+  (void*)&IRQ_Handler<25>,   
+  (void*)&IRQ_Handler<26>,   
+  (void*)&IRQ_Handler<27>,   
+  (void*)&IRQ_Handler<28>,   
+  (void*)&IRQ_Handler<29>,   
+  (void*)&IRQ_Handler<30>,   
+  (void*)&IRQ_Handler<31>,   
+  (void*)&IRQ_Handler<32>,   
+  (void*)&IRQ_Handler<33>,   
+  (void*)&IRQ_Handler<34>,   
+  (void*)&IRQ_Handler<35>,   
+  (void*)&IRQ_Handler<36>,   
+  (void*)&IRQ_Handler<37>,   
+  (void*)&IRQ_Handler<38>,   
+  (void*)&IRQ_Handler<39>,   
+  (void*)&IRQ_Handler<40>,   
 };
 
 

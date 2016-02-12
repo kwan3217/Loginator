@@ -22,25 +22,13 @@
 #ifndef Serial_h
 #define Serial_h
 
-#define NOINT
-
 #include <inttypes.h>
 #include "Stream.h"
-#ifndef NOINT
-#include "Circular.h"
-#endif
 #include "registers.h"
 
 class HardwareSerial: public Stream {
   private:
-#ifndef NOINT
-    static const int bufSize=512;
-    char txBuf_loc[bufSize], rxBuf_loc[bufSize];
-#endif
   public:
-#ifndef NOINT
-    Circular txBuf,rxBuf;
-#endif
     unsigned int port;
     HardwareSerial(int port);
     void begin(unsigned int baud);
@@ -52,6 +40,12 @@ class HardwareSerial: public Stream {
     virtual void write(uint8_t);
     using Print::write; // pull in write(str) and write(buf, size) from Print
 };
+
+inline void HardwareSerial::write(uint8_t c) {
+  while (!(ULSR(port) & (1<<5))); //do nothing, wait for Tx FIFO to become empty;
+  UTHR(port)=c;
+}
+
 
 //Ambient serial ports
 extern HardwareSerial  Serial;

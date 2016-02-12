@@ -2,7 +2,7 @@
 #define dump_H
 
 #include "Print.h"
-#include "tarball.h"
+//#include "tarball.h"
 #include <stddef.h> //for size_t
 extern char btext[], etext[];
 
@@ -19,11 +19,12 @@ protected:
 public:
   Dump(Print& Lout, int LpreferredLen):out(Lout),preferredLen(LpreferredLen) {};
   //virtual void line(const char* start, size_t base, size_t len)=0;
+  /*virtual void begin() {}; */
+  /*virtual void end() {}; */
   void region(const char* start, size_t base, size_t len, unsigned int rec_len);
   void region(const char* start, size_t len, unsigned int rec_len) {region(start,(size_t)start,len,rec_len);};
   void region(const char* start, size_t len) {region(start,0,len,preferredLen);};
-  void dumpText() {region(btext,etext-btext,preferredLen);};
-  void dumpSource() {region(source_start,0,source_end-source_start,preferredLen);}
+  void region(unsigned int start, size_t len) {region((char*)start,len);};
 };
 
 template<class T> inline
@@ -67,6 +68,8 @@ private:
 public:
   Base85(Print& Lout):Dump(Lout,64) {};
   Base85(Print& Lout, int LpreferredLen):Dump(Lout,LpreferredLen) {};
+  /*virtual*/ void begin() {};
+  /*virtual*/ void end() {};
   /*virtual*/ void line(const char* start, size_t base, size_t len);
 };
 
@@ -74,6 +77,8 @@ class Hd: public Dump<Hd> {
 public:
   Hd(Print& Lout):Dump(Lout,16) {};
   Hd(Print& Lout, int LpreferredLen):Dump(Lout,LpreferredLen) {};
-  virtual void line(const char* start, size_t base, size_t len);
+  /*virtual*/ void begin() {};
+  /*virtual*/ void end() {};
+  /*virtual*/ void line(const char* start, size_t base, size_t len);
 };
 #endif
