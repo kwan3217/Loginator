@@ -4,6 +4,7 @@
 #         file. These files are not included in the tarball. They should 
 #         have the extension .CPP
 
+include ../libraries/registers/Makefile
 # MCU name and submodel
 ifndef SUBMDL
 SUBMDL     = LPC2148
@@ -11,12 +12,12 @@ endif
 
 ifeq ($(SUBMDL),LPC2148)
 MCU      = arm7tdmi-s
-include ../libraries/LPC214x/Makefile
+MCU_D    = 0
 LD_SCRIPT = ../libraries/System/lowmem_cpp_eabi.ld
 endif
 ifeq ($(SUBMDL),LPC4078)
 MCU      = cortex-m4
-include ../libraries/LPC407x/Makefile
+MCU_D    = 1
 LD_SCRIPT = ../libraries/System/LPC407x.ld
 THUMB    = -mthumb
 endif
@@ -29,7 +30,6 @@ endif
 
 CPPSRC += main.cpp
 CPPSRC += ../libraries/System/Stringex.cpp #usable by both embedded and sim
-CPPSRC += ../libraries/System/Startup2.cpp #Startup stuff usable by both embedded and sim
 CPPSRC += ../libraries/System/irq.cpp 
 EMBCPPSRC += ../libraries/System/Startup.cpp #Startup stuff only usable in embedded
 ifndef OBJEXT
@@ -154,7 +154,7 @@ ADEFS +=  -D$(RUN_MODE)
 #    -adhlns...: create assembler listing
 #
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
-CFLAGS += $(DEBUG) -DSUBMDL=$(SUBMDL) -DMCU=$(MCU) 
+CFLAGS += $(DEBUG) -DSUBMDL=$(SUBMDL) -DMCU=$(MCU_D) 
 CFLAGS += $(CDEFS) $(CINCS)
 CFLAGS += $(OPT)
 CFLAGS += -Wall 

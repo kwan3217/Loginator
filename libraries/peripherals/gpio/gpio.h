@@ -10,10 +10,12 @@
 #define HIGH 1
 
 static inline void set_pin(int pin, int mode) {
+#if MCU == MCU_ARM7TDMI
   int shift=((pin & 0x0F)<<1);
   int mask=~(0x3 << shift);
   int val=   mode << shift;
   PINSEL(pin>=16?1:0)=(PINSEL(pin>=16?1:0) & mask) | val;
+#endif
 }
 
 static inline void gpio_set_write(int pin) {
@@ -34,7 +36,9 @@ static inline void set_pin(int pin, int mode, int write) {
 }
 
 static inline int get_pin(int pin) {
+#if MCU == MCU_ARM7TDMI
   return PINSEL(pin>=16?1:0)>>(pin & 0x0F) & 0x03;
+#endif
 }
 
 static inline void gpio_write(int pin, int level) {

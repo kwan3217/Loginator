@@ -24,6 +24,7 @@ enum class partType:unsigned int {
   nmea,     //                 10(0xA) NMEA GPS
   button,   //                 11(0xB) Button
   servo,    //                 12(0xC) Servo control
+  uart,     //                 13(0xD) Universal Async Receiver/Transmitter
   unknown=0xFFFF'FFFF };//     unk     No part in this or any further slot
 //Block offset  Description    value   Value description
 //------------  -------------  -----   -----------------
@@ -77,5 +78,19 @@ enum class portType {
 //------------      -------------  -----   -----------------
 // 0x10 (custom[0]) color          0       steering
 //                                 1       throttle
-
+//UART
+//Describes which UART is connected to which physical pins, and what PINSEL to use
+//for each pin.
+//Block offset      Description    value   Value description
+//------------      -------------  -----   -----------------
+// 0x8 (port)                              UARTx x number for this port, IE
+//                                         if you are setting up UART2, look for
+//                                         a 2 in this slot. Port type and address
+//                                         are unused for this device type
+// 0x18 (custom[0]) Rx Pin selection       bits  0: 7 - Py.xx x value
+//                                         bits 15: 8 - Py.xx y value
+//                                         bits 31:16 - PINSEL value
+// 0x1C (custom[1]) Tx Pin selection       bits  0: 7 - Py.xx x value
+//                                         bits 15: 8 - Py.xx y value
+//                                         bits 31:16 - PINSEL value
 #endif

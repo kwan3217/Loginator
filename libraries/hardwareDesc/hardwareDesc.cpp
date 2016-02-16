@@ -24,7 +24,8 @@ vector<string> part_types={
   "BMA180",
   "GPS",
   "Button",
-  "Servo"
+  "Servo",
+  "UART"
 };
 
 vector<string> port_types={
@@ -48,7 +49,8 @@ vector<vector<string>> custom0_values {
 	{},  //BMA180
 	{},  //GPS
 	{},  //Button
-	{"steer","throttle"}  //Servo
+	{"steer","throttle"} , //Servo
+	{},  //UART
 };
 
 int main(int argc, char** argv) {
@@ -88,41 +90,41 @@ int main(int argc, char** argv) {
 	  sfields=parseCsv(line);
       //If the first field is non-zero length and starts with a digit
 	  if(sfields[0].length()>0) {
-		part_type=unknown;
-		//Check if we match one of the part types
-		for(int i=0;i<part_types.size()-1;i++) if(sfields[0]==part_types[i]) part_type=i;
-		//If not, do we match a number? If not, then this is either a header row or a mistake
-		if(part_type==unknown && sfields[0][0]>='0' && sfields[0][0]<='9') part_type=stoi(sfields[0]);
-		if(part_type!=unknown) {
-		  dump.begin_line(32,addr & 0xFFFF,0);
-		  dump.print32(part_type);
-		  port_type=unknown;
-		  if(sfields[1].length()>0) {
-            for(int i=0;i<port_types.size()-1;i++) if(sfields[1]==port_types[i]) port_type=i;
+	    part_type=unknown;
+	    //Check if we match one of the part types
+	    for(int i=0;i<part_types.size();i++) if(sfields[0]==part_types[i]) part_type=i;
+	    //If not, do we match a number? If not, then this is either a header row or a mistake
+	    if(part_type==unknown && sfields[0][0]>='0' && sfields[0][0]<='9') part_type=stoi(sfields[0]);
+	    if(part_type!=unknown) {
+	      dump.begin_line(32,addr & 0xFFFF,0);
+	      dump.print32(part_type);
+	      port_type=unknown;
+	      if(sfields[1].length()>0) {
+                for(int i=0;i<port_types.size()-1;i++) if(sfields[1]==port_types[i]) port_type=i;
 	        if(port_type==unknown && sfields[1][0]>='0' && sfields[1][0]<='9') port_type=stoi(sfields[1]);
-		  }
-		  dump.print32(port_type);
-		  dump.print32(sfields[2].length()>0?stoi(sfields[2]):unknown);
-		  dump.print32(sfields[3].length()>0?stoi(sfields[3]):unknown);
-		  int custom0=unknown;
-		  if(sfields[4].length()>0) {
-			for(int i=0;i<custom0_values[part_type].size();i++) if(sfields[4]==custom0_values[part_type][i]) custom0=i;
-			if(custom0==unknown && sfields[4][0]>='0' && sfields[4][0]<='9') custom0=stoi(sfields[4]);
-			if(custom0==unknown) cerr<<"Unrecognized custom0 "<<sfields[4]<<endl;
-		  }
-		  dump.print32(custom0);
-		  dump.print32(sfields[5].length()>0?stoi(sfields[5]):unknown);
-		  dump.print32(sfields[6].length()>0?stoi(sfields[6]):unknown);
-		  dump.print32(sfields[7].length()>0?stoi(sfields[7]):unknown);
-		  dump.end_line();
-		  addr+=32;
-		  dump.begin_line(32,addr & 0xFFFF,0);
-		  for(int i=0;i<32;i++) dump.print_byte(i<sfields[8].length()?sfields[8][i]:0);
-		  dump.end_line();
-		  addr+=32;
-		} else {
-		  cerr<<"Unrecognized part type "<<sfields[0]<<endl;
-		}
+	      }
+	      dump.print32(port_type);
+	      dump.print32(sfields[2].length()>0?stoi(sfields[2]):unknown);
+	      dump.print32(sfields[3].length()>0?stoi(sfields[3]):unknown);
+	      int custom0=unknown;
+	      if(sfields[4].length()>0) {
+	        for(int i=0;i<custom0_values[part_type].size();i++) if(sfields[4]==custom0_values[part_type][i]) custom0=i;
+		if(custom0==unknown && sfields[4][0]>='0' && sfields[4][0]<='9') custom0=stoi(sfields[4]);
+		if(custom0==unknown) cerr<<"Unrecognized custom0 "<<sfields[4]<<endl;
+	      }
+	      dump.print32(custom0);
+	      dump.print32(sfields[5].length()>0?stoi(sfields[5]):unknown);
+	      dump.print32(sfields[6].length()>0?stoi(sfields[6]):unknown);
+	      dump.print32(sfields[7].length()>0?stoi(sfields[7]):unknown);
+	      dump.end_line();
+	      addr+=32;
+	      dump.begin_line(32,addr & 0xFFFF,0);
+	      for(int i=0;i<32;i++) dump.print_byte(i<sfields[8].length()?sfields[8][i]:0);
+	      dump.end_line();
+	      addr+=32;
+	    } else {
+	      cerr<<"Unrecognized part type "<<sfields[0]<<endl;
+	    }
 	  }
 	}
   }

@@ -1,6 +1,7 @@
 #include "Time.h"
 
 void delay(unsigned int ms) {
+  setup_clock();
   unsigned int TC0=TTC(0);
   //count off whole minutes
   while(ms>=1000*timerSec) {
