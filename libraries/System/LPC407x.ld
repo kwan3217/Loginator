@@ -25,6 +25,18 @@ SECTIONS
     .vectors :
     {
         KEEP(*(.vectors))          /* required, keep the vectors where they belong */ 
+       "$d" = 0x00000000;
+       __init_sp     = 0x00000000;
+       __reset       = 0x00000004;
+       __NMI         = 0x00000008;
+       __HardFault   = 0x0000000C;
+       __MMFault     = 0x00000010;
+       __BusFault    = 0x00000014;
+       __UsageFault  = 0x00000018;
+       __SVCall      = 0x0000002C;
+       __PendSV      = 0x00000038;
+       __SysTick     = 0x0000003C;
+       __IRQ         = 0x00000040;
     }
     > ROM_VECTORS
 
@@ -212,6 +224,8 @@ is in between read-only data and initialized data. */
         *(.ram_iap .ram_iap.*)
     }
     > RAM_IAP
+
+    iap_entry = 0x1FFF1FF0;
 
     .usb (NOLOAD):
     {

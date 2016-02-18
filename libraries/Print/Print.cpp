@@ -149,16 +149,16 @@ void Print::printNumber(unsigned long long n, int base, int digits) {
 void Print::printFloat(fp number, unsigned char digits) 
 { 
   // Handle negative numbers
-  if (number < 0.0)
+  if (number < fp(0.0))
   {
      print('-');
      number = -number;
   }
 
   // Round correctly so that print(1.999, 2) prints as "2.00"
-  fp rounding = 0.5;
+  fp rounding = fp(0.5);
   for (unsigned char i=0; i<digits; ++i)
-    rounding /= 10.0;
+    rounding /= fp(10.0);
   
   number += rounding;
 
@@ -173,7 +173,7 @@ void Print::printFloat(fp number, unsigned char digits)
 
   // Extract digits from the remainder one at a time
   while (digits-- > 0) {
-    remainder *= 10.0;
+    remainder *= fp(10.0);
     unsigned int toPrint = (unsigned int)(remainder);
     print(toPrint);
     remainder -= toPrint; 

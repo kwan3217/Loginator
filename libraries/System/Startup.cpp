@@ -240,7 +240,15 @@ This largely replaces the VIC in the ARM7TDMI.
 
 */ 
 template<int N> void IRQ_Handler(void);
-template<> __attribute__ ((noreturn)) void IRQ_Handler<0>(void) {for(;;);};
+template<> __attribute__ ((weak)) __attribute__ ((noreturn)) void IRQ_Handler<0>(void) {for(;;);};
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void NMI_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void HardFault_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void MMFault_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void BusFault_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void UsageFault_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void SVCall_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void PendSV_Handler(void);
+__attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void SysTick_Handler(void);
 template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 1>(void);
 template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 2>(void);
 template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv"))) void IRQ_Handler< 3>(void);
@@ -285,16 +293,16 @@ template<> __attribute__ ((weak)) __attribute__((alias ("_Z11IRQ_HandlerILi0EEvv
 __attribute__ ((section(".vectors"))) const void* vectorg[] {
   &_ram_end,             //0x00 Starting SP value
   (void*)&init,          //0x04 reset handler start address
-  (void*)&Undef_Handler, //0x08 NMI handler
-  (void*)&Undef_Handler, //0x0C Hard Fault handler
-  (void*)&Undef_Handler, //0x10 Memory Management fault handler
-  (void*)&Undef_Handler, //0x14 Bus Fault handler
-  (void*)&Undef_Handler, //0x18 Usage Fault handler
+  (void*)&NMI_Handler, //0x08 NMI handler
+  (void*)&HardFault_Handler, //0x0C Hard Fault handler
+  (void*)&MMFault_Handler, //0x10 Memory Management fault handler
+  (void*)&BusFault_Handler, //0x14 Bus Fault handler
+  (void*)&UsageFault_Handler, //0x18 Usage Fault handler
   nullptr,nullptr,nullptr,nullptr, //0x1C-0x28, reserved
-  (void*)&Undef_Handler, //0x2C SVCall
+  (void*)&SVCall_Handler, //0x2C SVCall
   nullptr,nullptr,       //0x30-0x34, reserved
-  nullptr,               //0x38 PendSV
-  nullptr,               //0x3C SysTick
+  (void*)&PendSV_Handler, //0x38 PendSV
+  (void*)&SysTick_Handler,//0x3C SysTick
   (void*)&IRQ_Handler< 0>,   //0x40+4n IRQn
   (void*)&IRQ_Handler< 1>,   
   (void*)&IRQ_Handler< 2>,   

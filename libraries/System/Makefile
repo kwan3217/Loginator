@@ -14,12 +14,14 @@ ifeq ($(SUBMDL),LPC2148)
 MCU      = arm7tdmi-s
 MCU_D    = 0
 LD_SCRIPT = ../libraries/System/lowmem_cpp_eabi.ld
+CFLAGS  += -mfloat-abi=soft
 endif
 ifeq ($(SUBMDL),LPC4078)
 MCU      = cortex-m4
 MCU_D    = 1
 LD_SCRIPT = ../libraries/System/LPC407x.ld
 THUMB    = -mthumb
+CFLAGS  += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 endif
 
 #USE_CLANG=1
@@ -111,7 +113,7 @@ endif
 ifndef OPTLEVEL
 OPTLEVEL = 3
 endif
-OPT = -O$(OPTLEVEL) -fomit-frame-pointer
+OPT = -O$(OPTLEVEL) -fomit-frame-pointer -ffast-math -fno-math-errno
 
 ## Using the Atmel AT91_lib produces warning with
 ## the default warning-levels. 
@@ -164,8 +166,6 @@ CFLAGS += -ffreestanding
 CFLAGS += -fverbose-asm 
 ifndef USE_CLANG
 CFLAGS += -Wa,-adhlns=$(subst $(suffix $<),.s,$<)
-#CFLAGS  += -mfloat-abi=hard
-CFLAGS  += -mfloat-abi=soft
 endif
 CFLAGS += $(patsubst %,-I%,$(call uniq,$(EXTRAINCDIRS)))
 CFLAGS += -ffunction-sections -fdata-sections
@@ -420,6 +420,7 @@ FW.SFE: $(TARGET).bin
 	@echo
 	@echo $(MSG_EXTENDED_LISTING) $@
 	$(OBJDUMP) -h $< > $@
+	$(OBJDUMP) -S -j .vectors $< |tail -n +4 >> $@
 	$(OBJDUMP) -S -j .text $< |tail -n +4 >> $@
 	$(OBJDUMP) -s -j .vtable -j .rodata_str -j .rodata -j .ctors $< | tail -n +4 >> $@
 	$(OBJCOPY) -O binary -j .rope $< $<.tmp
