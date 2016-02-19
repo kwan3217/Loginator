@@ -57,6 +57,7 @@ sub printAsm {
       } else {
         print "This asm line doesn't have an address\n" if $debug;
       }
+ #     $asm =~ s/\s+$//; #rtrim
       print $asm."\n";
     }
 #Now read in the note file up to the asm address. If we are already there, great, this will skip the loop completely. If we miss any notes, too bad. The result is that the line only gets the first note
