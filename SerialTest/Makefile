@@ -11,6 +11,7 @@ include ../libraries/System/Makefile
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x000,local'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x01c,local'
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x030,local'
+ARM_SYMBOLS+=--add-symbol '&sysctl_3c0=.arm:0x038'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x03C,local'
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x0b0,local'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x0e0,local'

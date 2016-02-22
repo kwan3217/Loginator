@@ -2,7 +2,13 @@
 Phase Locked Loop, VPB divider, Power Control, External Interrupt,
 Reset, and Code Security/Debugging */
 
+#if MCU == MCU_ARM7TDMI
 #define SCB_BASE_ADDR 0xE01FC000
+#endif //MCU_ARM7TDMI
+
+#if MCU == MCU_CORTEXM4
+#define SCB_BASE_ADDR 0x400FC000
+#endif //MCU_CORTEXM4
 
 rw0(scb,MAMCR   ,SCB_BASE_ADDR+0x000);
 rw0(scb,MAMTIM  ,SCB_BASE_ADDR+0x004);

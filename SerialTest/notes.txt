@@ -201,7 +201,7 @@ Disassembly of section .arm:
 1fff0192:       f001 f8f4       bl      1fff137e <routine12b0+0xce>              
 1fff0196:       f001 f833       bl      1fff1200 <routine118c+0x74>              
 1fff019a:       e7b3            b.n     1fff0104 <usagefault+0x1c>               
-1fff019c:       f000 ff46       bl      1fff102c <autobaud_calc+0x8aa>           
+1fff019c:       f000 ff46       bl      1fff102c <rounded_divide+0x8aa>          
 1fff01a0:       e7b0            b.n     1fff0104 <usagefault+0x1c>               
 
 1fff01a2 <autobaud>:
@@ -243,7 +243,7 @@ Disassembly of section .arm:
 1fff01e8:       6070            str     r0, [r6, #4]                             ## TTCR(1)=0, stop the timer
 1fff01ea:       68b0            ldr     r0, [r6, #8]                             ## r0=TTC(1)
 1fff01ec:       21d0            movs    r1, #208        ; 0xd0                   ## r1=0xd0
-1fff01ee:       f000 fac8       bl      1fff0782 <autobaud_calc>                 ## r0=autobaud_calc(TTC(1),0xd0)
+1fff01ee:       f000 fac8       bl      1fff0782 <rounded_divide>                ## r0=autobaud_calc(TTC(1),0xd0)
 1fff01f2:       2200            movs    r2, #0                                   ## r2=0
 1fff01f4:       2103            movs    r1, #3                                   ## r1=3
 1fff01f6:       f000 ffc9       bl      1fff118c <routine118c>                   ## call routine118c
@@ -287,7 +287,7 @@ Disassembly of section .arm:
 1fff025a:       3894            subs    r0, #148        ; 0x94                   
 1fff025c:       f001 f832       bl      1fff12c4 <routine12b0+0x14>              
 1fff0260:       2800            cmp     r0, #0                                   
-1fff0262:       d023            beq.n   1fff02ac <usercode_return2>              
+1fff0262:       d023            beq.n   1fff02ac <clear_r4_r8_and_return>        
 1fff0264:       03a0            lsls    r0, r4, #14                              
 1fff0266:       d510            bpl.n   1fff028a <autobaud+0xe8>                 
 1fff0268:       6828            ldr     r0, [r5, #0]                             
@@ -317,7 +317,7 @@ Disassembly of section .arm:
 1fff02a8:       60e8            str     r0, [r5, #12]                            
 1fff02aa:       e787            b.n     1fff01bc <autobaud+0x1a>                 
 
-1fff02ac <usercode_return2>:
+1fff02ac <clear_r4_r8_and_return>:
 1fff02ac:       e8bd 81f0       ldmia.w sp!, {r4, r5, r6, r7, r8, pc}            ## pop(!) a bunch of stuff including into pc. usercode_entry2 pushed these, including lr instead of pc. This therefore does a return.
 
 1fff02b0 <setup_clocks_and_peripherals>:
@@ -407,7 +407,7 @@ Disassembly of section .arm:
 1fff037e:       f7ff be8e       b.w     1fff009e <emulate_reset1>                ## and emulate reset
 1fff0382:       2000            movs    r0, #0                                   ## r0=0
 1fff0384:       6428            str     r0, [r5, #64]   ; 0x40                   ## MEMMAP=0, so that boot is again visible at address 0
-1fff0386:       e791            b.n     1fff02ac <usercode_return2>              ## tail call the return code. Why did they do it like this?
+1fff0386:       e791            b.n     1fff02ac <clear_r4_r8_and_return>        ## tail call the return code. Why did they do it like this?
 
 1fff0388 <setup_emc_pins>:
 ## r0: 0 means set up  8 data pins and 32 address pins
@@ -711,32 +711,32 @@ Disassembly of section .arm:
 1fff06a2:       2c00            cmp     r4, #0                                   
 1fff06a4:       d14c            bne.n   1fff0740 <reset2+0x2d2>                  
 1fff06a6:       f001 f82a       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff06aa:       493b            ldr     r1, [pc, #236]  ; (1fff0798 <autobaud_calc+0x16>) 
+1fff06aa:       493b            ldr     r1, [pc, #236]  ; (1fff0798 <rounded_divide+0x16>) 
 1fff06ac:       6830            ldr     r0, [r6, #0]                             
 1fff06ae:       6809            ldr     r1, [r1, #0]                             
 1fff06b0:       4288            cmp     r0, r1                                   
 1fff06b2:       d305            bcc.n   1fff06c0 <reset2+0x252>                  
-1fff06b4:       4939            ldr     r1, [pc, #228]  ; (1fff079c <autobaud_calc+0x1a>) 
+1fff06b4:       4939            ldr     r1, [pc, #228]  ; (1fff079c <rounded_divide+0x1a>) 
 1fff06b6:       19c2            adds    r2, r0, r7                               
 1fff06b8:       6809            ldr     r1, [r1, #0]                             
 1fff06ba:       1c49            adds    r1, r1, #1                               
 1fff06bc:       428a            cmp     r2, r1                                   
 1fff06be:       d913            bls.n   1fff06e8 <reset2+0x27a>                  
-1fff06c0:       4937            ldr     r1, [pc, #220]  ; (1fff07a0 <autobaud_calc+0x1e>) 
+1fff06c0:       4937            ldr     r1, [pc, #220]  ; (1fff07a0 <rounded_divide+0x1e>) 
 1fff06c2:       6809            ldr     r1, [r1, #0]                             
 1fff06c4:       4288            cmp     r0, r1                                   
 1fff06c6:       d305            bcc.n   1fff06d4 <reset2+0x266>                  
-1fff06c8:       4936            ldr     r1, [pc, #216]  ; (1fff07a4 <autobaud_calc+0x22>) 
+1fff06c8:       4936            ldr     r1, [pc, #216]  ; (1fff07a4 <rounded_divide+0x22>) 
 1fff06ca:       19c2            adds    r2, r0, r7                               
 1fff06cc:       6809            ldr     r1, [r1, #0]                             
 1fff06ce:       1c49            adds    r1, r1, #1                               
 1fff06d0:       428a            cmp     r2, r1                                   
 1fff06d2:       d909            bls.n   1fff06e8 <reset2+0x27a>                  
-1fff06d4:       4934            ldr     r1, [pc, #208]  ; (1fff07a8 <autobaud_calc+0x26>) 
+1fff06d4:       4934            ldr     r1, [pc, #208]  ; (1fff07a8 <rounded_divide+0x26>) 
 1fff06d6:       6809            ldr     r1, [r1, #0]                             
 1fff06d8:       4288            cmp     r0, r1                                   
 1fff06da:       d307            bcc.n   1fff06ec <reset2+0x27e>                  
-1fff06dc:       4933            ldr     r1, [pc, #204]  ; (1fff07ac <autobaud_calc+0x2a>) 
+1fff06dc:       4933            ldr     r1, [pc, #204]  ; (1fff07ac <rounded_divide+0x2a>) 
 1fff06de:       19c2            adds    r2, r0, r7                               
 1fff06e0:       6809            ldr     r1, [r1, #0]                             
 1fff06e2:       1c49            adds    r1, r1, #1                               
@@ -746,12 +746,12 @@ Disassembly of section .arm:
 1fff06ea:       e000            b.n     1fff06ee <reset2+0x280>                  
 1fff06ec:       2100            movs    r1, #0                                   
 1fff06ee:       4688            mov     r8, r1                                   
-1fff06f0:       492f            ldr     r1, [pc, #188]  ; (1fff07b0 <autobaud_calc+0x2e>) 
+1fff06f0:       492f            ldr     r1, [pc, #188]  ; (1fff07b0 <rounded_divide+0x2e>) 
 1fff06f2:       6809            ldr     r1, [r1, #0]                             
 1fff06f4:       4288            cmp     r0, r1                                   
 1fff06f6:       d307            bcc.n   1fff0708 <reset2+0x29a>                  
 1fff06f8:       19c1            adds    r1, r0, r7                               
-1fff06fa:       482e            ldr     r0, [pc, #184]  ; (1fff07b4 <autobaud_calc+0x32>) 
+1fff06fa:       482e            ldr     r0, [pc, #184]  ; (1fff07b4 <rounded_divide+0x32>) 
 1fff06fc:       6800            ldr     r0, [r0, #0]                             
 1fff06fe:       1c40            adds    r0, r0, #1                               
 1fff0700:       4281            cmp     r1, r0                                   
@@ -790,17 +790,17 @@ Disassembly of section .arm:
 1fff074c:       4615            mov     r5, r2                                   
 1fff074e:       260e            movs    r6, #14                                  
 1fff0750:       f000 ffd5       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff0754:       4810            ldr     r0, [pc, #64]   ; (1fff0798 <autobaud_calc+0x16>) 
+1fff0754:       4810            ldr     r0, [pc, #64]   ; (1fff0798 <rounded_divide+0x16>) 
 1fff0756:       6800            ldr     r0, [r0, #0]                             
 1fff0758:       4284            cmp     r4, r0                                   
 1fff075a:       d30c            bcc.n   1fff0776 <reset2+0x308>                  
-1fff075c:       480f            ldr     r0, [pc, #60]   ; (1fff079c <autobaud_calc+0x1a>) 
+1fff075c:       480f            ldr     r0, [pc, #60]   ; (1fff079c <rounded_divide+0x1a>) 
 1fff075e:       1961            adds    r1, r4, r5                               
 1fff0760:       6800            ldr     r0, [r0, #0]                             
 1fff0762:       1c40            adds    r0, r0, #1                               
 1fff0764:       4281            cmp     r1, r0                                   
 1fff0766:       d806            bhi.n   1fff0776 <reset2+0x308>                  
-1fff0768:       4813            ldr     r0, [pc, #76]   ; (1fff07b8 <autobaud_calc+0x36>) 
+1fff0768:       4813            ldr     r0, [pc, #76]   ; (1fff07b8 <rounded_divide+0x36>) 
 1fff076a:       1979            adds    r1, r7, r5                               
 1fff076c:       6800            ldr     r0, [r0, #0]                             
 1fff076e:       1c40            adds    r0, r0, #1                               
@@ -812,7 +812,7 @@ Disassembly of section .arm:
 1fff077c:       e8bd 81f0       ldmia.w sp!, {r4, r5, r6, r7, r8, pc}            
 1fff0780:       4770            bx      lr                                       
 
-1fff0782 <autobaud_calc>:
+1fff0782 <rounded_divide>:
 ## [r0,r1,r2]=autobaud_calc(r0,r1)
 ## input:
 ##   r0=numerator
@@ -827,7 +827,7 @@ Disassembly of section .arm:
 1fff0784:       fbb0 f0f1       udiv    r0, r0, r1                               ## r0=r0/r1
 1fff0788:       fb01 2210       mls     r2, r1, r0, r2                           ## r2=r2-r1*r0, IE r2=remainder of r0/r1
 1fff078c:       ebb2 0f51       cmp.w   r2, r1, lsr #1                           ## compare r2 (remainder) against r1/2
-1fff0790:       d900            bls.n   1fff0794 <autobaud_calc+0x12>            ## if (unsigned) lower or same, skip the add
+1fff0790:       d900            bls.n   1fff0794 <rounded_divide+0x12>           ## if (unsigned) lower or same, skip the add
 1fff0792:       1c40            adds    r0, r0, #1                               ## r0+=1
 1fff0794:       4770            bx      lr                                       ## return
 1fff0796:       0000            movs    r0, r0                                   
@@ -850,7 +850,7 @@ Disassembly of section .arm:
 1fff07b8:       05f8            lsls    r0, r7, #23                              
 1fff07ba:       0010            movs    r0, r2                                   
 1fff07bc:       b530            push    {r4, r5, lr}                             
-1fff07be:       4975            ldr     r1, [pc, #468]  ; (1fff0994 <autobaud_calc+0x212>) 
+1fff07be:       4975            ldr     r1, [pc, #468]  ; (1fff0994 <rounded_divide+0x212>) 
 1fff07c0:       2200            movs    r2, #0                                   
 1fff07c2:       608a            str     r2, [r1, #8]                             
 1fff07c4:       f240 1277       movw    r2, #375        ; 0x177                  
@@ -878,26 +878,26 @@ Disassembly of section .arm:
 1fff0816:       bd30            pop     {r4, r5, pc}                             
 1fff0818:       f44f 1300       mov.w   r3, #2097152    ; 0x200000               
 1fff081c:       f8c3 2084       str.w   r2, [r3, #132]  ; 0x84                   
-1fff0820:       b931            cbnz    r1, 1fff0830 <autobaud_calc+0xae>        
-1fff0822:       b908            cbnz    r0, 1fff0828 <autobaud_calc+0xa6>        
+1fff0820:       b931            cbnz    r1, 1fff0830 <rounded_divide+0xae>       
+1fff0822:       b908            cbnz    r0, 1fff0828 <rounded_divide+0xa6>       
 1fff0824:       2008            movs    r0, #8                                   
-1fff0826:       e000            b.n     1fff082a <autobaud_calc+0xa8>            
+1fff0826:       e000            b.n     1fff082a <rounded_divide+0xa8>           
 1fff0828:       2003            movs    r0, #3                                   
 1fff082a:       f8c3 0080       str.w   r0, [r3, #128]  ; 0x80                   
 1fff082e:       4770            bx      lr                                       
 1fff0830:       2902            cmp     r1, #2                                   
-1fff0832:       d104            bne.n   1fff083e <autobaud_calc+0xbc>            
-1fff0834:       b908            cbnz    r0, 1fff083a <autobaud_calc+0xb8>        
+1fff0832:       d104            bne.n   1fff083e <rounded_divide+0xbc>           
+1fff0834:       b908            cbnz    r0, 1fff083a <rounded_divide+0xb8>       
 1fff0836:       200a            movs    r0, #10                                  
-1fff0838:       e7f7            b.n     1fff082a <autobaud_calc+0xa8>            
+1fff0838:       e7f7            b.n     1fff082a <rounded_divide+0xa8>           
 1fff083a:       2005            movs    r0, #5                                   
-1fff083c:       e7f5            b.n     1fff082a <autobaud_calc+0xa8>            
-1fff083e:       b908            cbnz    r0, 1fff0844 <autobaud_calc+0xc2>        
+1fff083c:       e7f5            b.n     1fff082a <rounded_divide+0xa8>           
+1fff083e:       b908            cbnz    r0, 1fff0844 <rounded_divide+0xc2>       
 1fff0840:       2009            movs    r0, #9                                   
-1fff0842:       e7f2            b.n     1fff082a <autobaud_calc+0xa8>            
+1fff0842:       e7f2            b.n     1fff082a <rounded_divide+0xa8>           
 1fff0844:       2004            movs    r0, #4                                   
-1fff0846:       e7f0            b.n     1fff082a <autobaud_calc+0xa8>            
-1fff0848:       4952            ldr     r1, [pc, #328]  ; (1fff0994 <autobaud_calc+0x212>) 
+1fff0846:       e7f0            b.n     1fff082a <rounded_divide+0xa8>           
+1fff0848:       4952            ldr     r1, [pc, #328]  ; (1fff0994 <rounded_divide+0x212>) 
 1fff084a:       f04f 52a0       mov.w   r2, #335544320  ; 0x14000000             
 1fff084e:       3910            subs    r1, #16                                  
 1fff0850:       f8c1 2f68       str.w   r2, [r1, #3944] ; 0xf68                  
@@ -906,7 +906,7 @@ Disassembly of section .arm:
 1fff0858:       f841 0980       str.w   r0, [r1], #-128                          
 1fff085c:       f8d1 0fe0       ldr.w   r0, [r1, #4064] ; 0xfe0                  
 1fff0860:       00c0            lsls    r0, r0, #3                               
-1fff0862:       d5fb            bpl.n   1fff085c <autobaud_calc+0xda>            
+1fff0862:       d5fb            bpl.n   1fff085c <rounded_divide+0xda>           
 1fff0864:       4770            bx      lr                                       
 1fff0866:       b570            push    {r4, r5, r6, lr}                         
 1fff0868:       460d            mov     r5, r1                                   
@@ -914,29 +914,29 @@ Disassembly of section .arm:
 1fff086c:       4616            mov     r6, r2                                   
 1fff086e:       2104            movs    r1, #4                                   
 1fff0870:       f7ff fedc       bl      1fff062c <reset2+0x1be>                  
-1fff0874:       b958            cbnz    r0, 1fff088e <autobaud_calc+0x10c>       
+1fff0874:       b958            cbnz    r0, 1fff088e <rounded_divide+0x10c>      
 1fff0876:       2104            movs    r1, #4                                   
 1fff0878:       4630            mov     r0, r6                                   
 1fff087a:       f7ff fed7       bl      1fff062c <reset2+0x1be>                  
-1fff087e:       b930            cbnz    r0, 1fff088e <autobaud_calc+0x10c>       
+1fff087e:       b930            cbnz    r0, 1fff088e <rounded_divide+0x10c>      
 1fff0880:       2104            movs    r1, #4                                   
 1fff0882:       4628            mov     r0, r5                                   
 1fff0884:       f7ff fed2       bl      1fff062c <reset2+0x1be>                  
-1fff0888:       b908            cbnz    r0, 1fff088e <autobaud_calc+0x10c>       
+1fff0888:       b908            cbnz    r0, 1fff088e <rounded_divide+0x10c>      
 1fff088a:       2002            movs    r0, #2                                   
 1fff088c:       bd70            pop     {r4, r5, r6, pc}                         
 1fff088e:       2102            movs    r1, #2                                   
 1fff0890:       4620            mov     r0, r4                                   
 1fff0892:       f7ff fecb       bl      1fff062c <reset2+0x1be>                  
-1fff0896:       b958            cbnz    r0, 1fff08b0 <autobaud_calc+0x12e>       
+1fff0896:       b958            cbnz    r0, 1fff08b0 <rounded_divide+0x12e>      
 1fff0898:       2102            movs    r1, #2                                   
 1fff089a:       4630            mov     r0, r6                                   
 1fff089c:       f7ff fec6       bl      1fff062c <reset2+0x1be>                  
-1fff08a0:       b930            cbnz    r0, 1fff08b0 <autobaud_calc+0x12e>       
+1fff08a0:       b930            cbnz    r0, 1fff08b0 <rounded_divide+0x12e>      
 1fff08a2:       2102            movs    r1, #2                                   
 1fff08a4:       4628            mov     r0, r5                                   
 1fff08a6:       f7ff fec1       bl      1fff062c <reset2+0x1be>                  
-1fff08aa:       b908            cbnz    r0, 1fff08b0 <autobaud_calc+0x12e>       
+1fff08aa:       b908            cbnz    r0, 1fff08b0 <rounded_divide+0x12e>      
 1fff08ac:       2001            movs    r0, #1                                   
 1fff08ae:       bd70            pop     {r4, r5, r6, pc}                         
 1fff08b0:       2000            movs    r0, #0                                   
@@ -945,28 +945,28 @@ Disassembly of section .arm:
 1fff08b8:       4605            mov     r5, r0                                   
 1fff08ba:       460c            mov     r4, r1                                   
 1fff08bc:       4616            mov     r6, r2                                   
-1fff08be:       f7ff ffd2       bl      1fff0866 <autobaud_calc+0xe4>            
+1fff08be:       f7ff ffd2       bl      1fff0866 <rounded_divide+0xe4>           
 1fff08c2:       4607            mov     r7, r0                                   
 1fff08c4:       4601            mov     r1, r0                                   
 1fff08c6:       462a            mov     r2, r5                                   
 1fff08c8:       2001            movs    r0, #1                                   
-1fff08ca:       f7ff ffa5       bl      1fff0818 <autobaud_calc+0x96>            
+1fff08ca:       f7ff ffa5       bl      1fff0818 <rounded_divide+0x96>           
 1fff08ce:       46a9            mov     r9, r5                                   
 1fff08d0:       f44f 1800       mov.w   r8, #2097152    ; 0x200000               
-1fff08d4:       e023            b.n     1fff091e <autobaud_calc+0x19c>           
-1fff08d6:       b937            cbnz    r7, 1fff08e6 <autobaud_calc+0x164>       
+1fff08d4:       e023            b.n     1fff091e <rounded_divide+0x19c>          
+1fff08d6:       b937            cbnz    r7, 1fff08e6 <rounded_divide+0x164>      
 1fff08d8:       f814 0b01       ldrb.w  r0, [r4], #1                             
 1fff08dc:       f8c8 0088       str.w   r0, [r8, #136]  ; 0x88                   
 1fff08e0:       1c6d            adds    r5, r5, #1                               
 1fff08e2:       1e76            subs    r6, r6, #1                               
-1fff08e4:       e00d            b.n     1fff0902 <autobaud_calc+0x180>           
+1fff08e4:       e00d            b.n     1fff0902 <rounded_divide+0x180>          
 1fff08e6:       2f02            cmp     r7, #2                                   
-1fff08e8:       d105            bne.n   1fff08f6 <autobaud_calc+0x174>           
+1fff08e8:       d105            bne.n   1fff08f6 <rounded_divide+0x174>          
 1fff08ea:       cc02            ldmia   r4!, {r1}                                
 1fff08ec:       f8c8 1088       str.w   r1, [r8, #136]  ; 0x88                   
 1fff08f0:       1d2d            adds    r5, r5, #4                               
 1fff08f2:       1f36            subs    r6, r6, #4                               
-1fff08f4:       e005            b.n     1fff0902 <autobaud_calc+0x180>           
+1fff08f4:       e005            b.n     1fff0902 <rounded_divide+0x180>          
 1fff08f6:       f834 1b02       ldrh.w  r1, [r4], #2                             
 1fff08fa:       f8c8 1088       str.w   r1, [r8, #136]  ; 0x88                   
 1fff08fe:       1cad            adds    r5, r5, #2                               
@@ -974,22 +974,22 @@ Disassembly of section .arm:
 1fff0902:       2140            movs    r1, #64 ; 0x40                           
 1fff0904:       4628            mov     r0, r5                                   
 1fff0906:       f7ff fe91       bl      1fff062c <reset2+0x1be>                  
-1fff090a:       b940            cbnz    r0, 1fff091e <autobaud_calc+0x19c>       
+1fff090a:       b940            cbnz    r0, 1fff091e <rounded_divide+0x19c>      
 1fff090c:       4648            mov     r0, r9                                   
-1fff090e:       f7ff ff9b       bl      1fff0848 <autobaud_calc+0xc6>            
+1fff090e:       f7ff ff9b       bl      1fff0848 <rounded_divide+0xc6>           
 1fff0912:       46a9            mov     r9, r5                                   
 1fff0914:       462a            mov     r2, r5                                   
 1fff0916:       4639            mov     r1, r7                                   
 1fff0918:       2001            movs    r0, #1                                   
-1fff091a:       f7ff ff7d       bl      1fff0818 <autobaud_calc+0x96>            
+1fff091a:       f7ff ff7d       bl      1fff0818 <rounded_divide+0x96>           
 1fff091e:       2e00            cmp     r6, #0                                   
-1fff0920:       d1d9            bne.n   1fff08d6 <autobaud_calc+0x154>           
+1fff0920:       d1d9            bne.n   1fff08d6 <rounded_divide+0x154>          
 1fff0922:       2140            movs    r1, #64 ; 0x40                           
 1fff0924:       4628            mov     r0, r5                                   
 1fff0926:       f7ff fe81       bl      1fff062c <reset2+0x1be>                  
-1fff092a:       b110            cbz     r0, 1fff0932 <autobaud_calc+0x1b0>       
+1fff092a:       b110            cbz     r0, 1fff0932 <rounded_divide+0x1b0>      
 1fff092c:       4648            mov     r0, r9                                   
-1fff092e:       f7ff ff8b       bl      1fff0848 <autobaud_calc+0xc6>            
+1fff092e:       f7ff ff8b       bl      1fff0848 <rounded_divide+0xc6>           
 1fff0932:       2000            movs    r0, #0                                   
 1fff0934:       f108 0180       add.w   r1, r8, #128    ; 0x80                   
 1fff0938:       6008            str     r0, [r1, #0]                             
@@ -999,29 +999,29 @@ Disassembly of section .arm:
 1fff0944:       4607            mov     r7, r0                                   
 1fff0946:       460c            mov     r4, r1                                   
 1fff0948:       4615            mov     r5, r2                                   
-1fff094a:       f7ff ff8c       bl      1fff0866 <autobaud_calc+0xe4>            
+1fff094a:       f7ff ff8c       bl      1fff0866 <rounded_divide+0xe4>           
 1fff094e:       4606            mov     r6, r0                                   
 1fff0950:       4601            mov     r1, r0                                   
 1fff0952:       463a            mov     r2, r7                                   
 1fff0954:       2000            movs    r0, #0                                   
-1fff0956:       f7ff ff5f       bl      1fff0818 <autobaud_calc+0x96>            
+1fff0956:       f7ff ff5f       bl      1fff0818 <rounded_divide+0x96>           
 1fff095a:       f44f 1000       mov.w   r0, #2097152    ; 0x200000               
-1fff095e:       e010            b.n     1fff0982 <autobaud_calc+0x200>           
-1fff0960:       b92e            cbnz    r6, 1fff096e <autobaud_calc+0x1ec>       
+1fff095e:       e010            b.n     1fff0982 <rounded_divide+0x200>          
+1fff0960:       b92e            cbnz    r6, 1fff096e <rounded_divide+0x1ec>      
 1fff0962:       f8d0 108c       ldr.w   r1, [r0, #140]  ; 0x8c                   
 1fff0966:       f804 1b01       strb.w  r1, [r4], #1                             
 1fff096a:       1e6d            subs    r5, r5, #1                               
-1fff096c:       e009            b.n     1fff0982 <autobaud_calc+0x200>           
+1fff096c:       e009            b.n     1fff0982 <rounded_divide+0x200>          
 1fff096e:       f8d0 108c       ldr.w   r1, [r0, #140]  ; 0x8c                   
 1fff0972:       2e02            cmp     r6, #2                                   
-1fff0974:       d102            bne.n   1fff097c <autobaud_calc+0x1fa>           
+1fff0974:       d102            bne.n   1fff097c <rounded_divide+0x1fa>          
 1fff0976:       c402            stmia   r4!, {r1}                                
 1fff0978:       1f2d            subs    r5, r5, #4                               
-1fff097a:       e002            b.n     1fff0982 <autobaud_calc+0x200>           
+1fff097a:       e002            b.n     1fff0982 <rounded_divide+0x200>          
 1fff097c:       f824 1b02       strh.w  r1, [r4], #2                             
 1fff0980:       1ead            subs    r5, r5, #2                               
 1fff0982:       2d00            cmp     r5, #0                                   
-1fff0984:       d1ec            bne.n   1fff0960 <autobaud_calc+0x1de>           
+1fff0984:       d1ec            bne.n   1fff0960 <rounded_divide+0x1de>          
 1fff0986:       2100            movs    r1, #0                                   
 1fff0988:       f840 1f80       str.w   r1, [r0, #128]!                          
 1fff098c:       6141            str     r1, [r0, #20]                            
@@ -1030,21 +1030,21 @@ Disassembly of section .arm:
 1fff0994:       0090            lsls    r0, r2, #2                               
 1fff0996:       0020            movs    r0, r4                                   
 1fff0998:       b57f            push    {r0, r1, r2, r3, r4, r5, r6, lr}         
-1fff099a:       4dff            ldr     r5, [pc, #1020] ; (1fff0d98 <autobaud_calc+0x616>) 
+1fff099a:       4dff            ldr     r5, [pc, #1020] ; (1fff0d98 <rounded_divide+0x616>) 
 1fff099c:       2264            movs    r2, #100        ; 0x64                   
 1fff099e:       68a8            ldr     r0, [r5, #8]                             
 1fff09a0:       4669            mov     r1, sp                                   
 1fff09a2:       9b00            ldr     r3, [sp, #0]                             
 1fff09a4:       f7ff fe47       bl      1fff0636 <reset2+0x1c8>                  
 1fff09a8:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff09ac:       d11e            bne.n   1fff09ec <autobaud_calc+0x26a>           
+1fff09ac:       d11e            bne.n   1fff09ec <rounded_divide+0x26a>          
 1fff09ae:       6868            ldr     r0, [r5, #4]                             
 1fff09b0:       2267            movs    r2, #103        ; 0x67                   
 1fff09b2:       a903            add     r1, sp, #12                              
 1fff09b4:       9b00            ldr     r3, [sp, #0]                             
 1fff09b6:       f7ff fe3e       bl      1fff0636 <reset2+0x1c8>                  
 1fff09ba:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff09be:       d115            bne.n   1fff09ec <autobaud_calc+0x26a>           
+1fff09be:       d115            bne.n   1fff09ec <rounded_divide+0x26a>          
 1fff09c0:       2300            movs    r3, #0                                   
 1fff09c2:       2269            movs    r2, #105        ; 0x69                   
 1fff09c4:       a902            add     r1, sp, #8                               
@@ -1053,12 +1053,12 @@ Disassembly of section .arm:
 1fff09cc:       b2c4            uxtb    r4, r0                                   
 1fff09ce:       9802            ldr     r0, [sp, #8]                             
 1fff09d0:       2808            cmp     r0, #8                                   
-1fff09d2:       d003            beq.n   1fff09dc <autobaud_calc+0x25a>           
+1fff09d2:       d003            beq.n   1fff09dc <rounded_divide+0x25a>          
 1fff09d4:       2810            cmp     r0, #16                                  
-1fff09d6:       d001            beq.n   1fff09dc <autobaud_calc+0x25a>           
+1fff09d6:       d001            beq.n   1fff09dc <rounded_divide+0x25a>          
 1fff09d8:       240c            movs    r4, #12                                  
-1fff09da:       e007            b.n     1fff09ec <autobaud_calc+0x26a>           
-1fff09dc:       b934            cbnz    r4, 1fff09ec <autobaud_calc+0x26a>       
+1fff09da:       e007            b.n     1fff09ec <rounded_divide+0x26a>          
+1fff09dc:       b934            cbnz    r4, 1fff09ec <rounded_divide+0x26a>      
 1fff09de:       2300            movs    r3, #0                                   
 1fff09e0:       2269            movs    r2, #105        ; 0x69                   
 1fff09e2:       a901            add     r1, sp, #4                               
@@ -1070,41 +1070,41 @@ Disassembly of section .arm:
 1fff09f0:       6829            ldr     r1, [r5, #0]                             
 1fff09f2:       f000 fcc4       bl      1fff137e <routine12b0+0xce>              
 1fff09f6:       f000 fc03       bl      1fff1200 <routine118c+0x74>              
-1fff09fa:       48e8            ldr     r0, [pc, #928]  ; (1fff0d9c <autobaud_calc+0x61a>) 
+1fff09fa:       48e8            ldr     r0, [pc, #928]  ; (1fff0d9c <rounded_divide+0x61a>) 
 1fff09fc:       2c00            cmp     r4, #0                                   
-1fff09fe:       d11e            bne.n   1fff0a3e <autobaud_calc+0x2bc>           
+1fff09fe:       d11e            bne.n   1fff0a3e <rounded_divide+0x2bc>          
 1fff0a00:       9900            ldr     r1, [sp, #0]                             
-1fff0a02:       e01a            b.n     1fff0a3a <autobaud_calc+0x2b8>           
+1fff0a02:       e01a            b.n     1fff0a3a <rounded_divide+0x2b8>          
 1fff0a04:       9901            ldr     r1, [sp, #4]                             
-1fff0a06:       b129            cbz     r1, 1fff0a14 <autobaud_calc+0x292>       
+1fff0a06:       b129            cbz     r1, 1fff0a14 <rounded_divide+0x292>      
 1fff0a08:       6b41            ldr     r1, [r0, #52]   ; 0x34                   
 1fff0a0a:       0409            lsls    r1, r1, #16                              
-1fff0a0c:       d5fc            bpl.n   1fff0a08 <autobaud_calc+0x286>           
+1fff0a0c:       d5fc            bpl.n   1fff0a08 <rounded_divide+0x286>          
 1fff0a0e:       6b41            ldr     r1, [r0, #52]   ; 0x34                   
 1fff0a10:       0409            lsls    r1, r1, #16                              
-1fff0a12:       d4fc            bmi.n   1fff0a0e <autobaud_calc+0x28c>           
+1fff0a12:       d4fc            bmi.n   1fff0a0e <rounded_divide+0x28c>          
 1fff0a14:       9902            ldr     r1, [sp, #8]                             
 1fff0a16:       2908            cmp     r1, #8                                   
 1fff0a18:       6b41            ldr     r1, [r0, #52]   ; 0x34                   
 1fff0a1a:       ea4f 4211       mov.w   r2, r1, lsr #16                          
 1fff0a1e:       9903            ldr     r1, [sp, #12]                            
-1fff0a20:       d105            bne.n   1fff0a2e <autobaud_calc+0x2ac>           
+1fff0a20:       d105            bne.n   1fff0a2e <rounded_divide+0x2ac>          
 1fff0a22:       f801 2b01       strb.w  r2, [r1], #1                             
 1fff0a26:       9103            str     r1, [sp, #12]                            
 1fff0a28:       9900            ldr     r1, [sp, #0]                             
 1fff0a2a:       1e49            subs    r1, r1, #1                               
-1fff0a2c:       e004            b.n     1fff0a38 <autobaud_calc+0x2b6>           
+1fff0a2c:       e004            b.n     1fff0a38 <rounded_divide+0x2b6>          
 1fff0a2e:       f821 2b02       strh.w  r2, [r1], #2                             
 1fff0a32:       9103            str     r1, [sp, #12]                            
 1fff0a34:       9900            ldr     r1, [sp, #0]                             
 1fff0a36:       1e89            subs    r1, r1, #2                               
 1fff0a38:       9100            str     r1, [sp, #0]                             
 1fff0a3a:       2900            cmp     r1, #0                                   
-1fff0a3c:       d1e2            bne.n   1fff0a04 <autobaud_calc+0x282>           
+1fff0a3c:       d1e2            bne.n   1fff0a04 <rounded_divide+0x282>          
 1fff0a3e:       bd7f            pop     {r0, r1, r2, r3, r4, r5, r6, pc}         
 1fff0a40:       b570            push    {r4, r5, r6, lr}                         
-1fff0a42:       4cd5            ldr     r4, [pc, #852]  ; (1fff0d98 <autobaud_calc+0x616>) 
-1fff0a44:       4ed6            ldr     r6, [pc, #856]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0a42:       4cd5            ldr     r4, [pc, #852]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0a44:       4ed6            ldr     r6, [pc, #856]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0a46:       2300            movs    r3, #0                                   
 1fff0a48:       2269            movs    r2, #105        ; 0x69                   
 1fff0a4a:       1d31            adds    r1, r6, #4                               
@@ -1112,21 +1112,21 @@ Disassembly of section .arm:
 1fff0a4e:       f7ff fdf2       bl      1fff0636 <reset2+0x1c8>                  
 1fff0a52:       f106 0514       add.w   r5, r6, #20                              
 1fff0a56:       6028            str     r0, [r5, #0]                             
-1fff0a58:       b9b8            cbnz    r0, 1fff0a8a <autobaud_calc+0x308>       
+1fff0a58:       b9b8            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
 1fff0a5a:       2300            movs    r3, #0                                   
 1fff0a5c:       2269            movs    r2, #105        ; 0x69                   
 1fff0a5e:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0a62:       68a0            ldr     r0, [r4, #8]                             
 1fff0a64:       f7ff fde7       bl      1fff0636 <reset2+0x1c8>                  
 1fff0a68:       6028            str     r0, [r5, #0]                             
-1fff0a6a:       b970            cbnz    r0, 1fff0a8a <autobaud_calc+0x308>       
+1fff0a6a:       b970            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
 1fff0a6c:       2300            movs    r3, #0                                   
 1fff0a6e:       2269            movs    r2, #105        ; 0x69                   
 1fff0a70:       f1a5 0108       sub.w   r1, r5, #8                               
 1fff0a74:       68e0            ldr     r0, [r4, #12]                            
 1fff0a76:       f7ff fdde       bl      1fff0636 <reset2+0x1c8>                  
 1fff0a7a:       6028            str     r0, [r5, #0]                             
-1fff0a7c:       b928            cbnz    r0, 1fff0a8a <autobaud_calc+0x308>       
+1fff0a7c:       b928            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
 1fff0a7e:       2038            movs    r0, #56 ; 0x38                           
 1fff0a80:       6030            str     r0, [r6, #0]                             
 1fff0a82:       4629            mov     r1, r5                                   
@@ -1139,7 +1139,7 @@ Disassembly of section .arm:
 1fff0a94:       f000 fbb4       bl      1fff1200 <routine118c+0x74>              
 1fff0a98:       6828            ldr     r0, [r5, #0]                             
 1fff0a9a:       280a            cmp     r0, #10                                  
-1fff0a9c:       d108            bne.n   1fff0ab0 <autobaud_calc+0x32e>           
+1fff0a9c:       d108            bne.n   1fff0ab0 <rounded_divide+0x32e>          
 1fff0a9e:       6861            ldr     r1, [r4, #4]                             
 1fff0aa0:       220f            movs    r2, #15                                  
 1fff0aa2:       6868            ldr     r0, [r5, #4]                             
@@ -1148,8 +1148,8 @@ Disassembly of section .arm:
 1fff0aac:       f000 bba8       b.w     1fff1200 <routine118c+0x74>              
 1fff0ab0:       bd70            pop     {r4, r5, r6, pc}                         
 1fff0ab2:       b570            push    {r4, r5, r6, lr}                         
-1fff0ab4:       4cb8            ldr     r4, [pc, #736]  ; (1fff0d98 <autobaud_calc+0x616>) 
-1fff0ab6:       4eba            ldr     r6, [pc, #744]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0ab4:       4cb8            ldr     r4, [pc, #736]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0ab6:       4eba            ldr     r6, [pc, #744]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0ab8:       2300            movs    r3, #0                                   
 1fff0aba:       2269            movs    r2, #105        ; 0x69                   
 1fff0abc:       1d31            adds    r1, r6, #4                               
@@ -1157,14 +1157,14 @@ Disassembly of section .arm:
 1fff0ac0:       f7ff fdb9       bl      1fff0636 <reset2+0x1c8>                  
 1fff0ac4:       f106 0514       add.w   r5, r6, #20                              
 1fff0ac8:       6028            str     r0, [r5, #0]                             
-1fff0aca:       b970            cbnz    r0, 1fff0aea <autobaud_calc+0x368>       
+1fff0aca:       b970            cbnz    r0, 1fff0aea <rounded_divide+0x368>      
 1fff0acc:       2300            movs    r3, #0                                   
 1fff0ace:       2269            movs    r2, #105        ; 0x69                   
 1fff0ad0:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0ad4:       68a0            ldr     r0, [r4, #8]                             
 1fff0ad6:       f7ff fdae       bl      1fff0636 <reset2+0x1c8>                  
 1fff0ada:       6028            str     r0, [r5, #0]                             
-1fff0adc:       b928            cbnz    r0, 1fff0aea <autobaud_calc+0x368>       
+1fff0adc:       b928            cbnz    r0, 1fff0aea <rounded_divide+0x368>      
 1fff0ade:       2035            movs    r0, #53 ; 0x35                           
 1fff0ae0:       6030            str     r0, [r6, #0]                             
 1fff0ae2:       4629            mov     r1, r5                                   
@@ -1177,21 +1177,21 @@ Disassembly of section .arm:
 1fff0af4:       f000 fb84       bl      1fff1200 <routine118c+0x74>              
 1fff0af8:       6828            ldr     r0, [r5, #0]                             
 1fff0afa:       2808            cmp     r0, #8                                   
-1fff0afc:       d120            bne.n   1fff0b40 <autobaud_calc+0x3be>           
-1fff0afe:       48a9            ldr     r0, [pc, #676]  ; (1fff0da4 <autobaud_calc+0x622>) 
-1fff0b00:       49a9            ldr     r1, [pc, #676]  ; (1fff0da8 <autobaud_calc+0x626>) 
+1fff0afc:       d120            bne.n   1fff0b40 <rounded_divide+0x3be>          
+1fff0afe:       48a9            ldr     r0, [pc, #676]  ; (1fff0da4 <rounded_divide+0x622>) 
+1fff0b00:       49a9            ldr     r1, [pc, #676]  ; (1fff0da8 <rounded_divide+0x626>) 
 1fff0b02:       6800            ldr     r0, [r0, #0]                             
 1fff0b04:       6809            ldr     r1, [r1, #0]                             
 1fff0b06:       4288            cmp     r0, r1                                   
-1fff0b08:       d007            beq.n   1fff0b1a <autobaud_calc+0x398>           
-1fff0b0a:       49a8            ldr     r1, [pc, #672]  ; (1fff0dac <autobaud_calc+0x62a>) 
+1fff0b08:       d007            beq.n   1fff0b1a <rounded_divide+0x398>          
+1fff0b0a:       49a8            ldr     r1, [pc, #672]  ; (1fff0dac <rounded_divide+0x62a>) 
 1fff0b0c:       6809            ldr     r1, [r1, #0]                             
 1fff0b0e:       4288            cmp     r0, r1                                   
-1fff0b10:       d003            beq.n   1fff0b1a <autobaud_calc+0x398>           
-1fff0b12:       49a7            ldr     r1, [pc, #668]  ; (1fff0db0 <autobaud_calc+0x62e>) 
+1fff0b10:       d003            beq.n   1fff0b1a <rounded_divide+0x398>          
+1fff0b12:       49a7            ldr     r1, [pc, #668]  ; (1fff0db0 <rounded_divide+0x62e>) 
 1fff0b14:       6809            ldr     r1, [r1, #0]                             
 1fff0b16:       4288            cmp     r0, r1                                   
-1fff0b18:       d102            bne.n   1fff0b20 <autobaud_calc+0x39e>           
+1fff0b18:       d102            bne.n   1fff0b20 <rounded_divide+0x39e>          
 1fff0b1a:       2000            movs    r0, #0                                   
 1fff0b1c:       6068            str     r0, [r5, #4]                             
 1fff0b1e:       60a8            str     r0, [r5, #8]                             
@@ -1208,17 +1208,17 @@ Disassembly of section .arm:
 1fff0b3c:       f000 bb60       b.w     1fff1200 <routine118c+0x74>              
 1fff0b40:       bd70            pop     {r4, r5, r6, pc}                         
 1fff0b42:       e92d 47f0       stmdb   sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
-1fff0b46:       489b            ldr     r0, [pc, #620]  ; (1fff0db4 <autobaud_calc+0x632>) 
-1fff0b48:       4993            ldr     r1, [pc, #588]  ; (1fff0d98 <autobaud_calc+0x616>) 
+1fff0b46:       489b            ldr     r0, [pc, #620]  ; (1fff0db4 <rounded_divide+0x632>) 
+1fff0b48:       4993            ldr     r1, [pc, #588]  ; (1fff0d98 <rounded_divide+0x616>) 
 1fff0b4a:       6802            ldr     r2, [r0, #0]                             
 1fff0b4c:       6848            ldr     r0, [r1, #4]                             
 1fff0b4e:       2a01            cmp     r2, #1                                   
-1fff0b50:       d103            bne.n   1fff0b5a <autobaud_calc+0x3d8>           
+1fff0b50:       d103            bne.n   1fff0b5a <rounded_divide+0x3d8>          
 1fff0b52:       220f            movs    r2, #15                                  
 1fff0b54:       4601            mov     r1, r0                                   
 1fff0b56:       4610            mov     r0, r2                                   
-1fff0b58:       e057            b.n     1fff0c0a <autobaud_calc+0x488>           
-1fff0b5a:       4c91            ldr     r4, [pc, #580]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0b58:       e057            b.n     1fff0c0a <rounded_divide+0x488>          
+1fff0b5a:       4c91            ldr     r4, [pc, #580]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0b5c:       4688            mov     r8, r1                                   
 1fff0b5e:       2300            movs    r3, #0                                   
 1fff0b60:       2269            movs    r2, #105        ; 0x69                   
@@ -1226,63 +1226,63 @@ Disassembly of section .arm:
 1fff0b64:       f7ff fd67       bl      1fff0636 <reset2+0x1c8>                  
 1fff0b68:       f104 0514       add.w   r5, r4, #20                              
 1fff0b6c:       6028            str     r0, [r5, #0]                             
-1fff0b6e:       b940            cbnz    r0, 1fff0b82 <autobaud_calc+0x400>       
+1fff0b6e:       b940            cbnz    r0, 1fff0b82 <rounded_divide+0x400>      
 1fff0b70:       2300            movs    r3, #0                                   
 1fff0b72:       2269            movs    r2, #105        ; 0x69                   
 1fff0b74:       f104 0108       add.w   r1, r4, #8                               
 1fff0b78:       f8d8 0008       ldr.w   r0, [r8, #8]                             
 1fff0b7c:       f7ff fd5b       bl      1fff0636 <reset2+0x1c8>                  
 1fff0b80:       6028            str     r0, [r5, #0]                             
-1fff0b82:       f8df 9220       ldr.w   r9, [pc, #544]  ; 1fff0da4 <autobaud_calc+0x622> 
-1fff0b86:       4988            ldr     r1, [pc, #544]  ; (1fff0da8 <autobaud_calc+0x626>) 
+1fff0b82:       f8df 9220       ldr.w   r9, [pc, #544]  ; 1fff0da4 <rounded_divide+0x622> 
+1fff0b86:       4988            ldr     r1, [pc, #544]  ; (1fff0da8 <rounded_divide+0x626>) 
 1fff0b88:       f8d9 0000       ldr.w   r0, [r9]                                 
 1fff0b8c:       6809            ldr     r1, [r1, #0]                             
 1fff0b8e:       2713            movs    r7, #19                                  
-1fff0b90:       4e89            ldr     r6, [pc, #548]  ; (1fff0db8 <autobaud_calc+0x636>) 
+1fff0b90:       4e89            ldr     r6, [pc, #548]  ; (1fff0db8 <rounded_divide+0x636>) 
 1fff0b92:       4288            cmp     r0, r1                                   
-1fff0b94:       d003            beq.n   1fff0b9e <autobaud_calc+0x41c>           
-1fff0b96:       4985            ldr     r1, [pc, #532]  ; (1fff0dac <autobaud_calc+0x62a>) 
+1fff0b94:       d003            beq.n   1fff0b9e <rounded_divide+0x41c>          
+1fff0b96:       4985            ldr     r1, [pc, #532]  ; (1fff0dac <rounded_divide+0x62a>) 
 1fff0b98:       6809            ldr     r1, [r1, #0]                             
 1fff0b9a:       4288            cmp     r0, r1                                   
-1fff0b9c:       d109            bne.n   1fff0bb2 <autobaud_calc+0x430>           
+1fff0b9c:       d109            bne.n   1fff0bb2 <rounded_divide+0x430>          
 1fff0b9e:       f000 fdae       bl      1fff16fe <set_0x200000_bit6_and_delay>   
 1fff0ba2:       6860            ldr     r0, [r4, #4]                             
-1fff0ba4:       b918            cbnz    r0, 1fff0bae <autobaud_calc+0x42c>       
+1fff0ba4:       b918            cbnz    r0, 1fff0bae <rounded_divide+0x42c>      
 1fff0ba6:       68a0            ldr     r0, [r4, #8]                             
 1fff0ba8:       6831            ldr     r1, [r6, #0]                             
 1fff0baa:       4288            cmp     r0, r1                                   
-1fff0bac:       d00a            beq.n   1fff0bc4 <autobaud_calc+0x442>           
+1fff0bac:       d00a            beq.n   1fff0bc4 <rounded_divide+0x442>          
 1fff0bae:       602f            str     r7, [r5, #0]                             
-1fff0bb0:       e008            b.n     1fff0bc4 <autobaud_calc+0x442>           
-1fff0bb2:       497f            ldr     r1, [pc, #508]  ; (1fff0db0 <autobaud_calc+0x62e>) 
+1fff0bb0:       e008            b.n     1fff0bc4 <rounded_divide+0x442>          
+1fff0bb2:       497f            ldr     r1, [pc, #508]  ; (1fff0db0 <rounded_divide+0x62e>) 
 1fff0bb4:       6809            ldr     r1, [r1, #0]                             
 1fff0bb6:       4288            cmp     r0, r1                                   
-1fff0bb8:       d106            bne.n   1fff0bc8 <autobaud_calc+0x446>           
+1fff0bb8:       d106            bne.n   1fff0bc8 <rounded_divide+0x446>          
 1fff0bba:       f000 fda0       bl      1fff16fe <set_0x200000_bit6_and_delay>   
 1fff0bbe:       6860            ldr     r0, [r4, #4]                             
 1fff0bc0:       2800            cmp     r0, #0                                   
-1fff0bc2:       d0f0            beq.n   1fff0ba6 <autobaud_calc+0x424>           
+1fff0bc2:       d0f0            beq.n   1fff0ba6 <rounded_divide+0x424>          
 1fff0bc4:       f000 fd93       bl      1fff16ee <clear_0x200000_bit6_and_delay> 
 1fff0bc8:       6828            ldr     r0, [r5, #0]                             
-1fff0bca:       b948            cbnz    r0, 1fff0be0 <autobaud_calc+0x45e>       
+1fff0bca:       b948            cbnz    r0, 1fff0be0 <rounded_divide+0x45e>      
 1fff0bcc:       2034            movs    r0, #52 ; 0x34                           
 1fff0bce:       6020            str     r0, [r4, #0]                             
-1fff0bd0:       487a            ldr     r0, [pc, #488]  ; (1fff0dbc <autobaud_calc+0x63a>) 
-1fff0bd2:       4973            ldr     r1, [pc, #460]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0bd0:       487a            ldr     r0, [pc, #488]  ; (1fff0dbc <rounded_divide+0x63a>) 
+1fff0bd2:       4973            ldr     r1, [pc, #460]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0bd4:       6800            ldr     r0, [r0, #0]                             
 1fff0bd6:       60e0            str     r0, [r4, #12]                            
 1fff0bd8:       3114            adds    r1, #20                                  
-1fff0bda:       4871            ldr     r0, [pc, #452]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0bda:       4871            ldr     r0, [pc, #452]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0bdc:       f001 fa08       bl      1fff1ff0 <IAP_LOCATION>                  
 1fff0be0:       f000 fd8d       bl      1fff16fe <set_0x200000_bit6_and_delay>   
 1fff0be4:       6860            ldr     r0, [r4, #4]                             
-1fff0be6:       b950            cbnz    r0, 1fff0bfe <autobaud_calc+0x47c>       
+1fff0be6:       b950            cbnz    r0, 1fff0bfe <rounded_divide+0x47c>      
 1fff0be8:       68a0            ldr     r0, [r4, #8]                             
 1fff0bea:       6831            ldr     r1, [r6, #0]                             
 1fff0bec:       4288            cmp     r0, r1                                   
-1fff0bee:       d106            bne.n   1fff0bfe <autobaud_calc+0x47c>           
+1fff0bee:       d106            bne.n   1fff0bfe <rounded_divide+0x47c>          
 1fff0bf0:       f000 fd7d       bl      1fff16ee <clear_0x200000_bit6_and_delay> 
-1fff0bf4:       4872            ldr     r0, [pc, #456]  ; (1fff0dc0 <autobaud_calc+0x63e>) 
+1fff0bf4:       4872            ldr     r0, [pc, #456]  ; (1fff0dc0 <rounded_divide+0x63e>) 
 1fff0bf6:       6800            ldr     r0, [r0, #0]                             
 1fff0bf8:       6801            ldr     r1, [r0, #0]                             
 1fff0bfa:       f8c9 1000       str.w   r1, [r9]                                 
@@ -1294,62 +1294,62 @@ Disassembly of section .arm:
 1fff0c0e:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
 1fff0c12:       f000 baf5       b.w     1fff1200 <routine118c+0x74>              
 1fff0c16:       b570            push    {r4, r5, r6, lr}                         
-1fff0c18:       4866            ldr     r0, [pc, #408]  ; (1fff0db4 <autobaud_calc+0x632>) 
-1fff0c1a:       4e5f            ldr     r6, [pc, #380]  ; (1fff0d98 <autobaud_calc+0x616>) 
+1fff0c18:       4866            ldr     r0, [pc, #408]  ; (1fff0db4 <rounded_divide+0x632>) 
+1fff0c1a:       4e5f            ldr     r6, [pc, #380]  ; (1fff0d98 <rounded_divide+0x616>) 
 1fff0c1c:       6801            ldr     r1, [r0, #0]                             
 1fff0c1e:       6870            ldr     r0, [r6, #4]                             
 1fff0c20:       2901            cmp     r1, #1                                   
-1fff0c22:       d103            bne.n   1fff0c2c <autobaud_calc+0x4aa>           
+1fff0c22:       d103            bne.n   1fff0c2c <rounded_divide+0x4aa>          
 1fff0c24:       220f            movs    r2, #15                                  
 1fff0c26:       4601            mov     r1, r0                                   
 1fff0c28:       4610            mov     r0, r2                                   
-1fff0c2a:       e03a            b.n     1fff0ca2 <autobaud_calc+0x520>           
-1fff0c2c:       4d5c            ldr     r5, [pc, #368]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0c2a:       e03a            b.n     1fff0ca2 <rounded_divide+0x520>          
+1fff0c2c:       4d5c            ldr     r5, [pc, #368]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0c2e:       2300            movs    r3, #0                                   
 1fff0c30:       2269            movs    r2, #105        ; 0x69                   
 1fff0c32:       1d29            adds    r1, r5, #4                               
 1fff0c34:       f7ff fcff       bl      1fff0636 <reset2+0x1c8>                  
 1fff0c38:       f105 0414       add.w   r4, r5, #20                              
 1fff0c3c:       6020            str     r0, [r4, #0]                             
-1fff0c3e:       b980            cbnz    r0, 1fff0c62 <autobaud_calc+0x4e0>       
+1fff0c3e:       b980            cbnz    r0, 1fff0c62 <rounded_divide+0x4e0>      
 1fff0c40:       2300            movs    r3, #0                                   
 1fff0c42:       2269            movs    r2, #105        ; 0x69                   
 1fff0c44:       f1a4 010c       sub.w   r1, r4, #12                              
 1fff0c48:       68b0            ldr     r0, [r6, #8]                             
 1fff0c4a:       f7ff fcf4       bl      1fff0636 <reset2+0x1c8>                  
 1fff0c4e:       6020            str     r0, [r4, #0]                             
-1fff0c50:       b938            cbnz    r0, 1fff0c62 <autobaud_calc+0x4e0>       
+1fff0c50:       b938            cbnz    r0, 1fff0c62 <rounded_divide+0x4e0>      
 1fff0c52:       2300            movs    r3, #0                                   
 1fff0c54:       2269            movs    r2, #105        ; 0x69                   
 1fff0c56:       f1a4 0108       sub.w   r1, r4, #8                               
 1fff0c5a:       68f0            ldr     r0, [r6, #12]                            
 1fff0c5c:       f7ff fceb       bl      1fff0636 <reset2+0x1c8>                  
 1fff0c60:       6020            str     r0, [r4, #0]                             
-1fff0c62:       4850            ldr     r0, [pc, #320]  ; (1fff0da4 <autobaud_calc+0x622>) 
-1fff0c64:       4952            ldr     r1, [pc, #328]  ; (1fff0db0 <autobaud_calc+0x62e>) 
+1fff0c62:       4850            ldr     r0, [pc, #320]  ; (1fff0da4 <rounded_divide+0x622>) 
+1fff0c64:       4952            ldr     r1, [pc, #328]  ; (1fff0db0 <rounded_divide+0x62e>) 
 1fff0c66:       6800            ldr     r0, [r0, #0]                             
 1fff0c68:       6809            ldr     r1, [r1, #0]                             
 1fff0c6a:       4288            cmp     r0, r1                                   
-1fff0c6c:       d10a            bne.n   1fff0c84 <autobaud_calc+0x502>           
+1fff0c6c:       d10a            bne.n   1fff0c84 <rounded_divide+0x502>          
 1fff0c6e:       f000 fd46       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff0c72:       4954            ldr     r1, [pc, #336]  ; (1fff0dc4 <autobaud_calc+0x642>) 
+1fff0c72:       4954            ldr     r1, [pc, #336]  ; (1fff0dc4 <rounded_divide+0x642>) 
 1fff0c74:       6868            ldr     r0, [r5, #4]                             
 1fff0c76:       6809            ldr     r1, [r1, #0]                             
 1fff0c78:       4288            cmp     r0, r1                                   
-1fff0c7a:       d201            bcs.n   1fff0c80 <autobaud_calc+0x4fe>           
+1fff0c7a:       d201            bcs.n   1fff0c80 <rounded_divide+0x4fe>          
 1fff0c7c:       2013            movs    r0, #19                                  
 1fff0c7e:       6020            str     r0, [r4, #0]                             
 1fff0c80:       f000 fd35       bl      1fff16ee <clear_0x200000_bit6_and_delay> 
 1fff0c84:       6820            ldr     r0, [r4, #0]                             
-1fff0c86:       b948            cbnz    r0, 1fff0c9c <autobaud_calc+0x51a>       
+1fff0c86:       b948            cbnz    r0, 1fff0c9c <rounded_divide+0x51a>      
 1fff0c88:       2033            movs    r0, #51 ; 0x33                           
 1fff0c8a:       6028            str     r0, [r5, #0]                             
-1fff0c8c:       484b            ldr     r0, [pc, #300]  ; (1fff0dbc <autobaud_calc+0x63a>) 
-1fff0c8e:       4944            ldr     r1, [pc, #272]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0c8c:       484b            ldr     r0, [pc, #300]  ; (1fff0dbc <rounded_divide+0x63a>) 
+1fff0c8e:       4944            ldr     r1, [pc, #272]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0c90:       6800            ldr     r0, [r0, #0]                             
 1fff0c92:       6128            str     r0, [r5, #16]                            
 1fff0c94:       3114            adds    r1, #20                                  
-1fff0c96:       4842            ldr     r0, [pc, #264]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0c96:       4842            ldr     r0, [pc, #264]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0c98:       f001 f9aa       bl      1fff1ff0 <IAP_LOCATION>                  
 1fff0c9c:       6871            ldr     r1, [r6, #4]                             
 1fff0c9e:       220f            movs    r2, #15                                  
@@ -1358,8 +1358,8 @@ Disassembly of section .arm:
 1fff0ca6:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0caa:       f000 baa9       b.w     1fff1200 <routine118c+0x74>              
 1fff0cae:       b570            push    {r4, r5, r6, lr}                         
-1fff0cb0:       4c39            ldr     r4, [pc, #228]  ; (1fff0d98 <autobaud_calc+0x616>) 
-1fff0cb2:       4e3b            ldr     r6, [pc, #236]  ; (1fff0da0 <autobaud_calc+0x61e>) 
+1fff0cb0:       4c39            ldr     r4, [pc, #228]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0cb2:       4e3b            ldr     r6, [pc, #236]  ; (1fff0da0 <rounded_divide+0x61e>) 
 1fff0cb4:       2300            movs    r3, #0                                   
 1fff0cb6:       2269            movs    r2, #105        ; 0x69                   
 1fff0cb8:       1d31            adds    r1, r6, #4                               
@@ -1367,14 +1367,14 @@ Disassembly of section .arm:
 1fff0cbc:       f7ff fcbb       bl      1fff0636 <reset2+0x1c8>                  
 1fff0cc0:       f106 0514       add.w   r5, r6, #20                              
 1fff0cc4:       6028            str     r0, [r5, #0]                             
-1fff0cc6:       b970            cbnz    r0, 1fff0ce6 <autobaud_calc+0x564>       
+1fff0cc6:       b970            cbnz    r0, 1fff0ce6 <rounded_divide+0x564>      
 1fff0cc8:       2300            movs    r3, #0                                   
 1fff0cca:       2269            movs    r2, #105        ; 0x69                   
 1fff0ccc:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0cd0:       68a0            ldr     r0, [r4, #8]                             
 1fff0cd2:       f7ff fcb0       bl      1fff0636 <reset2+0x1c8>                  
 1fff0cd6:       6028            str     r0, [r5, #0]                             
-1fff0cd8:       b928            cbnz    r0, 1fff0ce6 <autobaud_calc+0x564>       
+1fff0cd8:       b928            cbnz    r0, 1fff0ce6 <rounded_divide+0x564>      
 1fff0cda:       2032            movs    r0, #50 ; 0x32                           
 1fff0cdc:       6030            str     r0, [r6, #0]                             
 1fff0cde:       4629            mov     r1, r5                                   
@@ -1387,7 +1387,7 @@ Disassembly of section .arm:
 1fff0cf0:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0cf4:       f000 ba84       b.w     1fff1200 <routine118c+0x74>              
 1fff0cf8:       b538            push    {r3, r4, r5, lr}                         
-1fff0cfa:       4d27            ldr     r5, [pc, #156]  ; (1fff0d98 <autobaud_calc+0x616>) 
+1fff0cfa:       4d27            ldr     r5, [pc, #156]  ; (1fff0d98 <rounded_divide+0x616>) 
 1fff0cfc:       2300            movs    r3, #0                                   
 1fff0cfe:       2269            movs    r2, #105        ; 0x69                   
 1fff0d00:       4669            mov     r1, sp                                   
@@ -1400,14 +1400,14 @@ Disassembly of section .arm:
 1fff0d10:       f000 fb35       bl      1fff137e <routine12b0+0xce>              
 1fff0d14:       f000 fa74       bl      1fff1200 <routine118c+0x74>              
 1fff0d18:       2c00            cmp     r4, #0                                   
-1fff0d1a:       d104            bne.n   1fff0d26 <autobaud_calc+0x5a4>           
+1fff0d1a:       d104            bne.n   1fff0d26 <rounded_divide+0x5a4>          
 1fff0d1c:       9800            ldr     r0, [sp, #0]                             
-1fff0d1e:       b100            cbz     r0, 1fff0d22 <autobaud_calc+0x5a0>       
+1fff0d1e:       b100            cbz     r0, 1fff0d22 <rounded_divide+0x5a0>      
 1fff0d20:       2001            movs    r0, #1                                   
 1fff0d22:       f000 fac5       bl      1fff12b0 <routine12b0>                   
 1fff0d26:       bd38            pop     {r3, r4, r5, pc}                         
 1fff0d28:       b57c            push    {r2, r3, r4, r5, r6, lr}                 
-1fff0d2a:       4d1b            ldr     r5, [pc, #108]  ; (1fff0d98 <autobaud_calc+0x616>) 
+1fff0d2a:       4d1b            ldr     r5, [pc, #108]  ; (1fff0d98 <rounded_divide+0x616>) 
 1fff0d2c:       2300            movs    r3, #0                                   
 1fff0d2e:       2269            movs    r2, #105        ; 0x69                   
 1fff0d30:       a901            add     r1, sp, #4                               
@@ -1419,26 +1419,26 @@ Disassembly of section .arm:
 1fff0d3e:       68a8            ldr     r0, [r5, #8]                             
 1fff0d40:       f7ff fc79       bl      1fff0636 <reset2+0x1c8>                  
 1fff0d44:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0d48:       d119            bne.n   1fff0d7e <autobaud_calc+0x5fc>           
+1fff0d48:       d119            bne.n   1fff0d7e <rounded_divide+0x5fc>          
 1fff0d4a:       9801            ldr     r0, [sp, #4]                             
 1fff0d4c:       f5b0 5f16       cmp.w   r0, #9600       ; 0x2580                 
-1fff0d50:       d00f            beq.n   1fff0d72 <autobaud_calc+0x5f0>           
+1fff0d50:       d00f            beq.n   1fff0d72 <rounded_divide+0x5f0>          
 1fff0d52:       f5b0 4f96       cmp.w   r0, #19200      ; 0x4b00                 
-1fff0d56:       d00c            beq.n   1fff0d72 <autobaud_calc+0x5f0>           
+1fff0d56:       d00c            beq.n   1fff0d72 <rounded_divide+0x5f0>          
 1fff0d58:       f5b0 4f16       cmp.w   r0, #38400      ; 0x9600                 
-1fff0d5c:       d009            beq.n   1fff0d72 <autobaud_calc+0x5f0>           
+1fff0d5c:       d009            beq.n   1fff0d72 <rounded_divide+0x5f0>          
 1fff0d5e:       f5b0 4f61       cmp.w   r0, #57600      ; 0xe100                 
-1fff0d62:       d006            beq.n   1fff0d72 <autobaud_calc+0x5f0>           
+1fff0d62:       d006            beq.n   1fff0d72 <rounded_divide+0x5f0>          
 1fff0d64:       f5b0 3fe1       cmp.w   r0, #115200     ; 0x1c200                
-1fff0d68:       d003            beq.n   1fff0d72 <autobaud_calc+0x5f0>           
+1fff0d68:       d003            beq.n   1fff0d72 <rounded_divide+0x5f0>          
 1fff0d6a:       f5b0 3f61       cmp.w   r0, #230400     ; 0x38400                
-1fff0d6e:       d000            beq.n   1fff0d72 <autobaud_calc+0x5f0>           
+1fff0d6e:       d000            beq.n   1fff0d72 <rounded_divide+0x5f0>          
 1fff0d70:       2411            movs    r4, #17                                  
 1fff0d72:       9800            ldr     r0, [sp, #0]                             
 1fff0d74:       2801            cmp     r0, #1                                   
-1fff0d76:       d002            beq.n   1fff0d7e <autobaud_calc+0x5fc>           
+1fff0d76:       d002            beq.n   1fff0d7e <rounded_divide+0x5fc>          
 1fff0d78:       2802            cmp     r0, #2                                   
-1fff0d7a:       d000            beq.n   1fff0d7e <autobaud_calc+0x5fc>           
+1fff0d7a:       d000            beq.n   1fff0d7e <rounded_divide+0x5fc>          
 1fff0d7c:       2412            movs    r4, #18                                  
 1fff0d7e:       220f            movs    r2, #15                                  
 1fff0d80:       4620            mov     r0, r4                                   
@@ -1446,10 +1446,10 @@ Disassembly of section .arm:
 1fff0d84:       f000 fafb       bl      1fff137e <routine12b0+0xce>              
 1fff0d88:       f000 fa3a       bl      1fff1200 <routine118c+0x74>              
 1fff0d8c:       2c00            cmp     r4, #0                                   
-1fff0d8e:       d11f            bne.n   1fff0dd0 <autobaud_calc+0x64e>           
-1fff0d90:       480a            ldr     r0, [pc, #40]   ; (1fff0dbc <autobaud_calc+0x63a>) 
+1fff0d8e:       d11f            bne.n   1fff0dd0 <rounded_divide+0x64e>          
+1fff0d90:       480a            ldr     r0, [pc, #40]   ; (1fff0dbc <rounded_divide+0x63a>) 
 1fff0d92:       6802            ldr     r2, [r0, #0]                             
-1fff0d94:       e018            b.n     1fff0dc8 <autobaud_calc+0x646>           
+1fff0d94:       e018            b.n     1fff0dc8 <rounded_divide+0x646>          
 1fff0d96:       0000            movs    r0, r0                                   
 1fff0d98:       01bc            lsls    r4, r7, #6                               
 1fff0d9a:       1000            asrs    r0, r0, #32                              
@@ -1479,22 +1479,22 @@ Disassembly of section .arm:
 1fff0dcc:       f000 f9de       bl      1fff118c <routine118c>                   
 1fff0dd0:       bd7c            pop     {r2, r3, r4, r5, r6, pc}                 
 1fff0dd2:       b538            push    {r3, r4, r5, lr}                         
-1fff0dd4:       4ce1            ldr     r4, [pc, #900]  ; (1fff115c <autobaud_calc+0x9da>) 
+1fff0dd4:       4ce1            ldr     r4, [pc, #900]  ; (1fff115c <rounded_divide+0x9da>) 
 1fff0dd6:       2300            movs    r3, #0                                   
 1fff0dd8:       2269            movs    r2, #105        ; 0x69                   
 1fff0dda:       4669            mov     r1, sp                                   
 1fff0ddc:       6860            ldr     r0, [r4, #4]                             
 1fff0dde:       f7ff fc2a       bl      1fff0636 <reset2+0x1c8>                  
 1fff0de2:       f010 00ff       ands.w  r0, r0, #255    ; 0xff                   
-1fff0de6:       d109            bne.n   1fff0dfc <autobaud_calc+0x67a>           
+1fff0de6:       d109            bne.n   1fff0dfc <rounded_divide+0x67a>          
 1fff0de8:       9900            ldr     r1, [sp, #0]                             
 1fff0dea:       f5a1 42b4       sub.w   r2, r1, #23040  ; 0x5a00                 
 1fff0dee:       3a5a            subs    r2, #90 ; 0x5a                           
-1fff0df0:       d103            bne.n   1fff0dfa <autobaud_calc+0x678>           
-1fff0df2:       4adb            ldr     r2, [pc, #876]  ; (1fff1160 <autobaud_calc+0x9de>) 
+1fff0df0:       d103            bne.n   1fff0dfa <rounded_divide+0x678>          
+1fff0df2:       4adb            ldr     r2, [pc, #876]  ; (1fff1160 <rounded_divide+0x9de>) 
 1fff0df4:       2100            movs    r1, #0                                   
 1fff0df6:       6011            str     r1, [r2, #0]                             
-1fff0df8:       e000            b.n     1fff0dfc <autobaud_calc+0x67a>           
+1fff0df8:       e000            b.n     1fff0dfc <rounded_divide+0x67a>          
 1fff0dfa:       2010            movs    r0, #16                                  
 1fff0dfc:       220f            movs    r2, #15                                  
 1fff0dfe:       6861            ldr     r1, [r4, #4]                             
@@ -1502,33 +1502,33 @@ Disassembly of section .arm:
 1fff0e04:       f000 f9fc       bl      1fff1200 <routine118c+0x74>              
 1fff0e08:       bd38            pop     {r3, r4, r5, pc}                         
 1fff0e0a:       b538            push    {r3, r4, r5, lr}                         
-1fff0e0c:       48d4            ldr     r0, [pc, #848]  ; (1fff1160 <autobaud_calc+0x9de>) 
-1fff0e0e:       4dd3            ldr     r5, [pc, #844]  ; (1fff115c <autobaud_calc+0x9da>) 
+1fff0e0c:       48d4            ldr     r0, [pc, #848]  ; (1fff1160 <rounded_divide+0x9de>) 
+1fff0e0e:       4dd3            ldr     r5, [pc, #844]  ; (1fff115c <rounded_divide+0x9da>) 
 1fff0e10:       6800            ldr     r0, [r0, #0]                             
-1fff0e12:       b940            cbnz    r0, 1fff0e26 <autobaud_calc+0x6a4>       
+1fff0e12:       b940            cbnz    r0, 1fff0e26 <rounded_divide+0x6a4>      
 1fff0e14:       2400            movs    r4, #0                                   
-1fff0e16:       48d3            ldr     r0, [pc, #844]  ; (1fff1164 <autobaud_calc+0x9e2>) 
+1fff0e16:       48d3            ldr     r0, [pc, #844]  ; (1fff1164 <rounded_divide+0x9e2>) 
 1fff0e18:       6869            ldr     r1, [r5, #4]                             
 1fff0e1a:       f000 fa53       bl      1fff12c4 <routine12b0+0x14>              
-1fff0e1e:       b920            cbnz    r0, 1fff0e2a <autobaud_calc+0x6a8>       
-1fff0e20:       48d1            ldr     r0, [pc, #836]  ; (1fff1168 <autobaud_calc+0x9e6>) 
+1fff0e1e:       b920            cbnz    r0, 1fff0e2a <rounded_divide+0x6a8>      
+1fff0e20:       48d1            ldr     r0, [pc, #836]  ; (1fff1168 <rounded_divide+0x9e6>) 
 1fff0e22:       9000            str     r0, [sp, #0]                             
-1fff0e24:       e00a            b.n     1fff0e3c <autobaud_calc+0x6ba>           
+1fff0e24:       e00a            b.n     1fff0e3c <rounded_divide+0x6ba>          
 1fff0e26:       240f            movs    r4, #15                                  
-1fff0e28:       e00f            b.n     1fff0e4a <autobaud_calc+0x6c8>           
+1fff0e28:       e00f            b.n     1fff0e4a <rounded_divide+0x6c8>          
 1fff0e2a:       2300            movs    r3, #0                                   
 1fff0e2c:       2266            movs    r2, #102        ; 0x66                   
 1fff0e2e:       4669            mov     r1, sp                                   
 1fff0e30:       6868            ldr     r0, [r5, #4]                             
 1fff0e32:       f7ff fc00       bl      1fff0636 <reset2+0x1c8>                  
 1fff0e36:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0e3a:       d106            bne.n   1fff0e4a <autobaud_calc+0x6c8>           
+1fff0e3a:       d106            bne.n   1fff0e4a <rounded_divide+0x6c8>          
 1fff0e3c:       68a8            ldr     r0, [r5, #8]                             
 1fff0e3e:       7800            ldrb    r0, [r0, #0]                             
 1fff0e40:       2854            cmp     r0, #84 ; 0x54                           
-1fff0e42:       d00e            beq.n   1fff0e62 <autobaud_calc+0x6e0>           
+1fff0e42:       d00e            beq.n   1fff0e62 <rounded_divide+0x6e0>          
 1fff0e44:       2841            cmp     r0, #65 ; 0x41                           
-1fff0e46:       d000            beq.n   1fff0e4a <autobaud_calc+0x6c8>           
+1fff0e46:       d000            beq.n   1fff0e4a <rounded_divide+0x6c8>          
 1fff0e48:       240c            movs    r4, #12                                  
 1fff0e4a:       220f            movs    r2, #15                                  
 1fff0e4c:       4620            mov     r0, r4                                   
@@ -1536,23 +1536,23 @@ Disassembly of section .arm:
 1fff0e50:       f000 fa95       bl      1fff137e <routine12b0+0xce>              
 1fff0e54:       f000 f9d4       bl      1fff1200 <routine118c+0x74>              
 1fff0e58:       2c00            cmp     r4, #0                                   
-1fff0e5a:       d101            bne.n   1fff0e60 <autobaud_calc+0x6de>           
+1fff0e5a:       d101            bne.n   1fff0e60 <rounded_divide+0x6de>          
 1fff0e5c:       9800            ldr     r0, [sp, #0]                             
 1fff0e5e:       4780            blx     r0                                       
 1fff0e60:       bd38            pop     {r3, r4, r5, pc}                         
 1fff0e62:       9800            ldr     r0, [sp, #0]                             
 1fff0e64:       f040 0001       orr.w   r0, r0, #1                               
 1fff0e68:       9000            str     r0, [sp, #0]                             
-1fff0e6a:       e7ee            b.n     1fff0e4a <autobaud_calc+0x6c8>           
+1fff0e6a:       e7ee            b.n     1fff0e4a <rounded_divide+0x6c8>          
 1fff0e6c:       e92d 47fc       stmdb   sp!, {r2, r3, r4, r5, r6, r7, r8, r9, sl, lr} 
-1fff0e70:       4dba            ldr     r5, [pc, #744]  ; (1fff115c <autobaud_calc+0x9da>) 
+1fff0e70:       4dba            ldr     r5, [pc, #744]  ; (1fff115c <rounded_divide+0x9da>) 
 1fff0e72:       2300            movs    r3, #0                                   
 1fff0e74:       2264            movs    r2, #100        ; 0x64                   
 1fff0e76:       4669            mov     r1, sp                                   
 1fff0e78:       68a8            ldr     r0, [r5, #8]                             
 1fff0e7a:       f7ff fbdc       bl      1fff0636 <reset2+0x1c8>                  
 1fff0e7e:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0e82:       d106            bne.n   1fff0e92 <autobaud_calc+0x710>           
+1fff0e82:       d106            bne.n   1fff0e92 <rounded_divide+0x710>          
 1fff0e84:       6868            ldr     r0, [r5, #4]                             
 1fff0e86:       2266            movs    r2, #102        ; 0x66                   
 1fff0e88:       a901            add     r1, sp, #4                               
@@ -1565,8 +1565,8 @@ Disassembly of section .arm:
 1fff0e98:       f000 fa71       bl      1fff137e <routine12b0+0xce>              
 1fff0e9c:       f000 f9b0       bl      1fff1200 <routine118c+0x74>              
 1fff0ea0:       2c00            cmp     r4, #0                                   
-1fff0ea2:       d147            bne.n   1fff0f34 <autobaud_calc+0x7b2>           
-1fff0ea4:       f8df a2c4       ldr.w   sl, [pc, #708]  ; 1fff116c <autobaud_calc+0x9ea> 
+1fff0ea2:       d147            bne.n   1fff0f34 <rounded_divide+0x7b2>          
+1fff0ea4:       f8df a2c4       ldr.w   sl, [pc, #708]  ; 1fff116c <rounded_divide+0x9ea> 
 1fff0ea8:       e9dd 8700       ldrd    r8, r7, [sp]                             
 1fff0eac:       2600            movs    r6, #0                                   
 1fff0eae:       f8da 9040       ldr.w   r9, [sl, #64]   ; 0x40                   
@@ -1574,18 +1574,18 @@ Disassembly of section .arm:
 1fff0eb4:       2101            movs    r1, #1                                   
 1fff0eb6:       f8ca 1040       str.w   r1, [sl, #64]   ; 0x40                   
 1fff0eba:       f8da 0040       ldr.w   r0, [sl, #64]   ; 0x40                   
-1fff0ebe:       e032            b.n     1fff0f26 <autobaud_calc+0x7a4>           
+1fff0ebe:       e032            b.n     1fff0f26 <rounded_divide+0x7a4>          
 1fff0ec0:       2d2d            cmp     r5, #45 ; 0x2d                           
-1fff0ec2:       dd00            ble.n   1fff0ec6 <autobaud_calc+0x744>           
+1fff0ec2:       dd00            ble.n   1fff0ec6 <rounded_divide+0x744>          
 1fff0ec4:       252d            movs    r5, #45 ; 0x2d                           
 1fff0ec6:       462a            mov     r2, r5                                   
-1fff0ec8:       49a9            ldr     r1, [pc, #676]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0ec8:       49a9            ldr     r1, [pc, #676]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0eca:       9801            ldr     r0, [sp, #4]                             
 1fff0ecc:       f000 fada       bl      1fff1484 <routine12b0+0x1d4>             
 1fff0ed0:       4406            add     r6, r0                                   
-1fff0ed2:       48a7            ldr     r0, [pc, #668]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0ed2:       48a7            ldr     r0, [pc, #668]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0ed4:       f000 f994       bl      1fff1200 <routine118c+0x74>              
-1fff0ed8:       bb40            cbnz    r0, 1fff0f2c <autobaud_calc+0x7aa>       
+1fff0ed8:       bb40            cbnz    r0, 1fff0f2c <rounded_divide+0x7aa>      
 1fff0eda:       9801            ldr     r0, [sp, #4]                             
 1fff0edc:       1c64            adds    r4, r4, #1                               
 1fff0ede:       4428            add     r0, r5                                   
@@ -1594,45 +1594,45 @@ Disassembly of section .arm:
 1fff0ee4:       1b40            subs    r0, r0, r5                               
 1fff0ee6:       9000            str     r0, [sp, #0]                             
 1fff0ee8:       2c14            cmp     r4, #20                                  
-1fff0eea:       d000            beq.n   1fff0eee <autobaud_calc+0x76c>           
-1fff0eec:       b9d8            cbnz    r0, 1fff0f26 <autobaud_calc+0x7a4>       
+1fff0eea:       d000            beq.n   1fff0eee <rounded_divide+0x76c>          
+1fff0eec:       b9d8            cbnz    r0, 1fff0f26 <rounded_divide+0x7a4>      
 1fff0eee:       220f            movs    r2, #15                                  
-1fff0ef0:       499f            ldr     r1, [pc, #636]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0ef0:       499f            ldr     r1, [pc, #636]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0ef2:       4630            mov     r0, r6                                   
 1fff0ef4:       f000 fa43       bl      1fff137e <routine12b0+0xce>              
 1fff0ef8:       f000 f982       bl      1fff1200 <routine118c+0x74>              
 1fff0efc:       2200            movs    r2, #0                                   
 1fff0efe:       2146            movs    r1, #70 ; 0x46                           
-1fff0f00:       489b            ldr     r0, [pc, #620]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0f00:       489b            ldr     r0, [pc, #620]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0f02:       f000 f9b0       bl      1fff1266 <routine118c+0xda>              
 1fff0f06:       f010 0fff       tst.w   r0, #255        ; 0xff                   
-1fff0f0a:       d10f            bne.n   1fff0f2c <autobaud_calc+0x7aa>           
-1fff0f0c:       4995            ldr     r1, [pc, #596]  ; (1fff1164 <autobaud_calc+0x9e2>) 
-1fff0f0e:       4898            ldr     r0, [pc, #608]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0f0a:       d10f            bne.n   1fff0f2c <rounded_divide+0x7aa>          
+1fff0f0c:       4995            ldr     r1, [pc, #596]  ; (1fff1164 <rounded_divide+0x9e2>) 
+1fff0f0e:       4898            ldr     r0, [pc, #608]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0f10:       1ec9            subs    r1, r1, #3                               
 1fff0f12:       f000 f9d7       bl      1fff12c4 <routine12b0+0x14>              
-1fff0f16:       b910            cbnz    r0, 1fff0f1e <autobaud_calc+0x79c>       
+1fff0f16:       b910            cbnz    r0, 1fff0f1e <rounded_divide+0x79c>      
 1fff0f18:       e9dd 8700       ldrd    r8, r7, [sp]                             
-1fff0f1c:       e001            b.n     1fff0f22 <autobaud_calc+0x7a0>           
+1fff0f1c:       e001            b.n     1fff0f22 <rounded_divide+0x7a0>          
 1fff0f1e:       e9cd 8700       strd    r8, r7, [sp]                             
 1fff0f22:       2400            movs    r4, #0                                   
 1fff0f24:       4626            mov     r6, r4                                   
 1fff0f26:       9d00            ldr     r5, [sp, #0]                             
 1fff0f28:       2d00            cmp     r5, #0                                   
-1fff0f2a:       dcc9            bgt.n   1fff0ec0 <autobaud_calc+0x73e>           
+1fff0f2a:       dcc9            bgt.n   1fff0ec0 <rounded_divide+0x73e>          
 1fff0f2c:       f8ca 9040       str.w   r9, [sl, #64]   ; 0x40                   
 1fff0f30:       f8da 0040       ldr.w   r0, [sl, #64]   ; 0x40                   
 1fff0f34:       e8bd 87fc       ldmia.w sp!, {r2, r3, r4, r5, r6, r7, r8, r9, sl, pc} 
 1fff0f38:       b5f0            push    {r4, r5, r6, r7, lr}                     
 1fff0f3a:       b085            sub     sp, #20                                  
-1fff0f3c:       4d87            ldr     r5, [pc, #540]  ; (1fff115c <autobaud_calc+0x9da>) 
+1fff0f3c:       4d87            ldr     r5, [pc, #540]  ; (1fff115c <rounded_divide+0x9da>) 
 1fff0f3e:       2264            movs    r2, #100        ; 0x64                   
 1fff0f40:       68a8            ldr     r0, [r5, #8]                             
 1fff0f42:       a902            add     r1, sp, #8                               
 1fff0f44:       9b02            ldr     r3, [sp, #8]                             
 1fff0f46:       f7ff fb76       bl      1fff0636 <reset2+0x1c8>                  
 1fff0f4a:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0f4e:       d10d            bne.n   1fff0f6c <autobaud_calc+0x7ea>           
+1fff0f4e:       d10d            bne.n   1fff0f6c <rounded_divide+0x7ea>          
 1fff0f50:       6868            ldr     r0, [r5, #4]                             
 1fff0f52:       2267            movs    r2, #103        ; 0x67                   
 1fff0f54:       a904            add     r1, sp, #16                              
@@ -1640,25 +1640,25 @@ Disassembly of section .arm:
 1fff0f58:       f7ff fb6d       bl      1fff0636 <reset2+0x1c8>                  
 1fff0f5c:       b2c4            uxtb    r4, r0                                   
 1fff0f5e:       2c04            cmp     r4, #4                                   
-1fff0f60:       d101            bne.n   1fff0f66 <autobaud_calc+0x7e4>           
+1fff0f60:       d101            bne.n   1fff0f66 <rounded_divide+0x7e4>          
 1fff0f62:       240e            movs    r4, #14                                  
-1fff0f64:       e002            b.n     1fff0f6c <autobaud_calc+0x7ea>           
+1fff0f64:       e002            b.n     1fff0f6c <rounded_divide+0x7ea>          
 1fff0f66:       2c02            cmp     r4, #2                                   
-1fff0f68:       d100            bne.n   1fff0f6c <autobaud_calc+0x7ea>           
+1fff0f68:       d100            bne.n   1fff0f6c <rounded_divide+0x7ea>          
 1fff0f6a:       240d            movs    r4, #13                                  
 1fff0f6c:       f000 fbc7       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff0f70:       4880            ldr     r0, [pc, #512]  ; (1fff1174 <autobaud_calc+0x9f2>) 
-1fff0f72:       4981            ldr     r1, [pc, #516]  ; (1fff1178 <autobaud_calc+0x9f6>) 
+1fff0f70:       4880            ldr     r0, [pc, #512]  ; (1fff1174 <rounded_divide+0x9f2>) 
+1fff0f72:       4981            ldr     r1, [pc, #516]  ; (1fff1178 <rounded_divide+0x9f6>) 
 1fff0f74:       6800            ldr     r0, [r0, #0]                             
 1fff0f76:       6809            ldr     r1, [r1, #0]                             
 1fff0f78:       4288            cmp     r0, r1                                   
-1fff0f7a:       d107            bne.n   1fff0f8c <autobaud_calc+0x80a>           
-1fff0f7c:       487f            ldr     r0, [pc, #508]  ; (1fff117c <autobaud_calc+0x9fa>) 
+1fff0f7a:       d107            bne.n   1fff0f8c <rounded_divide+0x80a>          
+1fff0f7c:       487f            ldr     r0, [pc, #508]  ; (1fff117c <rounded_divide+0x9fa>) 
 1fff0f7e:       9904            ldr     r1, [sp, #16]                            
 1fff0f80:       6800            ldr     r0, [r0, #0]                             
 1fff0f82:       f500 7000       add.w   r0, r0, #512    ; 0x200                  
 1fff0f86:       4281            cmp     r1, r0                                   
-1fff0f88:       d200            bcs.n   1fff0f8c <autobaud_calc+0x80a>           
+1fff0f88:       d200            bcs.n   1fff0f8c <rounded_divide+0x80a>          
 1fff0f8a:       2413            movs    r4, #19                                  
 1fff0f8c:       f000 fbaf       bl      1fff16ee <clear_0x200000_bit6_and_delay> 
 1fff0f90:       220f            movs    r2, #15                                  
@@ -1667,22 +1667,22 @@ Disassembly of section .arm:
 1fff0f96:       f000 f9f2       bl      1fff137e <routine12b0+0xce>              
 1fff0f9a:       f000 f931       bl      1fff1200 <routine118c+0x74>              
 1fff0f9e:       2c00            cmp     r4, #0                                   
-1fff0fa0:       d142            bne.n   1fff1028 <autobaud_calc+0x8a6>           
+1fff0fa0:       d142            bne.n   1fff1028 <rounded_divide+0x8a6>          
 1fff0fa2:       4625            mov     r5, r4                                   
 1fff0fa4:       9f02            ldr     r7, [sp, #8]                             
 1fff0fa6:       9e04            ldr     r6, [sp, #16]                            
-1fff0fa8:       e03b            b.n     1fff1022 <autobaud_calc+0x8a0>           
+1fff0fa8:       e03b            b.n     1fff1022 <rounded_divide+0x8a0>          
 1fff0faa:       466a            mov     r2, sp                                   
 1fff0fac:       2146            movs    r1, #70 ; 0x46                           
-1fff0fae:       4870            ldr     r0, [pc, #448]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0fae:       4870            ldr     r0, [pc, #448]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0fb0:       f000 f959       bl      1fff1266 <routine118c+0xda>              
 1fff0fb4:       2800            cmp     r0, #0                                   
-1fff0fb6:       d137            bne.n   1fff1028 <autobaud_calc+0x8a6>           
+1fff0fb6:       d137            bne.n   1fff1028 <rounded_divide+0x8a6>          
 1fff0fb8:       9800            ldr     r0, [sp, #0]                             
-1fff0fba:       b168            cbz     r0, 1fff0fd8 <autobaud_calc+0x856>       
+1fff0fba:       b168            cbz     r0, 1fff0fd8 <rounded_divide+0x856>      
 1fff0fbc:       1c6d            adds    r5, r5, #1                               
 1fff0fbe:       aa01            add     r2, sp, #4                               
-1fff0fc0:       486b            ldr     r0, [pc, #428]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0fc0:       486b            ldr     r0, [pc, #428]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0fc2:       9904            ldr     r1, [sp, #16]                            
 1fff0fc4:       f000 f9fd       bl      1fff13c2 <routine12b0+0x112>             
 1fff0fc8:       4404            add     r4, r0                                   
@@ -1694,33 +1694,33 @@ Disassembly of section .arm:
 1fff0fd4:       1a08            subs    r0, r1, r0                               
 1fff0fd6:       9002            str     r0, [sp, #8]                             
 1fff0fd8:       2d14            cmp     r5, #20                                  
-1fff0fda:       d001            beq.n   1fff0fe0 <autobaud_calc+0x85e>           
+1fff0fda:       d001            beq.n   1fff0fe0 <rounded_divide+0x85e>          
 1fff0fdc:       9802            ldr     r0, [sp, #8]                             
-1fff0fde:       bb00            cbnz    r0, 1fff1022 <autobaud_calc+0x8a0>       
+1fff0fde:       bb00            cbnz    r0, 1fff1022 <rounded_divide+0x8a0>      
 1fff0fe0:       2000            movs    r0, #0                                   
 1fff0fe2:       9000            str     r0, [sp, #0]                             
 1fff0fe4:       466a            mov     r2, sp                                   
 1fff0fe6:       2146            movs    r1, #70 ; 0x46                           
-1fff0fe8:       4861            ldr     r0, [pc, #388]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0fe8:       4861            ldr     r0, [pc, #388]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0fea:       f000 f93c       bl      1fff1266 <routine118c+0xda>              
 1fff0fee:       9900            ldr     r1, [sp, #0]                             
 1fff0ff0:       b2c0            uxtb    r0, r0                                   
 1fff0ff2:       2900            cmp     r1, #0                                   
-1fff0ff4:       d0f6            beq.n   1fff0fe4 <autobaud_calc+0x862>           
+1fff0ff4:       d0f6            beq.n   1fff0fe4 <rounded_divide+0x862>          
 1fff0ff6:       2800            cmp     r0, #0                                   
-1fff0ff8:       d116            bne.n   1fff1028 <autobaud_calc+0x8a6>           
+1fff0ff8:       d116            bne.n   1fff1028 <rounded_divide+0x8a6>          
 1fff0ffa:       a903            add     r1, sp, #12                              
-1fff0ffc:       485c            ldr     r0, [pc, #368]  ; (1fff1170 <autobaud_calc+0x9ee>) 
+1fff0ffc:       485c            ldr     r0, [pc, #368]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0ffe:       f000 f9a6       bl      1fff134e <routine12b0+0x9e>              
 1fff1002:       9803            ldr     r0, [sp, #12]                            
 1fff1004:       4284            cmp     r4, r0                                   
-1fff1006:       d104            bne.n   1fff1012 <autobaud_calc+0x890>           
-1fff1008:       4856            ldr     r0, [pc, #344]  ; (1fff1164 <autobaud_calc+0x9e2>) 
+1fff1006:       d104            bne.n   1fff1012 <rounded_divide+0x890>          
+1fff1008:       4856            ldr     r0, [pc, #344]  ; (1fff1164 <rounded_divide+0x9e2>) 
 1fff100a:       9f02            ldr     r7, [sp, #8]                             
 1fff100c:       1ec0            subs    r0, r0, #3                               
 1fff100e:       9e04            ldr     r6, [sp, #16]                            
-1fff1010:       e003            b.n     1fff101a <autobaud_calc+0x898>           
-1fff1012:       4854            ldr     r0, [pc, #336]  ; (1fff1164 <autobaud_calc+0x9e2>) 
+1fff1010:       e003            b.n     1fff101a <rounded_divide+0x898>          
+1fff1012:       4854            ldr     r0, [pc, #336]  ; (1fff1164 <rounded_divide+0x9e2>) 
 1fff1014:       9702            str     r7, [sp, #8]                             
 1fff1016:       1d40            adds    r0, r0, #5                               
 1fff1018:       9604            str     r6, [sp, #16]                            
@@ -1729,16 +1729,16 @@ Disassembly of section .arm:
 1fff1020:       462c            mov     r4, r5                                   
 1fff1022:       9802            ldr     r0, [sp, #8]                             
 1fff1024:       2800            cmp     r0, #0                                   
-1fff1026:       dcc0            bgt.n   1fff0faa <autobaud_calc+0x828>           
+1fff1026:       dcc0            bgt.n   1fff0faa <rounded_divide+0x828>          
 1fff1028:       b005            add     sp, #20                                  
 1fff102a:       bdf0            pop     {r4, r5, r6, r7, pc}                     
 1fff102c:       b570            push    {r4, r5, r6, lr}                         
-1fff102e:       4d4b            ldr     r5, [pc, #300]  ; (1fff115c <autobaud_calc+0x9da>) 
+1fff102e:       4d4b            ldr     r5, [pc, #300]  ; (1fff115c <rounded_divide+0x9da>) 
 1fff1030:       6828            ldr     r0, [r5, #0]                             
 1fff1032:       7800            ldrb    r0, [r0, #0]                             
 1fff1034:       3841            subs    r0, #65 ; 0x41                           
 1fff1036:       2817            cmp     r0, #23                                  
-1fff1038:       d27c            bcs.n   1fff1134 <autobaud_calc+0x9b2>           
+1fff1038:       d27c            bcs.n   1fff1134 <rounded_divide+0x9b2>          
 1fff103a:       e8df f000       tbb     [pc, r0]                                 
 1fff103e:       181b            adds    r3, r3, r0                               
 1fff1040:       8b7c            ldrh    r4, [r7, #26]                            
@@ -1753,19 +1753,19 @@ Disassembly of section .arm:
 1fff1052:       8b15            ldrh    r5, [r2, #24]                            
 1fff1054:       000c            movs    r4, r1                                   
 1fff1056:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff105a:       e76d            b.n     1fff0f38 <autobaud_calc+0x7b6>           
+1fff105a:       e76d            b.n     1fff0f38 <rounded_divide+0x7b6>          
 1fff105c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1060:       e704            b.n     1fff0e6c <autobaud_calc+0x6ea>           
+1fff1060:       e704            b.n     1fff0e6c <rounded_divide+0x6ea>          
 1fff1062:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1066:       e6d0            b.n     1fff0e0a <autobaud_calc+0x688>           
+1fff1066:       e6d0            b.n     1fff0e0a <rounded_divide+0x688>          
 1fff1068:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff106c:       e6b1            b.n     1fff0dd2 <autobaud_calc+0x650>           
+1fff106c:       e6b1            b.n     1fff0dd2 <rounded_divide+0x650>          
 1fff106e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1072:       e659            b.n     1fff0d28 <autobaud_calc+0x5a6>           
+1fff1072:       e659            b.n     1fff0d28 <rounded_divide+0x5a6>          
 1fff1074:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1078:       e63e            b.n     1fff0cf8 <autobaud_calc+0x576>           
+1fff1078:       e63e            b.n     1fff0cf8 <rounded_divide+0x576>          
 1fff107a:       f000 fb40       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff107e:       4840            ldr     r0, [pc, #256]  ; (1fff1180 <autobaud_calc+0x9fe>) 
+1fff107e:       4840            ldr     r0, [pc, #256]  ; (1fff1180 <rounded_divide+0x9fe>) 
 1fff1080:       6804            ldr     r4, [r0, #0]                             
 1fff1082:       f000 fb34       bl      1fff16ee <clear_0x200000_bit6_and_delay> 
 1fff1086:       220f            movs    r2, #15                                  
@@ -1776,9 +1776,9 @@ Disassembly of section .arm:
 1fff1094:       220f            movs    r2, #15                                  
 1fff1096:       4620            mov     r0, r4                                   
 1fff1098:       6869            ldr     r1, [r5, #4]                             
-1fff109a:       e042            b.n     1fff1122 <autobaud_calc+0x9a0>           
+1fff109a:       e042            b.n     1fff1122 <rounded_divide+0x9a0>          
 1fff109c:       f000 fb2f       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff10a0:       4838            ldr     r0, [pc, #224]  ; (1fff1184 <autobaud_calc+0xa02>) 
+1fff10a0:       4838            ldr     r0, [pc, #224]  ; (1fff1184 <rounded_divide+0xa02>) 
 1fff10a2:       220f            movs    r2, #15                                  
 1fff10a4:       6804            ldr     r4, [r0, #0]                             
 1fff10a6:       2000            movs    r0, #0                                   
@@ -1808,7 +1808,7 @@ Disassembly of section .arm:
 1fff10ea:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff10ee:       f000 bafe       b.w     1fff16ee <clear_0x200000_bit6_and_delay> 
 1fff10f2:       f000 fb04       bl      1fff16fe <set_0x200000_bit6_and_delay>   
-1fff10f6:       4824            ldr     r0, [pc, #144]  ; (1fff1188 <autobaud_calc+0xa06>) 
+1fff10f6:       4824            ldr     r0, [pc, #144]  ; (1fff1188 <rounded_divide+0xa06>) 
 1fff10f8:       6804            ldr     r4, [r0, #0]                             
 1fff10fa:       f000 faf8       bl      1fff16ee <clear_0x200000_bit6_and_delay> 
 1fff10fe:       220f            movs    r2, #15                                  
@@ -1828,22 +1828,22 @@ Disassembly of section .arm:
 1fff1126:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff112a:       f000 b869       b.w     1fff1200 <routine118c+0x74>              
 1fff112e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1132:       e5bc            b.n     1fff0cae <autobaud_calc+0x52c>           
-1fff1134:       e00e            b.n     1fff1154 <autobaud_calc+0x9d2>           
+1fff1132:       e5bc            b.n     1fff0cae <rounded_divide+0x52c>          
+1fff1134:       e00e            b.n     1fff1154 <rounded_divide+0x9d2>          
 1fff1136:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff113a:       e56c            b.n     1fff0c16 <autobaud_calc+0x494>           
+1fff113a:       e56c            b.n     1fff0c16 <rounded_divide+0x494>          
 1fff113c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1140:       e4ff            b.n     1fff0b42 <autobaud_calc+0x3c0>           
+1fff1140:       e4ff            b.n     1fff0b42 <rounded_divide+0x3c0>          
 1fff1142:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1146:       e4b4            b.n     1fff0ab2 <autobaud_calc+0x330>           
+1fff1146:       e4b4            b.n     1fff0ab2 <rounded_divide+0x330>          
 1fff1148:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff114c:       e478            b.n     1fff0a40 <autobaud_calc+0x2be>           
+1fff114c:       e478            b.n     1fff0a40 <rounded_divide+0x2be>          
 1fff114e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1152:       e421            b.n     1fff0998 <autobaud_calc+0x216>           
+1fff1152:       e421            b.n     1fff0998 <rounded_divide+0x216>          
 1fff1154:       220f            movs    r2, #15                                  
 1fff1156:       2001            movs    r0, #1                                   
 1fff1158:       6869            ldr     r1, [r5, #4]                             
-1fff115a:       e7e2            b.n     1fff1122 <autobaud_calc+0x9a0>           
+1fff115a:       e7e2            b.n     1fff1122 <rounded_divide+0x9a0>          
 1fff115c:       01bc            lsls    r4, r7, #6                               
 1fff115e:       1000            asrs    r0, r0, #32                              
 1fff1160:       011c            lsls    r4, r3, #4                               
@@ -1870,6 +1870,9 @@ Disassembly of section .arm:
 1fff118a:       0010            movs    r0, r2                                   
 
 1fff118c <routine118c>:
+## input:
+##   r0: TTC(1)
+##   r1: 
 1fff118c:       b510            push    {r4, lr}                                 ## push stuff
 1fff118e:       460c            mov     r4, r1                                   ## r4=r1
 1fff1190:       b162            cbz     r2, 1fff11ac <routine118c+0x20>          ## if r2 is zero, skip the next block
@@ -1878,7 +1881,7 @@ Disassembly of section .arm:
 1fff1196:       4610            mov     r0, r2                                   ## r0=r2
 1fff1198:       f44f 727a       mov.w   r2, #1000       ; 0x3e8                  ## r2=1000
 1fff119c:       4350            muls    r0, r2                                   ## r0*=r2
-1fff119e:       f7ff faf0       bl      1fff0782 <autobaud_calc>                 ## r0=
+1fff119e:       f7ff faf0       bl      1fff0782 <rounded_divide>                ## r0=rounded_divide(,26*)
 1fff11a2:       2c01            cmp     r4, #1                                   
 1fff11a4:       d101            bne.n   1fff11aa <routine118c+0x1e>              
 1fff11a6:       2403            movs    r4, #3                                   
@@ -2432,16 +2435,16 @@ Disassembly of section .arm:
 1fff16a6:       2d00            cmp     r5, #0                                   
 1fff16a8:       d010            beq.n   1fff16cc <routine12b0+0x41c>             
 1fff16aa:       6920            ldr     r0, [r4, #16]                            
-1fff16ac:       f7ff f886       bl      1fff07bc <autobaud_calc+0x3a>            
+1fff16ac:       f7ff f886       bl      1fff07bc <rounded_divide+0x3a>           
 1fff16b0:       f1b9 0f00       cmp.w   r9, #0                                   
 1fff16b4:       462a            mov     r2, r5                                   
 1fff16b6:       4639            mov     r1, r7                                   
 1fff16b8:       4640            mov     r0, r8                                   
 1fff16ba:       d103            bne.n   1fff16c4 <routine12b0+0x414>             
 1fff16bc:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
-1fff16c0:       f7ff b93e       b.w     1fff0940 <autobaud_calc+0x1be>           
+1fff16c0:       f7ff b93e       b.w     1fff0940 <rounded_divide+0x1be>          
 1fff16c4:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
-1fff16c8:       f7ff b8f4       b.w     1fff08b4 <autobaud_calc+0x132>           
+1fff16c8:       f7ff b8f4       b.w     1fff08b4 <rounded_divide+0x132>          
 1fff16cc:       e8bd 87f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, pc}    
 1fff16d0:       4932            ldr     r1, [pc, #200]  ; (1fff179c <routine170e+0x8e>) 
 1fff16d2:       2000            movs    r0, #0                                   
