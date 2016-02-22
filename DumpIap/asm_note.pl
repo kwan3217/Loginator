@@ -41,7 +41,7 @@ sub printAsm {
       chomp $asm;
       $asm=expand($asm);
       print "asm line: $asm\n" if $debug;
-      if($asm=~/(^[0-9a-fA-F]{8}):.*/) {  #Don't match lines with addresses and labels, just addresses
+      if($asm=~/(^[ 0-9a-fA-F]{7}[0-9a-fA-F]):.*/) {  #Don't match lines with addresses and labels, just addresses
         $asmAddress=$1;
         if($asmAddress ge $noteAddress) {
           $done=1;
@@ -67,7 +67,7 @@ sub printAsm {
     chomp $note;
     $note = expand($note);
     print "catch up note line:    $note\n" if $debug;
-    if($note=~/(^[0-9a-fA-F]{8}):.*/) {
+    if($note=~/(^[ 0-9a-fA-F]{7}[0-9a-fA-F]):.*/) {
       $noteAddress=$1;
       $comment=$2;
     }
@@ -81,7 +81,7 @@ while(<NOTEF>) {
   chomp $note;
   $note = expand($note);
   print "note line:    $note\n" if $debug;
-  if($note=~/(^[0-9a-fA-F]{8})[^:]*:.*(##.*)/) {
+  if($note=~/(^[ 0-9a-fA-F]{7}[0-9a-fA-F])[^:]*:.*(##.*)/) {
     $noteAddress=$1;
     $comment=$2;
     print "Found an address with a note\n" if $debug;
@@ -91,7 +91,7 @@ while(<NOTEF>) {
   } elsif($note=~/^.*(##.*)/) {
     print "Found a note with no address\n" if $debug;
      $noteNoAddress=$noteNoAddress.$1."\n";
-  } elsif($note=~/^([0-9a-fA-F]{8}):.*/) {
+  } elsif($note=~/^([ 0-9a-fA-F]{7}[0-9a-fA-F]):.*/) {
     print "Found an address with no note\n" if $debug;
     $noteAddress=$1;
     $comment="";

@@ -53,7 +53,7 @@ ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x62C,local'
 ARM_SYMBOLS+=--add-symbol 'rounded_divide=.arm:0x782'
 ARM_SYMBOLS+=--add-symbol 'routine118c=.arm:0x118c'
 ARM_SYMBOLS+=--add-symbol 'routine12b0=.arm:0x12b0'
-ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x12bc,local'
+ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x12b8,local'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x12c0,local'
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x1640,local'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x1650,local'
@@ -75,4 +75,7 @@ bootstrap.disasm: bootstrap.o Makefile notes.txt ../DumpIap/asm_note.pl
 	cp $@ notes.txt
 	arm-none-eabi-objdump -d -marm -z $< | perl ../DumpIap/asm_note.pl notes.txt > $@
 
+mbed_blinky.disasm: mbed_blinky.elf Makefile notes.txt ../DumpIap/asm_note.pl
+	cp $@ notes.txt
+	arm-none-eabi-objdump -d -marm -z $< | perl ../DumpIap/asm_note.pl notes.txt > $@
 

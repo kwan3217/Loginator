@@ -243,7 +243,7 @@ Disassembly of section .arm:
 1fff01e8:       6070            str     r0, [r6, #4]                             ## TTCR(1)=0, stop the timer
 1fff01ea:       68b0            ldr     r0, [r6, #8]                             ## r0=TTC(1)
 1fff01ec:       21d0            movs    r1, #208        ; 0xd0                   ## r1=0xd0
-1fff01ee:       f000 fac8       bl      1fff0782 <rounded_divide>                ## r0=autobaud_calc(TTC(1),0xd0)
+1fff01ee:       f000 fac8       bl      1fff0782 <rounded_divide>                ## r0=rounded_divide(TTC(1),0xd0)
 1fff01f2:       2200            movs    r2, #0                                   ## r2=0
 1fff01f4:       2103            movs    r1, #3                                   ## r1=3
 1fff01f6:       f000 ffc9       bl      1fff118c <routine118c>                   ## call routine118c
@@ -1871,8 +1871,9 @@ Disassembly of section .arm:
 
 1fff118c <routine118c>:
 ## input:
-##   r0: TTC(1)
-##   r1: 
+##   r0: TTC(1)/0xd0
+##   r1: 3
+##   r2: 0
 1fff118c:       b510            push    {r4, lr}                                 ## push stuff
 1fff118e:       460c            mov     r4, r1                                   ## r4=r1
 1fff1190:       b162            cbz     r2, 1fff11ac <routine118c+0x20>          ## if r2 is zero, skip the next block
@@ -1880,14 +1881,14 @@ Disassembly of section .arm:
 1fff1194:       4341            muls    r1, r0                                   ## r1*=r0
 1fff1196:       4610            mov     r0, r2                                   ## r0=r2
 1fff1198:       f44f 727a       mov.w   r2, #1000       ; 0x3e8                  ## r2=1000
-1fff119c:       4350            muls    r0, r2                                   ## r0*=r2
-1fff119e:       f7ff faf0       bl      1fff0782 <rounded_divide>                ## r0=rounded_divide(,26*)
-1fff11a2:       2c01            cmp     r4, #1                                   
-1fff11a4:       d101            bne.n   1fff11aa <routine118c+0x1e>              
-1fff11a6:       2403            movs    r4, #3                                   
-1fff11a8:       e000            b.n     1fff11ac <routine118c+0x20>              
-1fff11aa:       2407            movs    r4, #7                                   
-1fff11ac:       4942            ldr     r1, [pc, #264]  ; (1fff12b8 <routine12b0+0x8>) 
+1fff119c:       4350            muls    r0, r2                                   ## r0=r0*r2 (=r0*1000)
+1fff119e:       f7ff faf0       bl      1fff0782 <rounded_divide>                ## r0=rounded_divide(p0*1000,p0*26)
+1fff11a2:       2c01            cmp     r4, #1                                   ## compare p1 to 1
+1fff11a4:       d101            bne.n   1fff11aa <routine118c+0x1e>              ## if not equal, skip the next bit
+1fff11a6:       2403            movs    r4, #3                                   ## r4=3 (if p1 was 1)
+1fff11a8:       e000            b.n     1fff11ac <routine118c+0x20>              ## skip down
+1fff11aa:       2407            movs    r4, #7                                   ## r4=7 (if p1 wasn't 1)
+1fff11ac:       4942            ldr     r1, [pc, #264]  ; (1fff12b8 <routine12b0+0x8>) ## r1=[0x1fff12b8]=skip target
 1fff11ae:       694a            ldr     r2, [r1, #20]                            
 1fff11b0:       0652            lsls    r2, r2, #25                              
 1fff11b2:       d5fc            bpl.n   1fff11ae <routine118c+0x22>              
@@ -2014,8 +2015,7 @@ Disassembly of section .arm:
 1fff12b2:       6008            str     r0, [r1, #0]                             ## ram[124]=r0
 1fff12b4:       4770            bx      lr                                       ## return
 1fff12b6:       0000            movs    r0, r0                                   
-1fff12b8:       c000            stmia   r0!, {}                                  
-1fff12ba:       4000            ands    r0, r0                                   
+1fff12b8:       4000c000        .word   0x4000c000                               
 1fff12bc:       10000124        .word   0x10000124                               
 1fff12c0:       8000            strh    r0, [r0, #0]                             
 1fff12c2:       4000            ands    r0, r0                                   
