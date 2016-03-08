@@ -80,10 +80,24 @@ ARM_SYMBOLS+=--add-symbol '&adc=.arm:0x554'
 ARM_SYMBOLS+=--add-symbol 'reset2_cont=.arm:0x558'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x558,local'
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x5f4,local'
+ARM_SYMBOLS+=--add-symbol '&boot[5b0]=.arm:0x5f4'
+ARM_SYMBOLS+=--add-symbol '&boot[5b4]=.arm:0x5f8'
+ARM_SYMBOLS+=--add-symbol '&boot[5bc]=.arm:0x5fc'
+ARM_SYMBOLS+=--add-symbol '&boot[5e0]=.arm:0x600'
+ARM_SYMBOLS+=--add-symbol '&boot[5e4]=.arm:0x604'
+ARM_SYMBOLS+=--add-symbol '&boot[5f0]=.arm:0x608'
+ARM_SYMBOLS+=--add-symbol '&boot[5e8]=.arm:0x60c'
+ARM_SYMBOLS+=--add-symbol '&boot[5ec]=.arm:0x610'
+ARM_SYMBOLS+=--add-symbol '&boot[5d4]=.arm:0x614'
+ARM_SYMBOLS+=--add-symbol '&boot[5c8]=.arm:0x618'
+ARM_SYMBOLS+=--add-symbol '&boot[5cc]=.arm:0x61C'
+ARM_SYMBOLS+=--add-symbol 'bitmask=.arm:0x620'
+ARM_SYMBOLS+=--add-symbol '&gpio=.arm:0x624'
+ARM_SYMBOLS+=--add-symbol '&crp5=.arm:0x628'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x62C,local'
 ARM_SYMBOLS+=--add-symbol 'rounded_divide=.arm:0x782'
 ARM_SYMBOLS+=--add-symbol 'routine118c=.arm:0x118c'
-ARM_SYMBOLS+=--add-symbol 'routine12b0=.arm:0x12b0'
+ARM_SYMBOLS+=--add-symbol 'set_ram124=.arm:0x12b0'
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x12b8,local'
 ARM_SYMBOLS+=--add-symbol '$$t=.arm:0x12c0,local'
 ARM_SYMBOLS+=--add-symbol '$$d=.arm:0x1640,local'
@@ -110,3 +124,5 @@ mbed_blinky.disasm: mbed_blinky.elf Makefile notes.txt ../DumpIap/asm_note.pl
 	cp $@ notes.txt
 	arm-none-eabi-objdump -d -marm -z $< | perl ../DumpIap/asm_note.pl notes.txt > $@
 
+bootstrap.trace: bootstrap.disasm
+	java -classpath ../../../build/ org.kwansystems.emulator.arm.Emulator > $@

@@ -218,7 +218,7 @@ Disassembly of section .arm:
 1fff0128:       2305            movs    r3, #5                                   
 1fff012a:       f1a2 0094       sub.w   r0, r2, #148    ; 0x94                   
 1fff012e:       9901            ldr     r1, [sp, #4]                             
-1fff0130:       f001 f8d7       bl      1fff12e2 <routine12b0+0x32>              
+1fff0130:       f001 f8d7       bl      1fff12e2 <set_ram124+0x32>               
 1fff0134:       2800            cmp     r0, #0                                   
 1fff0136:       d0e5            beq.n   1fff0104 <usagefault+0x1c>               
 1fff0138:       6829            ldr     r1, [r5, #0]                             
@@ -265,7 +265,7 @@ Disassembly of section .arm:
 1fff018c:       220f            movs    r2, #15                                  
 1fff018e:       2013            movs    r0, #19                                  
 1fff0190:       6869            ldr     r1, [r5, #4]                             
-1fff0192:       f001 f8f4       bl      1fff137e <routine12b0+0xce>              
+1fff0192:       f001 f8f4       bl      1fff137e <set_ram124+0xce>               
 1fff0196:       f001 f833       bl      1fff1200 <routine118c+0x74>              
 1fff019a:       e7b3            b.n     1fff0104 <usagefault+0x1c>               
 1fff019c:       f000 ff46       bl      1fff102c <rounded_divide+0x8aa>          
@@ -275,20 +275,45 @@ Disassembly of section .arm:
 ## Wait for a question mark (?, ascii 0x3F, 0b00111111) to appear on RX0. UARTs 
 ## are idle high, send a low start bit, then send the bits in direct logic, least
 ## significant first, followed by a high stop bit. If there is no further 
-## activity, the line stays idle high. So, wait for and watch the start bit (0)
-## go by, then time the next six six high data bits. 
+## activity, the line stays idle high. For the question mark, the signals sent 
+## are (in time order left->right) 
+## 
+##  idle(H)|S11111100P
+##          LHHHHHHLLH 
+## So, wait for and watch the start bit (L) go by, then time the next six six high data bits. 
+## Rough C translation:
+## void autobaud() {
+##   unlock_bootblock();
+##   int boot430=boot[430]; //grab this value while the boot block is unlocked
+##   lock_bootblock();
+##   TTCR(1)=2;
+##   int bitMaskToCheck;
+##   if((boot430 & (1<<17))==0) { //Seems to determine if we are using UART0 (bit 17 is 0) or UART3 (bit 17 is 1)
+##     bitMaskToCheck=(1<<1);
+##   } else {
+##     bitMaskToCheck=(1<<3);
+##   }
+##   while((PIN0 & bitMaskToCheck)!=0) ; //wait until the correct bit goes low, start bit leading edge
+##   while((PIN0 & bitMaskToCheck)==0) ; //wait until the correct bit goes back high, start bit trailing edge/first data bit leading edge
+##   TTCR(1)=1; //Pull timer counter and prescale counter back out of reset and enable timing
+##   while((PIN0 & bitMaskToCheck)!=0) ; //wait until the correct bit goes low, high data bits trailing edge/low data bits leading edge
+##   while((PIN0 & bitMaskToCheck)==0) ; //wait until the correct bit goes back high, low data bits trailing edge/stop bit leading edge
+##   TTCR(1)=0; //Stop the timer, but don't reset it
+##   routine118c(rounded_divide(TTC(1),208),0,3);
+##   if((boot430 & (1<<17))!=0) {
+##     DIR0
 1fff01a2:       e92d 41f0       stmdb   sp!, {r4, r5, r6, r7, r8, lr}            ## push a bunch of stuff
 1fff01a6:       f001 faaa       bl      1fff16fe <unlock_bootblock>              ## unlock boot block
 1fff01aa:       48d7            ldr     r0, [pc, #860]  ; (1fff0508 <&boot[430]>) ## r0=[0x1fff0508]=&boot[430]
 1fff01ac:       6804            ldr     r4, [r0, #0]                             ## r4=boot[430]
 1fff01ae:       f001 fa9e       bl      1fff16ee <lock_bootblock>                ## lock boot block
-1fff01b2:       4fd6            ldr     r7, [pc, #856]  ; (1fff050c <&gpio>)     ## r7=[0x1fff050c]=0x20098000, base of GPIO
-1fff01b4:       4ed6            ldr     r6, [pc, #856]  ; (1fff0510 <&timer1>)   ## r6=[0x1fff0510]=0x40008000, base of timer1
-1fff01b6:       4dd7            ldr     r5, [pc, #860]  ; (1fff0514 <&pinconnect>) ## r5=[0x1fff0514]=0x4002c000, base of pin connect block
+1fff01b2:       4fd6            ldr     r7, [pc, #856]  ; (1fff050c <&gpio>)     ## r7=&gpio
+1fff01b4:       4ed6            ldr     r6, [pc, #856]  ; (1fff0510 <&timer1>)   ## r6=&timer1
+1fff01b6:       4dd7            ldr     r5, [pc, #860]  ; (1fff0514 <&pinconnect>) ## r5=&pinconnect
 1fff01b8:       f04f 0802       mov.w   r8, #2                                   ## r8=2
 1fff01bc:       f8c6 8004       str.w   r8, [r6, #4]                             ## TTCR(1)=2, put timer counter and prescale counter into reset
 1fff01c0:       03a0            lsls    r0, r4, #14                              ## r0=r4<<14
-1fff01c2:       d501            bpl.n   1fff01c8 <autobaud+0x26>                 ## if bit 17 0f boot[430] was set, skip down
+1fff01c2:       d501            bpl.n   1fff01c8 <autobaud+0x26>                 ## if bit 17 of boot[430] was cleared, skip down
 1fff01c4:       2002            movs    r0, #2                                   ## r0=2, check bit 1 of PIN0, check if P0[1] is output
 1fff01c6:       e000            b.n     1fff01ca <autobaud+0x28>                 ## skip down
 1fff01c8:       2008            movs    r0, #8                                   ## r0=8, check bit 3 of PIN0, check if P0[3] is output
@@ -314,20 +339,20 @@ Disassembly of section .arm:
 1fff01f2:       2200            movs    r2, #0                                   ## r2=0
 1fff01f4:       2103            movs    r1, #3                                   ## r1=3
 1fff01f6:       f000 ffc9       bl      1fff118c <routine118c>                   ## call routine118c
-1fff01fa:       03a0            lsls    r0, r4, #14                              
-1fff01fc:       d510            bpl.n   1fff0220 <autobaud+0x7e>                 
-1fff01fe:       6828            ldr     r0, [r5, #0]                             
-1fff0200:       f020 0007       bic.w   r0, r0, #7                               
-1fff0204:       6028            str     r0, [r5, #0]                             
-1fff0206:       6828            ldr     r0, [r5, #0]                             
-1fff0208:       f040 0084       orr.w   r0, r0, #132    ; 0x84                   
-1fff020c:       6028            str     r0, [r5, #0]                             
-1fff020e:       6868            ldr     r0, [r5, #4]                             
-1fff0210:       f020 0007       bic.w   r0, r0, #7                               
-1fff0214:       6068            str     r0, [r5, #4]                             
-1fff0216:       6868            ldr     r0, [r5, #4]                             
-1fff0218:       f040 0084       orr.w   r0, r0, #132    ; 0x84                   
-1fff021c:       6068            str     r0, [r5, #4]                             
+1fff01fa:       03a0            lsls    r0, r4, #14                              ## check bit 17 of boot[430]
+1fff01fc:       d510            bpl.n   1fff0220 <autobaud+0x7e>                 ## if cleared, skip down
+1fff01fe:       6828            ldr     r0, [r5, #0]                             ## r0=DIR0
+1fff0200:       f020 0007       bic.w   r0, r0, #7                               ## r0&=~(0x07) clear the lower 3 bits (making P0[2:0] input pins)
+1fff0204:       6028            str     r0, [r5, #0]                             ## DIR0=r0
+1fff0206:       6828            ldr     r0, [r5, #0]                             ## r0=DIR0
+1fff0208:       f040 0084       orr.w   r0, r0, #132    ; 0x84                   ## r0|=0x84, set bits 2 and 7 (making P0[2] and P0[7] output pins. Note that this means that P0[2] is intentionally reversed)
+1fff020c:       6028            str     r0, [r5, #0]                             ## DIR0=r0
+1fff020e:       6868            ldr     r0, [r5, #4]                             ## r0=MASK0
+1fff0210:       f020 0007       bic.w   r0, r0, #7                               ## r0&=~(0x07) clear the lower 3 bits (so that those bits are visible)
+1fff0214:       6068            str     r0, [r5, #4]                             ## MASK0=r0
+1fff0216:       6868            ldr     r0, [r5, #4]                             ## r0=MASK0
+1fff0218:       f040 0084       orr.w   r0, r0, #132    ; 0x84                   ## r0|=0x84
+1fff021c:       6068            str     r0, [r5, #4]                             ## MASK0=r0
 1fff021e:       e00f            b.n     1fff0240 <autobaud+0x9e>                 
 1fff0220:       68a8            ldr     r0, [r5, #8]                             
 1fff0222:       f020 0007       bic.w   r0, r0, #7                               
@@ -352,7 +377,7 @@ Disassembly of section .arm:
 1fff0256:       48aa            ldr     r0, [pc, #680]  ; (1fff0500 <&crp3+0x4>) 
 1fff0258:       49af            ldr     r1, [pc, #700]  ; (1fff0518 <&pinconnect+0x4>) 
 1fff025a:       3894            subs    r0, #148        ; 0x94                   
-1fff025c:       f001 f832       bl      1fff12c4 <routine12b0+0x14>              
+1fff025c:       f001 f832       bl      1fff12c4 <set_ram124+0x14>               
 1fff0260:       2800            cmp     r0, #0                                   
 1fff0262:       d023            beq.n   1fff02ac <pop_and_return>                
 1fff0264:       03a0            lsls    r0, r4, #14                              
@@ -388,6 +413,16 @@ Disassembly of section .arm:
 1fff02ac:       e8bd 81f0       ldmia.w sp!, {r4, r5, r6, r7, r8, pc}            ## pop(!) a bunch of stuff including into pc. usercode_entry2 pushed these, including lr instead of pc. This therefore does a return.
 
 1fff02b0 <setup_clocks_and_peripherals>:
+## Rough C translation:
+## void setup_clocks_and_peripherals() {
+##   CLKSRCSEL=0; //Set internal RC oscillator as sysclk source
+##   CCLKSEL=1;   // Set CCLK divider to 1, sysclk used as input
+##   PCLKSEL=1;   // set PCLK divider to 1
+##   PCONP|=(1<<2) | (1<<3) | (1<<15); //turn on bits 2 (timer1), 3 (UART0), and 15 (GPIO)
+##   RSTCON|=(1<<2) | (1<<3);          //reset bits 2 (Timer1), 3 (UART0)
+##   RSTCON&=~((1<<2) | (1<<3));       //Pull bits 2 (Timer1), 3 (UART0) out of reset
+##   U0FDR=0x85;
+## }
 1fff02b0:       489a            ldr     r0, [pc, #616]  ; (1fff051c <&sysctl[150]>) ## r0=[0x1fff051c]=0x400fc150, &
 1fff02b2:       2100            movs    r1, #0                                   ## r1=0
 1fff02b4:       f840 1c44       str.w   r1, [r0, #-68]                           ## CLKSRCSEL=0, set internal RC oscillator as sysclk source
@@ -410,15 +445,24 @@ Disassembly of section .arm:
 1fff02ea:       4770            bx      lr                                       ## return
 
 1fff02ec <isp_entry>:
+## Rough C translation:
+## void isp_entry() {
+##   const int usercrp; //at address 0x2FC in Flash
+##   int ram_usercrp;   //at ram[120];
+##   int ram124;        //at ram[124];
+##   setup_clocks_and_peripherals();
+##   ram_usercrp=usercrp; //This seems familiar. I wonder if there are alternate routes to get here, some of which set this and some which don't?
+##   set_ram124(1);
+##   autobaud();
 1fff02ec:       b510            push    {r4, lr}                                 ## push some stuff
 1fff02ee:       f7ff ffdf       bl      1fff02b0 <setup_clocks_and_peripherals>  ## setup clock sources, turn on UART0, timer1, GPIO, and reset UART0, timer1
 1fff02f2:       488c            ldr     r0, [pc, #560]  ; (1fff0524 <&&usercrp>) ## r0=[0x1fff0524]=0x1fff00c8
 1fff02f4:       4c80            ldr     r4, [pc, #512]  ; (1fff04f8 <&isp_ram_vars>) ## r4=[0x1fff04f8]=&ram[118]
 1fff02f6:       6800            ldr     r0, [r0, #0]                             ## r0=[0x1fff00c8]=&usercrp
 1fff02f8:       6800            ldr     r0, [r0, #0]                             ## r0=usercrp
-1fff02fa:       60a0            str     r0, [r4, #8]                             ## ram[118]=usercrp
+1fff02fa:       60a0            str     r0, [r4, #8]                             ## ram[120]=usercrp
 1fff02fc:       2001            movs    r0, #1                                   ## r0=1
-1fff02fe:       f000 ffd7       bl      1fff12b0 <routine12b0>                   ## r1=&ram[124], ram[124]=r0=1
+1fff02fe:       f000 ffd7       bl      1fff12b0 <set_ram124>                    ## r1=&ram[124], ram[124]=r0=1
 1fff0302:       f7ff ff4e       bl      1fff01a2 <autobaud>                      ## 
 1fff0306:       4888            ldr     r0, [pc, #544]  ; (1fff0528 <&&usercrp+0x4>) 
 1fff0308:       f000 ff7a       bl      1fff1200 <routine118c+0x74>              
@@ -555,11 +599,24 @@ Disassembly of section .arm:
 1fff0448:       f7ff be29       b.w     1fff009e <emulate_reset1>                ## emulate reset
 
 1fff044c <usercode_entry>:
+## Enter the user code if the checksum is good
+## rough C translation
+## void usercode_entry() {
+##   unlock_bootblock();
+##   int boot430=boot[430];
+##   lock_bootblock();
+##   if((boot430 & 0x0F)==0) {
+##     return setup_emc(); //This function won't return, but will instead emulate a reset
+##   } else {
+##     start_usercode_if_checksum_good();
+##   }
+##   return isp_entry();
+## }
 1fff044c:       b510            push    {r4, lr}                                 ## push some things
 1fff044e:       f001 f956       bl      1fff16fe <unlock_bootblock>              ## set bit 6
 1fff0452:       482d            ldr     r0, [pc, #180]  ; (1fff0508 <&boot[430]>) ## r0=&boot[430]
 1fff0454:       6804            ldr     r4, [r0, #0]                             ## r4=boot[430]
-1fff0456:       f001 f94a       bl      1fff16ee <lock_bootblock>                ## clear bit 6
+1fff0456:       f001 f94a       bl      1fff16ee <lock_bootblock>                ## lock boot block
 1fff045a:       0720            lsls    r0, r4, #28                              ## r0=r4<<28
 1fff045c:       d102            bne.n   1fff0464 <usercode_entry+0x18>           ## if any of the lower 4 bits are set, skip setting up EMC
 1fff045e:       e8bd 4010       ldmia.w sp!, {r4, lr}                            ## pop the stack
@@ -728,50 +785,58 @@ Disassembly of section .arm:
 ##   if(boot5c8==0x20080620) {
 ##     emulate_reset2(boot5cc);
 ##   }
-##  ## here (cycle 255)
-##   if(WDMOD|(1<<2)) {
-##     //reset triggered by watchdog, go straight to user code
+##   define crp5 0x4e697370
+##   if(
+##     !(WDMOD|(1<<2))) && //if reset not triggered by watchdog and...
+##     !(PIN2|(1<<10))  && //...BSL not requested and...
+##     usercrp!=crp3    && //...we aren't in CRP3 and...
+##     usercrp!=crp5    && //...we aren't in undocumented CRP mode...
+##   ) {
+##     return isp_entry(); //this is my C translation for a tail call
+##   } else {
+##     return usercode_entry();
+##   }
 ## }  
 1fff0558:       6348            str     r0, [r1, #52]   ; 0x34                   ## ADTRM=boot[5d8]
-1fff055a:       4826            ldr     r0, [pc, #152]  ; (1fff05f4 <reset2_cont+0x9c>) ## r0=[0x1fff05f4]=&boot[5b0]
+1fff055a:       4826            ldr     r0, [pc, #152]  ; (1fff05f4 <&boot[5b0]>) ## r0=&boot[5b0]
 1fff055c:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5b0], value to be written to PCONP
 1fff055e:       6020            str     r0, [r4, #0]                             ## PCONP=r0
-1fff0560:       4825            ldr     r0, [pc, #148]  ; (1fff05f8 <reset2_cont+0xa0>) ## r0=[0x1fff05f8]=&boot[5b4]
+1fff0560:       4825            ldr     r0, [pc, #148]  ; (1fff05f8 <&boot[5b4]>) ## r0=&boot[5b4]
 1fff0562:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5b4]
 1fff0564:       f420 3080       bic.w   r0, r0, #65536  ; 0x10000                ## clear r0 bit 16, clearing ROM_LAT (Table 7 says that boot code SETS this bit)
 1fff0568:       f8c4 00c4       str.w   r0, [r4, #196]  ; 0xc4                   ## MATRIXARB=r0
-1fff056c:       4823            ldr     r0, [pc, #140]  ; (1fff05fc <reset2_cont+0xa4>) ## r0=[0x1fff05fc]=&boot[5bc]
+1fff056c:       4823            ldr     r0, [pc, #140]  ; (1fff05fc <&boot[5bc]>) ## r0=&boot[5bc]
 1fff056e:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5bc]
 1fff0570:       f8c4 00e0       str.w   r0, [r4, #224]  ; 0xe0                   ## IRCCTRL=r0, IRC trim
-1fff0574:       4822            ldr     r0, [pc, #136]  ; (1fff0600 <reset2_cont+0xa8>) ## r0=[0x1fff0600]=&boot[5e0]
+1fff0574:       4822            ldr     r0, [pc, #136]  ; (1fff0600 <&boot[5e0]>) ## r0=&boot[5e0]
 1fff0576:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5e0]
 1fff0578:       f8c4 0138       str.w   r0, [r4, #312]  ; 0x138                  ## sysctl[1fc]=r0
-1fff057c:       4821            ldr     r0, [pc, #132]  ; (1fff0604 <reset2_cont+0xac>) ## r0=[0x1fff0604]=&boot[5e4]
+1fff057c:       4821            ldr     r0, [pc, #132]  ; (1fff0604 <&boot[5e4]>) ## r0=&boot[5e4]
 1fff057e:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5e4]
 1fff0580:       f8c4 00ec       str.w   r0, [r4, #236]  ; 0xec                   ## PBOOST=r0
-1fff0584:       4820            ldr     r0, [pc, #128]  ; (1fff0608 <reset2_cont+0xb0>) ## r0=[0x1fff0608]=&boot[5f0]
+1fff0584:       4820            ldr     r0, [pc, #128]  ; (1fff0608 <&boot[5f0]>) ## r0=&boot[5f0]
 1fff0586:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5f0]
 1fff0588:       f8c4 0118       str.w   r0, [r4, #280]  ; 0x118                  ## EMCDLYCTL=r0
 1fff058c:       2000            movs    r0, #0                                   ## r0=0
 1fff058e:       6460            str     r0, [r4, #68]   ; 0x44                   ## USBCLKSEL=r0=0
-1fff0590:       481e            ldr     r0, [pc, #120]  ; (1fff060c <reset2_cont+0xb4>) ## r0=[0x1fff060c]=&boot[5e8]
+1fff0590:       481e            ldr     r0, [pc, #120]  ; (1fff060c <&boot[5e8]>) ## r0=&boot[5e8]
 1fff0592:       f1a4 04c4       sub.w   r4, r4, #196    ; 0xc4                   ## r4-=196, set back to base of sysctl block
 1fff0596:       6801            ldr     r1, [r0, #0]                             ## r1=boot[5e8]
 1fff0598:       1c49            adds    r1, r1, #1                               ## r1++
 1fff059a:       d003            beq.n   1fff05a4 <reset2_cont+0x4c>              ## if r1 is now zero (meaning boot[5e8] is 0xffffffff), skip the next 4 instructions
-1fff059c:       491c            ldr     r1, [pc, #112]  ; (1fff0610 <reset2_cont+0xb8>) ## r1=[0x1fff0610]=&boot[5ec]
+1fff059c:       491c            ldr     r1, [pc, #112]  ; (1fff0610 <&boot[5ec]>) ## r1=&boot[5ec]
 1fff059e:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5e8]
 1fff05a0:       6809            ldr     r1, [r1, #0]                             ## r1=boot[5ec]
 1fff05a2:       6001            str     r1, [r0, #0]                             ## [r0=boot[5e8]]=r1=boot[5ec]
-1fff05a4:       481b            ldr     r0, [pc, #108]  ; (1fff0614 <reset2_cont+0xbc>) ## r0=[0x1fff0614]=&boot[5d4]
+1fff05a4:       481b            ldr     r0, [pc, #108]  ; (1fff0614 <&boot[5d4]>) ## r0=&boot[5d4]
 1fff05a6:       6800            ldr     r0, [r0, #0]                             ## r0=boot[5d4]
 1fff05a8:       6020            str     r0, [r4, #0]                             ## sysctl[0]=r0
-1fff05aa:       481b            ldr     r0, [pc, #108]  ; (1fff0618 <reset2_cont+0xc0>) ## r0=[0x1fff0618]=&boot[5c8]
+1fff05aa:       481b            ldr     r0, [pc, #108]  ; (1fff0618 <&boot[5c8]>) ## r0=&boot[5c8]
 1fff05ac:       6804            ldr     r4, [r0, #0]                             ## r4=boot[5c8]
-1fff05ae:       481b            ldr     r0, [pc, #108]  ; (1fff061c <reset2_cont+0xc4>) ## r0=[0x1fff061c]=&boot[5cc]
+1fff05ae:       481b            ldr     r0, [pc, #108]  ; (1fff061c <&boot[5cc]>) ## r0=&boot[5cc]
 1fff05b0:       6807            ldr     r7, [r0, #0]                             ## r7=boot[5cc]
 1fff05b2:       f001 f89c       bl      1fff16ee <lock_bootblock>                ## lock boot block
-1fff05b6:       481a            ldr     r0, [pc, #104]  ; (1fff0620 <reset2_cont+0xc8>) ## r0=[0x1fff0620]=0x20080620
+1fff05b6:       481a            ldr     r0, [pc, #104]  ; (1fff0620 <bitmask>)   ## r0=[0x1fff0620]=0x20080620, looks like a bit mask?
 1fff05b8:       4284            cmp     r4, r0                                   ## compare r4 and r0
 1fff05ba:       d104            bne.n   1fff05c6 <reset2_cont+0x6e>              ## if not equal, skip the call to emulate_reset
 1fff05bc:       4638            mov     r0, r7                                   ## r0=r7
@@ -781,8 +846,7 @@ Disassembly of section .arm:
 1fff05ca:       6800            ldr     r0, [r0, #0]                             ## r0=WDMOD
 1fff05cc:       0740            lsls    r0, r0, #29                              ## check if bit 2 is set, IE the reset was triggered by the watchdog
 1fff05ce:       d40d            bmi.n   1fff05ec <reset2_cont+0x94>              ## If so, skip down to usercode entry
-## here
-1fff05d0:       4814            ldr     r0, [pc, #80]   ; (1fff0624 <reset2_cont+0xcc>) ## r0=[0x1fff0624]=0x20098000, base of GPIO
+1fff05d0:       4814            ldr     r0, [pc, #80]   ; (1fff0624 <&gpio>)     ## r0=[0x1fff0624]=0x20098000, base of GPIO
 1fff05d2:       6d40            ldr     r0, [r0, #84]   ; 0x54                   ## r0=[0x20098054]=PIN2
 1fff05d4:       0540            lsls    r0, r0, #21                              ## check if bit 10 is set, IE P2[10] is high.
 1fff05d6:       d409            bmi.n   1fff05ec <reset2_cont+0x94>              ## if so, BSL is not requested, so skip down to usercode entry
@@ -790,7 +854,7 @@ Disassembly of section .arm:
 1fff05da:       6831            ldr     r1, [r6, #0]                             ## r1=[0x1fff00d0]=crp3
 1fff05dc:       4288            cmp     r0, r1                                   ## Compare usercrp to crp3
 1fff05de:       d005            beq.n   1fff05ec <reset2_cont+0x94>              ## If equal, we are in crp3, so skip down to usercode entry
-1fff05e0:       4911            ldr     r1, [pc, #68]   ; (1fff0628 <reset2_cont+0xd0>) ## r1=[0x1fff0628]=0x4e697370
+1fff05e0:       4911            ldr     r1, [pc, #68]   ; (1fff0628 <&crp5>)     ## r1=[0x1fff0628]=0x4e697370
 1fff05e2:       4288            cmp     r0, r1                                   ## compare usercrp is this weird value
 1fff05e4:       d002            beq.n   1fff05ec <reset2_cont+0x94>              ## if equal, skip down to usercode entry
 1fff05e6:       e8bd 41f0       ldmia.w sp!, {r4, r5, r6, r7, r8, lr}            ## If we got this far, we are still thinking about going to ISP. Clean up the stack...
@@ -798,23 +862,51 @@ Disassembly of section .arm:
 1fff05ec:       e8bd 41f0       ldmia.w sp!, {r4, r5, r6, r7, r8, lr}            ## We shouldn't go to ISP. Clean up the stack...
 1fff05f0:       e72c            b.n     1fff044c <usercode_entry>                ## ...and jump to thinking about starting the user code
 1fff05f2:       0000            movs    r0, r0                                   ## padding for alignment
+
+1fff05f4 <&boot[5b0]>:
 1fff05f4:       001005b0        .word   0x001005b0                               
+
+1fff05f8 <&boot[5b4]>:
 1fff05f8:       001005b4        .word   0x001005b4                               
+
+1fff05fc <&boot[5bc]>:
 1fff05fc:       001005bc        .word   0x001005bc                               
+
+1fff0600 <&boot[5e0]>:
 1fff0600:       001005e0        .word   0x001005e0                               
+
+1fff0604 <&boot[5e4]>:
 1fff0604:       001005e4        .word   0x001005e4                               
+
+1fff0608 <&boot[5f0]>:
 1fff0608:       001005f0        .word   0x001005f0                               
+
+1fff060c <&boot[5e8]>:
 1fff060c:       001005e8        .word   0x001005e8                               
+
+1fff0610 <&boot[5ec]>:
 1fff0610:       001005ec        .word   0x001005ec                               
+
+1fff0614 <&boot[5d4]>:
 1fff0614:       001005d4        .word   0x001005d4                               
+
+1fff0618 <&boot[5c8]>:
 1fff0618:       001005c8        .word   0x001005c8                               
+
+1fff061c <&boot[5cc]>:
 1fff061c:       001005cc        .word   0x001005cc                               
+
+1fff0620 <bitmask>:
 1fff0620:       20080620        .word   0x20080620                               
+
+1fff0624 <&gpio>:
 1fff0624:       20098000        .word   0x20098000                               
+
+1fff0628 <&crp5>:
 1fff0628:       4e697370        .word   0x4e697370                               
 1fff062c:       1e49            subs    r1, r1, #1                               
 1fff062e:       4008            ands    r0, r1                                   
-1fff0630:       d000            beq.n   1fff0634 <reset2_cont+0xdc>              
+1fff0630:       d000            beq.n   1fff0634 <&crp5+0xc>                     
 1fff0632:       2001            movs    r0, #1                                   
 1fff0634:       4770            bx      lr                                       
 1fff0636:       e92d 47f0       stmdb   sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
@@ -822,123 +914,123 @@ Disassembly of section .arm:
 1fff063c:       4615            mov     r5, r2                                   
 1fff063e:       461f            mov     r7, r3                                   
 1fff0640:       2400            movs    r4, #0                                   
-1fff0642:       b130            cbz     r0, 1fff0652 <reset2_cont+0xfa>          
+1fff0642:       b130            cbz     r0, 1fff0652 <&crp5+0x2a>                
 1fff0644:       4631            mov     r1, r6                                   
-1fff0646:       f000 fe82       bl      1fff134e <routine12b0+0x9e>              
-1fff064a:       b110            cbz     r0, 1fff0652 <reset2_cont+0xfa>          
+1fff0646:       f000 fe82       bl      1fff134e <set_ram124+0x9e>               
+1fff064a:       b110            cbz     r0, 1fff0652 <&crp5+0x2a>                
 1fff064c:       200c            movs    r0, #12                                  
 1fff064e:       e8bd 87f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, pc}    
 1fff0652:       2d69            cmp     r5, #105        ; 0x69                   
-1fff0654:       d101            bne.n   1fff065a <reset2_cont+0x102>             
+1fff0654:       d101            bne.n   1fff065a <&crp5+0x32>                    
 1fff0656:       2000            movs    r0, #0                                   
-1fff0658:       e7f9            b.n     1fff064e <reset2_cont+0xf6>              
+1fff0658:       e7f9            b.n     1fff064e <&crp5+0x26>                    
 1fff065a:       2104            movs    r1, #4                                   
 1fff065c:       6830            ldr     r0, [r6, #0]                             
-1fff065e:       f7ff ffe5       bl      1fff062c <reset2_cont+0xd4>              
+1fff065e:       f7ff ffe5       bl      1fff062c <&crp5+0x4>                     
 1fff0662:       f44f 7980       mov.w   r9, #256        ; 0x100                  
-1fff0666:       b160            cbz     r0, 1fff0682 <reset2_cont+0x12a>         
+1fff0666:       b160            cbz     r0, 1fff0682 <&crp5+0x5a>                
 1fff0668:       2d64            cmp     r5, #100        ; 0x64                   
-1fff066a:       d101            bne.n   1fff0670 <reset2_cont+0x118>             
+1fff066a:       d101            bne.n   1fff0670 <&crp5+0x48>                    
 1fff066c:       2406            movs    r4, #6                                   
-1fff066e:       e067            b.n     1fff0740 <reset2_cont+0x1e8>             
+1fff066e:       e067            b.n     1fff0740 <&crp5+0x118>                   
 1fff0670:       240d            movs    r4, #13                                  
 1fff0672:       2d67            cmp     r5, #103        ; 0x67                   
-1fff0674:       d101            bne.n   1fff067a <reset2_cont+0x122>             
+1fff0674:       d101            bne.n   1fff067a <&crp5+0x52>                    
 1fff0676:       2402            movs    r4, #2                                   
-1fff0678:       e062            b.n     1fff0740 <reset2_cont+0x1e8>             
+1fff0678:       e062            b.n     1fff0740 <&crp5+0x118>                   
 1fff067a:       2d68            cmp     r5, #104        ; 0x68                   
-1fff067c:       d111            bne.n   1fff06a2 <reset2_cont+0x14a>             
+1fff067c:       d111            bne.n   1fff06a2 <&crp5+0x7a>                    
 1fff067e:       2403            movs    r4, #3                                   
-1fff0680:       e05e            b.n     1fff0740 <reset2_cont+0x1e8>             
+1fff0680:       e05e            b.n     1fff0740 <&crp5+0x118>                   
 1fff0682:       2d65            cmp     r5, #101        ; 0x65                   
-1fff0684:       d10f            bne.n   1fff06a6 <reset2_cont+0x14e>             
+1fff0684:       d10f            bne.n   1fff06a6 <&crp5+0x7e>                    
 1fff0686:       6830            ldr     r0, [r6, #0]                             
 1fff0688:       4548            cmp     r0, r9                                   
-1fff068a:       d00c            beq.n   1fff06a6 <reset2_cont+0x14e>             
+1fff068a:       d00c            beq.n   1fff06a6 <&crp5+0x7e>                    
 1fff068c:       f5b0 7f00       cmp.w   r0, #512        ; 0x200                  
-1fff0690:       d009            beq.n   1fff06a6 <reset2_cont+0x14e>             
+1fff0690:       d009            beq.n   1fff06a6 <&crp5+0x7e>                    
 1fff0692:       f5b0 6f80       cmp.w   r0, #1024       ; 0x400                  
-1fff0696:       d006            beq.n   1fff06a6 <reset2_cont+0x14e>             
+1fff0696:       d006            beq.n   1fff06a6 <&crp5+0x7e>                    
 1fff0698:       f5b0 5f80       cmp.w   r0, #4096       ; 0x1000                 
-1fff069c:       d003            beq.n   1fff06a6 <reset2_cont+0x14e>             
+1fff069c:       d003            beq.n   1fff06a6 <&crp5+0x7e>                    
 1fff069e:       2006            movs    r0, #6                                   
-1fff06a0:       e7d5            b.n     1fff064e <reset2_cont+0xf6>              
+1fff06a0:       e7d5            b.n     1fff064e <&crp5+0x26>                    
 1fff06a2:       2c00            cmp     r4, #0                                   
-1fff06a4:       d14c            bne.n   1fff0740 <reset2_cont+0x1e8>             
+1fff06a4:       d14c            bne.n   1fff0740 <&crp5+0x118>                   
 1fff06a6:       f001 f82a       bl      1fff16fe <unlock_bootblock>              
 1fff06aa:       493b            ldr     r1, [pc, #236]  ; (1fff0798 <rounded_divide+0x16>) 
 1fff06ac:       6830            ldr     r0, [r6, #0]                             
 1fff06ae:       6809            ldr     r1, [r1, #0]                             
 1fff06b0:       4288            cmp     r0, r1                                   
-1fff06b2:       d305            bcc.n   1fff06c0 <reset2_cont+0x168>             
+1fff06b2:       d305            bcc.n   1fff06c0 <&crp5+0x98>                    
 1fff06b4:       4939            ldr     r1, [pc, #228]  ; (1fff079c <rounded_divide+0x1a>) 
 1fff06b6:       19c2            adds    r2, r0, r7                               
 1fff06b8:       6809            ldr     r1, [r1, #0]                             
 1fff06ba:       1c49            adds    r1, r1, #1                               
 1fff06bc:       428a            cmp     r2, r1                                   
-1fff06be:       d913            bls.n   1fff06e8 <reset2_cont+0x190>             
+1fff06be:       d913            bls.n   1fff06e8 <&crp5+0xc0>                    
 1fff06c0:       4937            ldr     r1, [pc, #220]  ; (1fff07a0 <rounded_divide+0x1e>) 
 1fff06c2:       6809            ldr     r1, [r1, #0]                             
 1fff06c4:       4288            cmp     r0, r1                                   
-1fff06c6:       d305            bcc.n   1fff06d4 <reset2_cont+0x17c>             
+1fff06c6:       d305            bcc.n   1fff06d4 <&crp5+0xac>                    
 1fff06c8:       4936            ldr     r1, [pc, #216]  ; (1fff07a4 <rounded_divide+0x22>) 
 1fff06ca:       19c2            adds    r2, r0, r7                               
 1fff06cc:       6809            ldr     r1, [r1, #0]                             
 1fff06ce:       1c49            adds    r1, r1, #1                               
 1fff06d0:       428a            cmp     r2, r1                                   
-1fff06d2:       d909            bls.n   1fff06e8 <reset2_cont+0x190>             
+1fff06d2:       d909            bls.n   1fff06e8 <&crp5+0xc0>                    
 1fff06d4:       4934            ldr     r1, [pc, #208]  ; (1fff07a8 <rounded_divide+0x26>) 
 1fff06d6:       6809            ldr     r1, [r1, #0]                             
 1fff06d8:       4288            cmp     r0, r1                                   
-1fff06da:       d307            bcc.n   1fff06ec <reset2_cont+0x194>             
+1fff06da:       d307            bcc.n   1fff06ec <&crp5+0xc4>                    
 1fff06dc:       4933            ldr     r1, [pc, #204]  ; (1fff07ac <rounded_divide+0x2a>) 
 1fff06de:       19c2            adds    r2, r0, r7                               
 1fff06e0:       6809            ldr     r1, [r1, #0]                             
 1fff06e2:       1c49            adds    r1, r1, #1                               
 1fff06e4:       428a            cmp     r2, r1                                   
-1fff06e6:       d801            bhi.n   1fff06ec <reset2_cont+0x194>             
+1fff06e6:       d801            bhi.n   1fff06ec <&crp5+0xc4>                    
 1fff06e8:       2101            movs    r1, #1                                   
-1fff06ea:       e000            b.n     1fff06ee <reset2_cont+0x196>             
+1fff06ea:       e000            b.n     1fff06ee <&crp5+0xc6>                    
 1fff06ec:       2100            movs    r1, #0                                   
 1fff06ee:       4688            mov     r8, r1                                   
 1fff06f0:       492f            ldr     r1, [pc, #188]  ; (1fff07b0 <rounded_divide+0x2e>) 
 1fff06f2:       6809            ldr     r1, [r1, #0]                             
 1fff06f4:       4288            cmp     r0, r1                                   
-1fff06f6:       d307            bcc.n   1fff0708 <reset2_cont+0x1b0>             
+1fff06f6:       d307            bcc.n   1fff0708 <&crp5+0xe0>                    
 1fff06f8:       19c1            adds    r1, r0, r7                               
 1fff06fa:       482e            ldr     r0, [pc, #184]  ; (1fff07b4 <rounded_divide+0x32>) 
 1fff06fc:       6800            ldr     r0, [r0, #0]                             
 1fff06fe:       1c40            adds    r0, r0, #1                               
 1fff0700:       4281            cmp     r1, r0                                   
-1fff0702:       d801            bhi.n   1fff0708 <reset2_cont+0x1b0>             
+1fff0702:       d801            bhi.n   1fff0708 <&crp5+0xe0>                    
 1fff0704:       2701            movs    r7, #1                                   
-1fff0706:       e000            b.n     1fff070a <reset2_cont+0x1b2>             
+1fff0706:       e000            b.n     1fff070a <&crp5+0xe2>                    
 1fff0708:       2700            movs    r7, #0                                   
 1fff070a:       f000 fff0       bl      1fff16ee <lock_bootblock>                
 1fff070e:       2d66            cmp     r5, #102        ; 0x66                   
-1fff0710:       d104            bne.n   1fff071c <reset2_cont+0x1c4>             
+1fff0710:       d104            bne.n   1fff071c <&crp5+0xf4>                    
 1fff0712:       ea58 0007       orrs.w  r0, r8, r7                               
-1fff0716:       d113            bne.n   1fff0740 <reset2_cont+0x1e8>             
+1fff0716:       d113            bne.n   1fff0740 <&crp5+0x118>                   
 1fff0718:       240e            movs    r4, #14                                  
-1fff071a:       e011            b.n     1fff0740 <reset2_cont+0x1e8>             
+1fff071a:       e011            b.n     1fff0740 <&crp5+0x118>                   
 1fff071c:       2d67            cmp     r5, #103        ; 0x67                   
-1fff071e:       d104            bne.n   1fff072a <reset2_cont+0x1d2>             
+1fff071e:       d104            bne.n   1fff072a <&crp5+0x102>                   
 1fff0720:       f1b8 0f00       cmp.w   r8, #0                                   
-1fff0724:       d10c            bne.n   1fff0740 <reset2_cont+0x1e8>             
+1fff0724:       d10c            bne.n   1fff0740 <&crp5+0x118>                   
 1fff0726:       2404            movs    r4, #4                                   
-1fff0728:       e00a            b.n     1fff0740 <reset2_cont+0x1e8>             
+1fff0728:       e00a            b.n     1fff0740 <&crp5+0x118>                   
 1fff072a:       2d68            cmp     r5, #104        ; 0x68                   
-1fff072c:       d108            bne.n   1fff0740 <reset2_cont+0x1e8>             
-1fff072e:       b90f            cbnz    r7, 1fff0734 <reset2_cont+0x1dc>         
+1fff072c:       d108            bne.n   1fff0740 <&crp5+0x118>                   
+1fff072e:       b90f            cbnz    r7, 1fff0734 <&crp5+0x10c>               
 1fff0730:       2405            movs    r4, #5                                   
-1fff0732:       e005            b.n     1fff0740 <reset2_cont+0x1e8>             
+1fff0732:       e005            b.n     1fff0740 <&crp5+0x118>                   
 1fff0734:       4649            mov     r1, r9                                   
 1fff0736:       6830            ldr     r0, [r6, #0]                             
-1fff0738:       f7ff ff78       bl      1fff062c <reset2_cont+0xd4>              
+1fff0738:       f7ff ff78       bl      1fff062c <&crp5+0x4>                     
 1fff073c:       2800            cmp     r0, #0                                   
-1fff073e:       d19e            bne.n   1fff067e <reset2_cont+0x126>             
+1fff073e:       d19e            bne.n   1fff067e <&crp5+0x56>                    
 1fff0740:       4620            mov     r0, r4                                   
-1fff0742:       e784            b.n     1fff064e <reset2_cont+0xf6>              
+1fff0742:       e784            b.n     1fff064e <&crp5+0x26>                    
 1fff0744:       e92d 41f0       stmdb   sp!, {r4, r5, r6, r7, r8, lr}            
 1fff0748:       4607            mov     r7, r0                                   
 1fff074a:       460c            mov     r4, r1                                   
@@ -948,19 +1040,19 @@ Disassembly of section .arm:
 1fff0754:       4810            ldr     r0, [pc, #64]   ; (1fff0798 <rounded_divide+0x16>) 
 1fff0756:       6800            ldr     r0, [r0, #0]                             
 1fff0758:       4284            cmp     r4, r0                                   
-1fff075a:       d30c            bcc.n   1fff0776 <reset2_cont+0x21e>             
+1fff075a:       d30c            bcc.n   1fff0776 <&crp5+0x14e>                   
 1fff075c:       480f            ldr     r0, [pc, #60]   ; (1fff079c <rounded_divide+0x1a>) 
 1fff075e:       1961            adds    r1, r4, r5                               
 1fff0760:       6800            ldr     r0, [r0, #0]                             
 1fff0762:       1c40            adds    r0, r0, #1                               
 1fff0764:       4281            cmp     r1, r0                                   
-1fff0766:       d806            bhi.n   1fff0776 <reset2_cont+0x21e>             
+1fff0766:       d806            bhi.n   1fff0776 <&crp5+0x14e>                   
 1fff0768:       4813            ldr     r0, [pc, #76]   ; (1fff07b8 <rounded_divide+0x36>) 
 1fff076a:       1979            adds    r1, r7, r5                               
 1fff076c:       6800            ldr     r0, [r0, #0]                             
 1fff076e:       1c40            adds    r0, r0, #1                               
 1fff0770:       4281            cmp     r1, r0                                   
-1fff0772:       d800            bhi.n   1fff0776 <reset2_cont+0x21e>             
+1fff0772:       d800            bhi.n   1fff0776 <&crp5+0x14e>                   
 1fff0774:       2600            movs    r6, #0                                   
 1fff0776:       f000 ffba       bl      1fff16ee <lock_bootblock>                
 1fff077a:       4630            mov     r0, r6                                   
@@ -1068,29 +1160,29 @@ Disassembly of section .arm:
 1fff086a:       4604            mov     r4, r0                                   
 1fff086c:       4616            mov     r6, r2                                   
 1fff086e:       2104            movs    r1, #4                                   
-1fff0870:       f7ff fedc       bl      1fff062c <reset2_cont+0xd4>              
+1fff0870:       f7ff fedc       bl      1fff062c <&crp5+0x4>                     
 1fff0874:       b958            cbnz    r0, 1fff088e <rounded_divide+0x10c>      
 1fff0876:       2104            movs    r1, #4                                   
 1fff0878:       4630            mov     r0, r6                                   
-1fff087a:       f7ff fed7       bl      1fff062c <reset2_cont+0xd4>              
+1fff087a:       f7ff fed7       bl      1fff062c <&crp5+0x4>                     
 1fff087e:       b930            cbnz    r0, 1fff088e <rounded_divide+0x10c>      
 1fff0880:       2104            movs    r1, #4                                   
 1fff0882:       4628            mov     r0, r5                                   
-1fff0884:       f7ff fed2       bl      1fff062c <reset2_cont+0xd4>              
+1fff0884:       f7ff fed2       bl      1fff062c <&crp5+0x4>                     
 1fff0888:       b908            cbnz    r0, 1fff088e <rounded_divide+0x10c>      
 1fff088a:       2002            movs    r0, #2                                   
 1fff088c:       bd70            pop     {r4, r5, r6, pc}                         
 1fff088e:       2102            movs    r1, #2                                   
 1fff0890:       4620            mov     r0, r4                                   
-1fff0892:       f7ff fecb       bl      1fff062c <reset2_cont+0xd4>              
+1fff0892:       f7ff fecb       bl      1fff062c <&crp5+0x4>                     
 1fff0896:       b958            cbnz    r0, 1fff08b0 <rounded_divide+0x12e>      
 1fff0898:       2102            movs    r1, #2                                   
 1fff089a:       4630            mov     r0, r6                                   
-1fff089c:       f7ff fec6       bl      1fff062c <reset2_cont+0xd4>              
+1fff089c:       f7ff fec6       bl      1fff062c <&crp5+0x4>                     
 1fff08a0:       b930            cbnz    r0, 1fff08b0 <rounded_divide+0x12e>      
 1fff08a2:       2102            movs    r1, #2                                   
 1fff08a4:       4628            mov     r0, r5                                   
-1fff08a6:       f7ff fec1       bl      1fff062c <reset2_cont+0xd4>              
+1fff08a6:       f7ff fec1       bl      1fff062c <&crp5+0x4>                     
 1fff08aa:       b908            cbnz    r0, 1fff08b0 <rounded_divide+0x12e>      
 1fff08ac:       2001            movs    r0, #1                                   
 1fff08ae:       bd70            pop     {r4, r5, r6, pc}                         
@@ -1128,7 +1220,7 @@ Disassembly of section .arm:
 1fff0900:       1eb6            subs    r6, r6, #2                               
 1fff0902:       2140            movs    r1, #64 ; 0x40                           
 1fff0904:       4628            mov     r0, r5                                   
-1fff0906:       f7ff fe91       bl      1fff062c <reset2_cont+0xd4>              
+1fff0906:       f7ff fe91       bl      1fff062c <&crp5+0x4>                     
 1fff090a:       b940            cbnz    r0, 1fff091e <rounded_divide+0x19c>      
 1fff090c:       4648            mov     r0, r9                                   
 1fff090e:       f7ff ff9b       bl      1fff0848 <rounded_divide+0xc6>           
@@ -1141,7 +1233,7 @@ Disassembly of section .arm:
 1fff0920:       d1d9            bne.n   1fff08d6 <rounded_divide+0x154>          
 1fff0922:       2140            movs    r1, #64 ; 0x40                           
 1fff0924:       4628            mov     r0, r5                                   
-1fff0926:       f7ff fe81       bl      1fff062c <reset2_cont+0xd4>              
+1fff0926:       f7ff fe81       bl      1fff062c <&crp5+0x4>                     
 1fff092a:       b110            cbz     r0, 1fff0932 <rounded_divide+0x1b0>      
 1fff092c:       4648            mov     r0, r9                                   
 1fff092e:       f7ff ff8b       bl      1fff0848 <rounded_divide+0xc6>           
@@ -1190,21 +1282,21 @@ Disassembly of section .arm:
 1fff099e:       68a8            ldr     r0, [r5, #8]                             
 1fff09a0:       4669            mov     r1, sp                                   
 1fff09a2:       9b00            ldr     r3, [sp, #0]                             
-1fff09a4:       f7ff fe47       bl      1fff0636 <reset2_cont+0xde>              
+1fff09a4:       f7ff fe47       bl      1fff0636 <&crp5+0xe>                     
 1fff09a8:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
 1fff09ac:       d11e            bne.n   1fff09ec <rounded_divide+0x26a>          
 1fff09ae:       6868            ldr     r0, [r5, #4]                             
 1fff09b0:       2267            movs    r2, #103        ; 0x67                   
 1fff09b2:       a903            add     r1, sp, #12                              
 1fff09b4:       9b00            ldr     r3, [sp, #0]                             
-1fff09b6:       f7ff fe3e       bl      1fff0636 <reset2_cont+0xde>              
+1fff09b6:       f7ff fe3e       bl      1fff0636 <&crp5+0xe>                     
 1fff09ba:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
 1fff09be:       d115            bne.n   1fff09ec <rounded_divide+0x26a>          
 1fff09c0:       2300            movs    r3, #0                                   
 1fff09c2:       2269            movs    r2, #105        ; 0x69                   
 1fff09c4:       a902            add     r1, sp, #8                               
 1fff09c6:       68e8            ldr     r0, [r5, #12]                            
-1fff09c8:       f7ff fe35       bl      1fff0636 <reset2_cont+0xde>              
+1fff09c8:       f7ff fe35       bl      1fff0636 <&crp5+0xe>                     
 1fff09cc:       b2c4            uxtb    r4, r0                                   
 1fff09ce:       9802            ldr     r0, [sp, #8]                             
 1fff09d0:       2808            cmp     r0, #8                                   
@@ -1218,12 +1310,12 @@ Disassembly of section .arm:
 1fff09e0:       2269            movs    r2, #105        ; 0x69                   
 1fff09e2:       a901            add     r1, sp, #4                               
 1fff09e4:       6928            ldr     r0, [r5, #16]                            
-1fff09e6:       f7ff fe26       bl      1fff0636 <reset2_cont+0xde>              
+1fff09e6:       f7ff fe26       bl      1fff0636 <&crp5+0xe>                     
 1fff09ea:       b2c4            uxtb    r4, r0                                   
 1fff09ec:       220f            movs    r2, #15                                  
 1fff09ee:       4620            mov     r0, r4                                   
 1fff09f0:       6829            ldr     r1, [r5, #0]                             
-1fff09f2:       f000 fcc4       bl      1fff137e <routine12b0+0xce>              
+1fff09f2:       f000 fcc4       bl      1fff137e <set_ram124+0xce>               
 1fff09f6:       f000 fc03       bl      1fff1200 <routine118c+0x74>              
 1fff09fa:       48e8            ldr     r0, [pc, #928]  ; (1fff0d9c <rounded_divide+0x61a>) 
 1fff09fc:       2c00            cmp     r4, #0                                   
@@ -1264,7 +1356,7 @@ Disassembly of section .arm:
 1fff0a48:       2269            movs    r2, #105        ; 0x69                   
 1fff0a4a:       1d31            adds    r1, r6, #4                               
 1fff0a4c:       6860            ldr     r0, [r4, #4]                             
-1fff0a4e:       f7ff fdf2       bl      1fff0636 <reset2_cont+0xde>              
+1fff0a4e:       f7ff fdf2       bl      1fff0636 <&crp5+0xe>                     
 1fff0a52:       f106 0514       add.w   r5, r6, #20                              
 1fff0a56:       6028            str     r0, [r5, #0]                             
 1fff0a58:       b9b8            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
@@ -1272,14 +1364,14 @@ Disassembly of section .arm:
 1fff0a5c:       2269            movs    r2, #105        ; 0x69                   
 1fff0a5e:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0a62:       68a0            ldr     r0, [r4, #8]                             
-1fff0a64:       f7ff fde7       bl      1fff0636 <reset2_cont+0xde>              
+1fff0a64:       f7ff fde7       bl      1fff0636 <&crp5+0xe>                     
 1fff0a68:       6028            str     r0, [r5, #0]                             
 1fff0a6a:       b970            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
 1fff0a6c:       2300            movs    r3, #0                                   
 1fff0a6e:       2269            movs    r2, #105        ; 0x69                   
 1fff0a70:       f1a5 0108       sub.w   r1, r5, #8                               
 1fff0a74:       68e0            ldr     r0, [r4, #12]                            
-1fff0a76:       f7ff fdde       bl      1fff0636 <reset2_cont+0xde>              
+1fff0a76:       f7ff fdde       bl      1fff0636 <&crp5+0xe>                     
 1fff0a7a:       6028            str     r0, [r5, #0]                             
 1fff0a7c:       b928            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
 1fff0a7e:       2038            movs    r0, #56 ; 0x38                           
@@ -1290,7 +1382,7 @@ Disassembly of section .arm:
 1fff0a8a:       6861            ldr     r1, [r4, #4]                             
 1fff0a8c:       220f            movs    r2, #15                                  
 1fff0a8e:       6828            ldr     r0, [r5, #0]                             
-1fff0a90:       f000 fc75       bl      1fff137e <routine12b0+0xce>              
+1fff0a90:       f000 fc75       bl      1fff137e <set_ram124+0xce>               
 1fff0a94:       f000 fbb4       bl      1fff1200 <routine118c+0x74>              
 1fff0a98:       6828            ldr     r0, [r5, #0]                             
 1fff0a9a:       280a            cmp     r0, #10                                  
@@ -1298,7 +1390,7 @@ Disassembly of section .arm:
 1fff0a9e:       6861            ldr     r1, [r4, #4]                             
 1fff0aa0:       220f            movs    r2, #15                                  
 1fff0aa2:       6868            ldr     r0, [r5, #4]                             
-1fff0aa4:       f000 fc6b       bl      1fff137e <routine12b0+0xce>              
+1fff0aa4:       f000 fc6b       bl      1fff137e <set_ram124+0xce>               
 1fff0aa8:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0aac:       f000 bba8       b.w     1fff1200 <routine118c+0x74>              
 1fff0ab0:       bd70            pop     {r4, r5, r6, pc}                         
@@ -1309,7 +1401,7 @@ Disassembly of section .arm:
 1fff0aba:       2269            movs    r2, #105        ; 0x69                   
 1fff0abc:       1d31            adds    r1, r6, #4                               
 1fff0abe:       6860            ldr     r0, [r4, #4]                             
-1fff0ac0:       f7ff fdb9       bl      1fff0636 <reset2_cont+0xde>              
+1fff0ac0:       f7ff fdb9       bl      1fff0636 <&crp5+0xe>                     
 1fff0ac4:       f106 0514       add.w   r5, r6, #20                              
 1fff0ac8:       6028            str     r0, [r5, #0]                             
 1fff0aca:       b970            cbnz    r0, 1fff0aea <rounded_divide+0x368>      
@@ -1317,7 +1409,7 @@ Disassembly of section .arm:
 1fff0ace:       2269            movs    r2, #105        ; 0x69                   
 1fff0ad0:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0ad4:       68a0            ldr     r0, [r4, #8]                             
-1fff0ad6:       f7ff fdae       bl      1fff0636 <reset2_cont+0xde>              
+1fff0ad6:       f7ff fdae       bl      1fff0636 <&crp5+0xe>                     
 1fff0ada:       6028            str     r0, [r5, #0]                             
 1fff0adc:       b928            cbnz    r0, 1fff0aea <rounded_divide+0x368>      
 1fff0ade:       2035            movs    r0, #53 ; 0x35                           
@@ -1328,7 +1420,7 @@ Disassembly of section .arm:
 1fff0aea:       6861            ldr     r1, [r4, #4]                             
 1fff0aec:       220f            movs    r2, #15                                  
 1fff0aee:       6828            ldr     r0, [r5, #0]                             
-1fff0af0:       f000 fc45       bl      1fff137e <routine12b0+0xce>              
+1fff0af0:       f000 fc45       bl      1fff137e <set_ram124+0xce>               
 1fff0af4:       f000 fb84       bl      1fff1200 <routine118c+0x74>              
 1fff0af8:       6828            ldr     r0, [r5, #0]                             
 1fff0afa:       2808            cmp     r0, #8                                   
@@ -1353,12 +1445,12 @@ Disassembly of section .arm:
 1fff0b20:       6861            ldr     r1, [r4, #4]                             
 1fff0b22:       220f            movs    r2, #15                                  
 1fff0b24:       6868            ldr     r0, [r5, #4]                             
-1fff0b26:       f000 fc2a       bl      1fff137e <routine12b0+0xce>              
+1fff0b26:       f000 fc2a       bl      1fff137e <set_ram124+0xce>               
 1fff0b2a:       f000 fb69       bl      1fff1200 <routine118c+0x74>              
 1fff0b2e:       6861            ldr     r1, [r4, #4]                             
 1fff0b30:       220f            movs    r2, #15                                  
 1fff0b32:       68a8            ldr     r0, [r5, #8]                             
-1fff0b34:       f000 fc23       bl      1fff137e <routine12b0+0xce>              
+1fff0b34:       f000 fc23       bl      1fff137e <set_ram124+0xce>               
 1fff0b38:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0b3c:       f000 bb60       b.w     1fff1200 <routine118c+0x74>              
 1fff0b40:       bd70            pop     {r4, r5, r6, pc}                         
@@ -1378,7 +1470,7 @@ Disassembly of section .arm:
 1fff0b5e:       2300            movs    r3, #0                                   
 1fff0b60:       2269            movs    r2, #105        ; 0x69                   
 1fff0b62:       1d21            adds    r1, r4, #4                               
-1fff0b64:       f7ff fd67       bl      1fff0636 <reset2_cont+0xde>              
+1fff0b64:       f7ff fd67       bl      1fff0636 <&crp5+0xe>                     
 1fff0b68:       f104 0514       add.w   r5, r4, #20                              
 1fff0b6c:       6028            str     r0, [r5, #0]                             
 1fff0b6e:       b940            cbnz    r0, 1fff0b82 <rounded_divide+0x400>      
@@ -1386,7 +1478,7 @@ Disassembly of section .arm:
 1fff0b72:       2269            movs    r2, #105        ; 0x69                   
 1fff0b74:       f104 0108       add.w   r1, r4, #8                               
 1fff0b78:       f8d8 0008       ldr.w   r0, [r8, #8]                             
-1fff0b7c:       f7ff fd5b       bl      1fff0636 <reset2_cont+0xde>              
+1fff0b7c:       f7ff fd5b       bl      1fff0636 <&crp5+0xe>                     
 1fff0b80:       6028            str     r0, [r5, #0]                             
 1fff0b82:       f8df 9220       ldr.w   r9, [pc, #544]  ; 1fff0da4 <rounded_divide+0x622> 
 1fff0b86:       4988            ldr     r1, [pc, #544]  ; (1fff0da8 <rounded_divide+0x626>) 
@@ -1445,7 +1537,7 @@ Disassembly of section .arm:
 1fff0c02:       f8d8 1004       ldr.w   r1, [r8, #4]                             
 1fff0c06:       220f            movs    r2, #15                                  
 1fff0c08:       6828            ldr     r0, [r5, #0]                             
-1fff0c0a:       f000 fbb8       bl      1fff137e <routine12b0+0xce>              
+1fff0c0a:       f000 fbb8       bl      1fff137e <set_ram124+0xce>               
 1fff0c0e:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
 1fff0c12:       f000 baf5       b.w     1fff1200 <routine118c+0x74>              
 1fff0c16:       b570            push    {r4, r5, r6, lr}                         
@@ -1463,7 +1555,7 @@ Disassembly of section .arm:
 1fff0c2e:       2300            movs    r3, #0                                   
 1fff0c30:       2269            movs    r2, #105        ; 0x69                   
 1fff0c32:       1d29            adds    r1, r5, #4                               
-1fff0c34:       f7ff fcff       bl      1fff0636 <reset2_cont+0xde>              
+1fff0c34:       f7ff fcff       bl      1fff0636 <&crp5+0xe>                     
 1fff0c38:       f105 0414       add.w   r4, r5, #20                              
 1fff0c3c:       6020            str     r0, [r4, #0]                             
 1fff0c3e:       b980            cbnz    r0, 1fff0c62 <rounded_divide+0x4e0>      
@@ -1471,14 +1563,14 @@ Disassembly of section .arm:
 1fff0c42:       2269            movs    r2, #105        ; 0x69                   
 1fff0c44:       f1a4 010c       sub.w   r1, r4, #12                              
 1fff0c48:       68b0            ldr     r0, [r6, #8]                             
-1fff0c4a:       f7ff fcf4       bl      1fff0636 <reset2_cont+0xde>              
+1fff0c4a:       f7ff fcf4       bl      1fff0636 <&crp5+0xe>                     
 1fff0c4e:       6020            str     r0, [r4, #0]                             
 1fff0c50:       b938            cbnz    r0, 1fff0c62 <rounded_divide+0x4e0>      
 1fff0c52:       2300            movs    r3, #0                                   
 1fff0c54:       2269            movs    r2, #105        ; 0x69                   
 1fff0c56:       f1a4 0108       sub.w   r1, r4, #8                               
 1fff0c5a:       68f0            ldr     r0, [r6, #12]                            
-1fff0c5c:       f7ff fceb       bl      1fff0636 <reset2_cont+0xde>              
+1fff0c5c:       f7ff fceb       bl      1fff0636 <&crp5+0xe>                     
 1fff0c60:       6020            str     r0, [r4, #0]                             
 1fff0c62:       4850            ldr     r0, [pc, #320]  ; (1fff0da4 <rounded_divide+0x622>) 
 1fff0c64:       4952            ldr     r1, [pc, #328]  ; (1fff0db0 <rounded_divide+0x62e>) 
@@ -1509,7 +1601,7 @@ Disassembly of section .arm:
 1fff0c9c:       6871            ldr     r1, [r6, #4]                             
 1fff0c9e:       220f            movs    r2, #15                                  
 1fff0ca0:       6820            ldr     r0, [r4, #0]                             
-1fff0ca2:       f000 fb6c       bl      1fff137e <routine12b0+0xce>              
+1fff0ca2:       f000 fb6c       bl      1fff137e <set_ram124+0xce>               
 1fff0ca6:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0caa:       f000 baa9       b.w     1fff1200 <routine118c+0x74>              
 1fff0cae:       b570            push    {r4, r5, r6, lr}                         
@@ -1519,7 +1611,7 @@ Disassembly of section .arm:
 1fff0cb6:       2269            movs    r2, #105        ; 0x69                   
 1fff0cb8:       1d31            adds    r1, r6, #4                               
 1fff0cba:       6860            ldr     r0, [r4, #4]                             
-1fff0cbc:       f7ff fcbb       bl      1fff0636 <reset2_cont+0xde>              
+1fff0cbc:       f7ff fcbb       bl      1fff0636 <&crp5+0xe>                     
 1fff0cc0:       f106 0514       add.w   r5, r6, #20                              
 1fff0cc4:       6028            str     r0, [r5, #0]                             
 1fff0cc6:       b970            cbnz    r0, 1fff0ce6 <rounded_divide+0x564>      
@@ -1527,7 +1619,7 @@ Disassembly of section .arm:
 1fff0cca:       2269            movs    r2, #105        ; 0x69                   
 1fff0ccc:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0cd0:       68a0            ldr     r0, [r4, #8]                             
-1fff0cd2:       f7ff fcb0       bl      1fff0636 <reset2_cont+0xde>              
+1fff0cd2:       f7ff fcb0       bl      1fff0636 <&crp5+0xe>                     
 1fff0cd6:       6028            str     r0, [r5, #0]                             
 1fff0cd8:       b928            cbnz    r0, 1fff0ce6 <rounded_divide+0x564>      
 1fff0cda:       2032            movs    r0, #50 ; 0x32                           
@@ -1538,7 +1630,7 @@ Disassembly of section .arm:
 1fff0ce6:       6861            ldr     r1, [r4, #4]                             
 1fff0ce8:       220f            movs    r2, #15                                  
 1fff0cea:       6828            ldr     r0, [r5, #0]                             
-1fff0cec:       f000 fb47       bl      1fff137e <routine12b0+0xce>              
+1fff0cec:       f000 fb47       bl      1fff137e <set_ram124+0xce>               
 1fff0cf0:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0cf4:       f000 ba84       b.w     1fff1200 <routine118c+0x74>              
 1fff0cf8:       b538            push    {r3, r4, r5, lr}                         
@@ -1547,19 +1639,19 @@ Disassembly of section .arm:
 1fff0cfe:       2269            movs    r2, #105        ; 0x69                   
 1fff0d00:       4669            mov     r1, sp                                   
 1fff0d02:       6868            ldr     r0, [r5, #4]                             
-1fff0d04:       f7ff fc97       bl      1fff0636 <reset2_cont+0xde>              
+1fff0d04:       f7ff fc97       bl      1fff0636 <&crp5+0xe>                     
 1fff0d08:       b2c4            uxtb    r4, r0                                   
 1fff0d0a:       220f            movs    r2, #15                                  
 1fff0d0c:       4620            mov     r0, r4                                   
 1fff0d0e:       6869            ldr     r1, [r5, #4]                             
-1fff0d10:       f000 fb35       bl      1fff137e <routine12b0+0xce>              
+1fff0d10:       f000 fb35       bl      1fff137e <set_ram124+0xce>               
 1fff0d14:       f000 fa74       bl      1fff1200 <routine118c+0x74>              
 1fff0d18:       2c00            cmp     r4, #0                                   
 1fff0d1a:       d104            bne.n   1fff0d26 <rounded_divide+0x5a4>          
 1fff0d1c:       9800            ldr     r0, [sp, #0]                             
 1fff0d1e:       b100            cbz     r0, 1fff0d22 <rounded_divide+0x5a0>      
 1fff0d20:       2001            movs    r0, #1                                   
-1fff0d22:       f000 fac5       bl      1fff12b0 <routine12b0>                   
+1fff0d22:       f000 fac5       bl      1fff12b0 <set_ram124>                    
 1fff0d26:       bd38            pop     {r3, r4, r5, pc}                         
 1fff0d28:       b57c            push    {r2, r3, r4, r5, r6, lr}                 
 1fff0d2a:       4d1b            ldr     r5, [pc, #108]  ; (1fff0d98 <rounded_divide+0x616>) 
@@ -1567,12 +1659,12 @@ Disassembly of section .arm:
 1fff0d2e:       2269            movs    r2, #105        ; 0x69                   
 1fff0d30:       a901            add     r1, sp, #4                               
 1fff0d32:       6868            ldr     r0, [r5, #4]                             
-1fff0d34:       f7ff fc7f       bl      1fff0636 <reset2_cont+0xde>              
+1fff0d34:       f7ff fc7f       bl      1fff0636 <&crp5+0xe>                     
 1fff0d38:       2300            movs    r3, #0                                   
 1fff0d3a:       2269            movs    r2, #105        ; 0x69                   
 1fff0d3c:       4669            mov     r1, sp                                   
 1fff0d3e:       68a8            ldr     r0, [r5, #8]                             
-1fff0d40:       f7ff fc79       bl      1fff0636 <reset2_cont+0xde>              
+1fff0d40:       f7ff fc79       bl      1fff0636 <&crp5+0xe>                     
 1fff0d44:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
 1fff0d48:       d119            bne.n   1fff0d7e <rounded_divide+0x5fc>          
 1fff0d4a:       9801            ldr     r0, [sp, #4]                             
@@ -1598,7 +1690,7 @@ Disassembly of section .arm:
 1fff0d7e:       220f            movs    r2, #15                                  
 1fff0d80:       4620            mov     r0, r4                                   
 1fff0d82:       6869            ldr     r1, [r5, #4]                             
-1fff0d84:       f000 fafb       bl      1fff137e <routine12b0+0xce>              
+1fff0d84:       f000 fafb       bl      1fff137e <set_ram124+0xce>               
 1fff0d88:       f000 fa3a       bl      1fff1200 <routine118c+0x74>              
 1fff0d8c:       2c00            cmp     r4, #0                                   
 1fff0d8e:       d11f            bne.n   1fff0dd0 <rounded_divide+0x64e>          
@@ -1639,7 +1731,7 @@ Disassembly of section .arm:
 1fff0dd8:       2269            movs    r2, #105        ; 0x69                   
 1fff0dda:       4669            mov     r1, sp                                   
 1fff0ddc:       6860            ldr     r0, [r4, #4]                             
-1fff0dde:       f7ff fc2a       bl      1fff0636 <reset2_cont+0xde>              
+1fff0dde:       f7ff fc2a       bl      1fff0636 <&crp5+0xe>                     
 1fff0de2:       f010 00ff       ands.w  r0, r0, #255    ; 0xff                   
 1fff0de6:       d109            bne.n   1fff0dfc <rounded_divide+0x67a>          
 1fff0de8:       9900            ldr     r1, [sp, #0]                             
@@ -1653,7 +1745,7 @@ Disassembly of section .arm:
 1fff0dfa:       2010            movs    r0, #16                                  
 1fff0dfc:       220f            movs    r2, #15                                  
 1fff0dfe:       6861            ldr     r1, [r4, #4]                             
-1fff0e00:       f000 fabd       bl      1fff137e <routine12b0+0xce>              
+1fff0e00:       f000 fabd       bl      1fff137e <set_ram124+0xce>               
 1fff0e04:       f000 f9fc       bl      1fff1200 <routine118c+0x74>              
 1fff0e08:       bd38            pop     {r3, r4, r5, pc}                         
 1fff0e0a:       b538            push    {r3, r4, r5, lr}                         
@@ -1664,7 +1756,7 @@ Disassembly of section .arm:
 1fff0e14:       2400            movs    r4, #0                                   
 1fff0e16:       48d3            ldr     r0, [pc, #844]  ; (1fff1164 <rounded_divide+0x9e2>) 
 1fff0e18:       6869            ldr     r1, [r5, #4]                             
-1fff0e1a:       f000 fa53       bl      1fff12c4 <routine12b0+0x14>              
+1fff0e1a:       f000 fa53       bl      1fff12c4 <set_ram124+0x14>               
 1fff0e1e:       b920            cbnz    r0, 1fff0e2a <rounded_divide+0x6a8>      
 1fff0e20:       48d1            ldr     r0, [pc, #836]  ; (1fff1168 <rounded_divide+0x9e6>) 
 1fff0e22:       9000            str     r0, [sp, #0]                             
@@ -1675,7 +1767,7 @@ Disassembly of section .arm:
 1fff0e2c:       2266            movs    r2, #102        ; 0x66                   
 1fff0e2e:       4669            mov     r1, sp                                   
 1fff0e30:       6868            ldr     r0, [r5, #4]                             
-1fff0e32:       f7ff fc00       bl      1fff0636 <reset2_cont+0xde>              
+1fff0e32:       f7ff fc00       bl      1fff0636 <&crp5+0xe>                     
 1fff0e36:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
 1fff0e3a:       d106            bne.n   1fff0e4a <rounded_divide+0x6c8>          
 1fff0e3c:       68a8            ldr     r0, [r5, #8]                             
@@ -1688,7 +1780,7 @@ Disassembly of section .arm:
 1fff0e4a:       220f            movs    r2, #15                                  
 1fff0e4c:       4620            mov     r0, r4                                   
 1fff0e4e:       6869            ldr     r1, [r5, #4]                             
-1fff0e50:       f000 fa95       bl      1fff137e <routine12b0+0xce>              
+1fff0e50:       f000 fa95       bl      1fff137e <set_ram124+0xce>               
 1fff0e54:       f000 f9d4       bl      1fff1200 <routine118c+0x74>              
 1fff0e58:       2c00            cmp     r4, #0                                   
 1fff0e5a:       d101            bne.n   1fff0e60 <rounded_divide+0x6de>          
@@ -1705,19 +1797,19 @@ Disassembly of section .arm:
 1fff0e74:       2264            movs    r2, #100        ; 0x64                   
 1fff0e76:       4669            mov     r1, sp                                   
 1fff0e78:       68a8            ldr     r0, [r5, #8]                             
-1fff0e7a:       f7ff fbdc       bl      1fff0636 <reset2_cont+0xde>              
+1fff0e7a:       f7ff fbdc       bl      1fff0636 <&crp5+0xe>                     
 1fff0e7e:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
 1fff0e82:       d106            bne.n   1fff0e92 <rounded_divide+0x710>          
 1fff0e84:       6868            ldr     r0, [r5, #4]                             
 1fff0e86:       2266            movs    r2, #102        ; 0x66                   
 1fff0e88:       a901            add     r1, sp, #4                               
 1fff0e8a:       9b00            ldr     r3, [sp, #0]                             
-1fff0e8c:       f7ff fbd3       bl      1fff0636 <reset2_cont+0xde>              
+1fff0e8c:       f7ff fbd3       bl      1fff0636 <&crp5+0xe>                     
 1fff0e90:       b2c4            uxtb    r4, r0                                   
 1fff0e92:       220f            movs    r2, #15                                  
 1fff0e94:       4620            mov     r0, r4                                   
 1fff0e96:       6829            ldr     r1, [r5, #0]                             
-1fff0e98:       f000 fa71       bl      1fff137e <routine12b0+0xce>              
+1fff0e98:       f000 fa71       bl      1fff137e <set_ram124+0xce>               
 1fff0e9c:       f000 f9b0       bl      1fff1200 <routine118c+0x74>              
 1fff0ea0:       2c00            cmp     r4, #0                                   
 1fff0ea2:       d147            bne.n   1fff0f34 <rounded_divide+0x7b2>          
@@ -1736,7 +1828,7 @@ Disassembly of section .arm:
 1fff0ec6:       462a            mov     r2, r5                                   
 1fff0ec8:       49a9            ldr     r1, [pc, #676]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0eca:       9801            ldr     r0, [sp, #4]                             
-1fff0ecc:       f000 fada       bl      1fff1484 <routine12b0+0x1d4>             
+1fff0ecc:       f000 fada       bl      1fff1484 <set_ram124+0x1d4>              
 1fff0ed0:       4406            add     r6, r0                                   
 1fff0ed2:       48a7            ldr     r0, [pc, #668]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0ed4:       f000 f994       bl      1fff1200 <routine118c+0x74>              
@@ -1754,7 +1846,7 @@ Disassembly of section .arm:
 1fff0eee:       220f            movs    r2, #15                                  
 1fff0ef0:       499f            ldr     r1, [pc, #636]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0ef2:       4630            mov     r0, r6                                   
-1fff0ef4:       f000 fa43       bl      1fff137e <routine12b0+0xce>              
+1fff0ef4:       f000 fa43       bl      1fff137e <set_ram124+0xce>               
 1fff0ef8:       f000 f982       bl      1fff1200 <routine118c+0x74>              
 1fff0efc:       2200            movs    r2, #0                                   
 1fff0efe:       2146            movs    r1, #70 ; 0x46                           
@@ -1765,7 +1857,7 @@ Disassembly of section .arm:
 1fff0f0c:       4995            ldr     r1, [pc, #596]  ; (1fff1164 <rounded_divide+0x9e2>) 
 1fff0f0e:       4898            ldr     r0, [pc, #608]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0f10:       1ec9            subs    r1, r1, #3                               
-1fff0f12:       f000 f9d7       bl      1fff12c4 <routine12b0+0x14>              
+1fff0f12:       f000 f9d7       bl      1fff12c4 <set_ram124+0x14>               
 1fff0f16:       b910            cbnz    r0, 1fff0f1e <rounded_divide+0x79c>      
 1fff0f18:       e9dd 8700       ldrd    r8, r7, [sp]                             
 1fff0f1c:       e001            b.n     1fff0f22 <rounded_divide+0x7a0>          
@@ -1785,14 +1877,14 @@ Disassembly of section .arm:
 1fff0f40:       68a8            ldr     r0, [r5, #8]                             
 1fff0f42:       a902            add     r1, sp, #8                               
 1fff0f44:       9b02            ldr     r3, [sp, #8]                             
-1fff0f46:       f7ff fb76       bl      1fff0636 <reset2_cont+0xde>              
+1fff0f46:       f7ff fb76       bl      1fff0636 <&crp5+0xe>                     
 1fff0f4a:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
 1fff0f4e:       d10d            bne.n   1fff0f6c <rounded_divide+0x7ea>          
 1fff0f50:       6868            ldr     r0, [r5, #4]                             
 1fff0f52:       2267            movs    r2, #103        ; 0x67                   
 1fff0f54:       a904            add     r1, sp, #16                              
 1fff0f56:       9b02            ldr     r3, [sp, #8]                             
-1fff0f58:       f7ff fb6d       bl      1fff0636 <reset2_cont+0xde>              
+1fff0f58:       f7ff fb6d       bl      1fff0636 <&crp5+0xe>                     
 1fff0f5c:       b2c4            uxtb    r4, r0                                   
 1fff0f5e:       2c04            cmp     r4, #4                                   
 1fff0f60:       d101            bne.n   1fff0f66 <rounded_divide+0x7e4>          
@@ -1819,7 +1911,7 @@ Disassembly of section .arm:
 1fff0f90:       220f            movs    r2, #15                                  
 1fff0f92:       4620            mov     r0, r4                                   
 1fff0f94:       6829            ldr     r1, [r5, #0]                             
-1fff0f96:       f000 f9f2       bl      1fff137e <routine12b0+0xce>              
+1fff0f96:       f000 f9f2       bl      1fff137e <set_ram124+0xce>               
 1fff0f9a:       f000 f931       bl      1fff1200 <routine118c+0x74>              
 1fff0f9e:       2c00            cmp     r4, #0                                   
 1fff0fa0:       d142            bne.n   1fff1028 <rounded_divide+0x8a6>          
@@ -1839,7 +1931,7 @@ Disassembly of section .arm:
 1fff0fbe:       aa01            add     r2, sp, #4                               
 1fff0fc0:       486b            ldr     r0, [pc, #428]  ; (1fff1170 <rounded_divide+0x9ee>) 
 1fff0fc2:       9904            ldr     r1, [sp, #16]                            
-1fff0fc4:       f000 f9fd       bl      1fff13c2 <routine12b0+0x112>             
+1fff0fc4:       f000 f9fd       bl      1fff13c2 <set_ram124+0x112>              
 1fff0fc8:       4404            add     r4, r0                                   
 1fff0fca:       9904            ldr     r1, [sp, #16]                            
 1fff0fcc:       9801            ldr     r0, [sp, #4]                             
@@ -1866,7 +1958,7 @@ Disassembly of section .arm:
 1fff0ff8:       d116            bne.n   1fff1028 <rounded_divide+0x8a6>          
 1fff0ffa:       a903            add     r1, sp, #12                              
 1fff0ffc:       485c            ldr     r0, [pc, #368]  ; (1fff1170 <rounded_divide+0x9ee>) 
-1fff0ffe:       f000 f9a6       bl      1fff134e <routine12b0+0x9e>              
+1fff0ffe:       f000 f9a6       bl      1fff134e <set_ram124+0x9e>               
 1fff1002:       9803            ldr     r0, [sp, #12]                            
 1fff1004:       4284            cmp     r4, r0                                   
 1fff1006:       d104            bne.n   1fff1012 <rounded_divide+0x890>          
@@ -1926,7 +2018,7 @@ Disassembly of section .arm:
 1fff1086:       220f            movs    r2, #15                                  
 1fff1088:       2000            movs    r0, #0                                   
 1fff108a:       6869            ldr     r1, [r5, #4]                             
-1fff108c:       f000 f977       bl      1fff137e <routine12b0+0xce>              
+1fff108c:       f000 f977       bl      1fff137e <set_ram124+0xce>               
 1fff1090:       f000 f8b6       bl      1fff1200 <routine118c+0x74>              
 1fff1094:       220f            movs    r2, #15                                  
 1fff1096:       4620            mov     r0, r4                                   
@@ -1938,27 +2030,27 @@ Disassembly of section .arm:
 1fff10a4:       6804            ldr     r4, [r0, #0]                             
 1fff10a6:       2000            movs    r0, #0                                   
 1fff10a8:       6869            ldr     r1, [r5, #4]                             
-1fff10aa:       f000 f968       bl      1fff137e <routine12b0+0xce>              
+1fff10aa:       f000 f968       bl      1fff137e <set_ram124+0xce>               
 1fff10ae:       f000 f8a7       bl      1fff1200 <routine118c+0x74>              
 1fff10b2:       6869            ldr     r1, [r5, #4]                             
 1fff10b4:       220f            movs    r2, #15                                  
 1fff10b6:       6820            ldr     r0, [r4, #0]                             
-1fff10b8:       f000 f961       bl      1fff137e <routine12b0+0xce>              
+1fff10b8:       f000 f961       bl      1fff137e <set_ram124+0xce>               
 1fff10bc:       f000 f8a0       bl      1fff1200 <routine118c+0x74>              
 1fff10c0:       6869            ldr     r1, [r5, #4]                             
 1fff10c2:       220f            movs    r2, #15                                  
 1fff10c4:       6860            ldr     r0, [r4, #4]                             
-1fff10c6:       f000 f95a       bl      1fff137e <routine12b0+0xce>              
+1fff10c6:       f000 f95a       bl      1fff137e <set_ram124+0xce>               
 1fff10ca:       f000 f899       bl      1fff1200 <routine118c+0x74>              
 1fff10ce:       6869            ldr     r1, [r5, #4]                             
 1fff10d0:       220f            movs    r2, #15                                  
 1fff10d2:       68a0            ldr     r0, [r4, #8]                             
-1fff10d4:       f000 f953       bl      1fff137e <routine12b0+0xce>              
+1fff10d4:       f000 f953       bl      1fff137e <set_ram124+0xce>               
 1fff10d8:       f000 f892       bl      1fff1200 <routine118c+0x74>              
 1fff10dc:       6869            ldr     r1, [r5, #4]                             
 1fff10de:       220f            movs    r2, #15                                  
 1fff10e0:       68e0            ldr     r0, [r4, #12]                            
-1fff10e2:       f000 f94c       bl      1fff137e <routine12b0+0xce>              
+1fff10e2:       f000 f94c       bl      1fff137e <set_ram124+0xce>               
 1fff10e6:       f000 f88b       bl      1fff1200 <routine118c+0x74>              
 1fff10ea:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff10ee:       f000 bafe       b.w     1fff16ee <lock_bootblock>                
@@ -1969,17 +2061,17 @@ Disassembly of section .arm:
 1fff10fe:       220f            movs    r2, #15                                  
 1fff1100:       2000            movs    r0, #0                                   
 1fff1102:       6869            ldr     r1, [r5, #4]                             
-1fff1104:       f000 f93b       bl      1fff137e <routine12b0+0xce>              
+1fff1104:       f000 f93b       bl      1fff137e <set_ram124+0xce>               
 1fff1108:       f000 f87a       bl      1fff1200 <routine118c+0x74>              
 1fff110c:       220f            movs    r2, #15                                  
 1fff110e:       b2e0            uxtb    r0, r4                                   
 1fff1110:       6869            ldr     r1, [r5, #4]                             
-1fff1112:       f000 f934       bl      1fff137e <routine12b0+0xce>              
+1fff1112:       f000 f934       bl      1fff137e <set_ram124+0xce>               
 1fff1116:       f000 f873       bl      1fff1200 <routine118c+0x74>              
 1fff111a:       f3c4 2007       ubfx    r0, r4, #8, #8                           
 1fff111e:       220f            movs    r2, #15                                  
 1fff1120:       6869            ldr     r1, [r5, #4]                             
-1fff1122:       f000 f92c       bl      1fff137e <routine12b0+0xce>              
+1fff1122:       f000 f92c       bl      1fff137e <set_ram124+0xce>               
 1fff1126:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff112a:       f000 b869       b.w     1fff1200 <routine118c+0x74>              
 1fff112e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
@@ -2043,7 +2135,7 @@ Disassembly of section .arm:
 1fff11a6:       2403            movs    r4, #3                                   ## r4=3 (if p1 was 1)
 1fff11a8:       e000            b.n     1fff11ac <routine118c+0x20>              ## skip down
 1fff11aa:       2407            movs    r4, #7                                   ## r4=7 (if p1 wasn't 1)
-1fff11ac:       4942            ldr     r1, [pc, #264]  ; (1fff12b8 <routine12b0+0x8>) ## r1=[0x1fff12b8]=skip target
+1fff11ac:       4942            ldr     r1, [pc, #264]  ; (1fff12b8 <set_ram124+0x8>) ## r1=[0x1fff12b8]=skip target
 1fff11ae:       694a            ldr     r2, [r1, #20]                            
 1fff11b0:       0652            lsls    r2, r2, #25                              
 1fff11b2:       d5fc            bpl.n   1fff11ae <routine118c+0x22>              
@@ -2058,18 +2150,18 @@ Disassembly of section .arm:
 1fff11c4:       6088            str     r0, [r1, #8]                             
 1fff11c6:       60cc            str     r4, [r1, #12]                            
 1fff11c8:       bd10            pop     {r4, pc}                                 
-1fff11ca:       493b            ldr     r1, [pc, #236]  ; (1fff12b8 <routine12b0+0x8>) 
+1fff11ca:       493b            ldr     r1, [pc, #236]  ; (1fff12b8 <set_ram124+0x8>) 
 1fff11cc:       694a            ldr     r2, [r1, #20]                            
 1fff11ce:       0692            lsls    r2, r2, #26                              
 1fff11d0:       d5fc            bpl.n   1fff11cc <routine118c+0x40>              
 1fff11d2:       6008            str     r0, [r1, #0]                             
 1fff11d4:       4770            bx      lr                                       
-1fff11d6:       4938            ldr     r1, [pc, #224]  ; (1fff12b8 <routine12b0+0x8>) 
+1fff11d6:       4938            ldr     r1, [pc, #224]  ; (1fff12b8 <set_ram124+0x8>) 
 1fff11d8:       6948            ldr     r0, [r1, #20]                            
 1fff11da:       07c0            lsls    r0, r0, #31                              
 1fff11dc:       d0fc            beq.n   1fff11d8 <routine118c+0x4c>              
 1fff11de:       6808            ldr     r0, [r1, #0]                             
-1fff11e0:       4a36            ldr     r2, [pc, #216]  ; (1fff12bc <routine12b0+0xc>) 
+1fff11e0:       4a36            ldr     r2, [pc, #216]  ; (1fff12bc <set_ram124+0xc>) 
 1fff11e2:       b2c0            uxtb    r0, r0                                   
 1fff11e4:       6812            ldr     r2, [r2, #0]                             
 1fff11e6:       2a00            cmp     r2, #0                                   
@@ -2085,7 +2177,7 @@ Disassembly of section .arm:
 1fff11fc:       d1fb            bne.n   1fff11f6 <routine118c+0x6a>              
 1fff11fe:       bd00            pop     {pc}                                     
 1fff1200:       b510            push    {r4, lr}                                 
-1fff1202:       4c2d            ldr     r4, [pc, #180]  ; (1fff12b8 <routine12b0+0x8>) 
+1fff1202:       4c2d            ldr     r4, [pc, #180]  ; (1fff12b8 <set_ram124+0x8>) 
 1fff1204:       0003            movs    r3, r0                                   
 1fff1206:       d015            beq.n   1fff1234 <routine118c+0xa8>              
 1fff1208:       e011            b.n     1fff122e <routine118c+0xa2>              
@@ -2114,7 +2206,7 @@ Disassembly of section .arm:
 1fff123c:       f7ff ffc5       bl      1fff11ca <routine118c+0x3e>              
 1fff1240:       2000            movs    r0, #0                                   
 1fff1242:       bd10            pop     {r4, pc}                                 
-1fff1244:       481c            ldr     r0, [pc, #112]  ; (1fff12b8 <routine12b0+0x8>) 
+1fff1244:       481c            ldr     r0, [pc, #112]  ; (1fff12b8 <set_ram124+0x8>) 
 1fff1246:       6941            ldr     r1, [r0, #20]                            
 1fff1248:       07c9            lsls    r1, r1, #31                              
 1fff124a:       d002            beq.n   1fff1252 <routine118c+0xc6>              
@@ -2123,7 +2215,7 @@ Disassembly of section .arm:
 1fff1250:       4770            bx      lr                                       
 1fff1252:       2000            movs    r0, #0                                   
 1fff1254:       4770            bx      lr                                       
-1fff1256:       481a            ldr     r0, [pc, #104]  ; (1fff12c0 <routine12b0+0x10>) 
+1fff1256:       481a            ldr     r0, [pc, #104]  ; (1fff12c0 <set_ram124+0x10>) 
 1fff1258:       6880            ldr     r0, [r0, #8]                             
 1fff125a:       0880            lsrs    r0, r0, #2                               
 1fff125c:       e000            b.n     1fff1260 <routine118c+0xd4>              
@@ -2152,7 +2244,7 @@ Disassembly of section .arm:
 1fff128c:       b106            cbz     r6, 1fff1290 <routine118c+0x104>         
 1fff128e:       6033            str     r3, [r6, #0]                             
 1fff1290:       f7ff ffe1       bl      1fff1256 <routine118c+0xca>              
-1fff1294:       4809            ldr     r0, [pc, #36]   ; (1fff12bc <routine12b0+0xc>) 
+1fff1294:       4809            ldr     r0, [pc, #36]   ; (1fff12bc <set_ram124+0xc>) 
 1fff1296:       6800            ldr     r0, [r0, #0]                             
 1fff1298:       b128            cbz     r0, 1fff12a6 <routine118c+0x11a>         
 1fff129a:       f7ff ffd3       bl      1fff1244 <routine118c+0xb8>              
@@ -2165,8 +2257,13 @@ Disassembly of section .arm:
 1fff12ac:       1c5b            adds    r3, r3, #1                               
 1fff12ae:       e7df            b.n     1fff1270 <routine118c+0xe4>              
 
-1fff12b0 <routine12b0>:
-1fff12b0:       4902            ldr     r1, [pc, #8]    ; (1fff12bc <routine12b0+0xc>) ## r1=[0x1fff12bc]=&ram[124]
+1fff12b0 <set_ram124>:
+## Rough C translation:
+## void routine12b0(int r0) {
+##   ram[124]=r0;
+##   return;
+## }
+1fff12b0:       4902            ldr     r1, [pc, #8]    ; (1fff12bc <set_ram124+0xc>) ## r1=[0x1fff12bc]=&ram[124]
 1fff12b2:       6008            str     r0, [r1, #0]                             ## ram[124]=r0
 1fff12b4:       4770            bx      lr                                       ## return
 1fff12b6:       0000            movs    r0, r0                                   
@@ -2176,15 +2273,15 @@ Disassembly of section .arm:
 1fff12c2:       4000            ands    r0, r0                                   
 1fff12c4:       b510            push    {r4, lr}                                 
 1fff12c6:       2200            movs    r2, #0                                   
-1fff12c8:       e003            b.n     1fff12d2 <routine12b0+0x22>              
-1fff12ca:       b90b            cbnz    r3, 1fff12d0 <routine12b0+0x20>          
+1fff12c8:       e003            b.n     1fff12d2 <set_ram124+0x22>               
+1fff12ca:       b90b            cbnz    r3, 1fff12d0 <set_ram124+0x20>           
 1fff12cc:       2000            movs    r0, #0                                   
 1fff12ce:       bd10            pop     {r4, pc}                                 
 1fff12d0:       1c52            adds    r2, r2, #1                               
 1fff12d2:       5c83            ldrb    r3, [r0, r2]                             
 1fff12d4:       5c8c            ldrb    r4, [r1, r2]                             
 1fff12d6:       42a3            cmp     r3, r4                                   
-1fff12d8:       d0f7            beq.n   1fff12ca <routine12b0+0x1a>              
+1fff12d8:       d0f7            beq.n   1fff12ca <set_ram124+0x1a>               
 1fff12da:       5c80            ldrb    r0, [r0, r2]                             
 1fff12dc:       5c89            ldrb    r1, [r1, r2]                             
 1fff12de:       1a40            subs    r0, r0, r1                               
@@ -2197,30 +2294,30 @@ Disassembly of section .arm:
 1fff12ee:       9f07            ldr     r7, [sp, #28]                            
 1fff12f0:       4604            mov     r4, r0                                   
 1fff12f2:       4605            mov     r5, r0                                   
-1fff12f4:       b909            cbnz    r1, 1fff12fa <routine12b0+0x4a>          
+1fff12f4:       b909            cbnz    r1, 1fff12fa <set_ram124+0x4a>           
 1fff12f6:       e8bd 83f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, pc}        
 1fff12fa:       2100            movs    r1, #0                                   
 1fff12fc:       1ebf            subs    r7, r7, #2                               
-1fff12fe:       e022            b.n     1fff1346 <routine12b0+0x96>              
+1fff12fe:       e022            b.n     1fff1346 <set_ram124+0x96>               
 1fff1300:       f100 0c01       add.w   ip, r0, #1                               
 1fff1304:       459c            cmp     ip, r3                                   
-1fff1306:       dc20            bgt.n   1fff134a <routine12b0+0x9a>              
+1fff1306:       dc20            bgt.n   1fff134a <set_ram124+0x9a>               
 1fff1308:       f816 c001       ldrb.w  ip, [r6, r1]                             
 1fff130c:       f1bc 0f20       cmp.w   ip, #32                                  
-1fff1310:       d008            beq.n   1fff1324 <routine12b0+0x74>              
+1fff1310:       d008            beq.n   1fff1324 <set_ram124+0x74>               
 1fff1312:       42bd            cmp     r5, r7                                   
-1fff1314:       da06            bge.n   1fff1324 <routine12b0+0x74>              
+1fff1314:       da06            bge.n   1fff1324 <set_ram124+0x74>               
 1fff1316:       f852 8020       ldr.w   r8, [r2, r0, lsl #2]                     
 1fff131a:       f808 c004       strb.w  ip, [r8, r4]                             
 1fff131e:       1c64            adds    r4, r4, #1                               
 1fff1320:       1c6d            adds    r5, r5, #1                               
-1fff1322:       e00f            b.n     1fff1344 <routine12b0+0x94>              
+1fff1322:       e00f            b.n     1fff1344 <set_ram124+0x94>               
 1fff1324:       eb06 0c01       add.w   ip, r6, r1                               
 1fff1328:       f89c c001       ldrb.w  ip, [ip, #1]                             
 1fff132c:       f1bc 0f20       cmp.w   ip, #32                                  
-1fff1330:       d101            bne.n   1fff1336 <routine12b0+0x86>              
+1fff1330:       d101            bne.n   1fff1336 <set_ram124+0x86>               
 1fff1332:       42bd            cmp     r5, r7                                   
-1fff1334:       d106            bne.n   1fff1344 <routine12b0+0x94>              
+1fff1334:       d106            bne.n   1fff1344 <set_ram124+0x94>               
 1fff1336:       2500            movs    r5, #0                                   
 1fff1338:       f852 c020       ldr.w   ip, [r2, r0, lsl #2]                     
 1fff133c:       1c40            adds    r0, r0, #1                               
@@ -2228,24 +2325,24 @@ Disassembly of section .arm:
 1fff1342:       462c            mov     r4, r5                                   
 1fff1344:       1c49            adds    r1, r1, #1                               
 1fff1346:       4549            cmp     r1, r9                                   
-1fff1348:       ddda            ble.n   1fff1300 <routine12b0+0x50>              
+1fff1348:       ddda            ble.n   1fff1300 <set_ram124+0x50>               
 1fff134a:       1c40            adds    r0, r0, #1                               
-1fff134c:       e7d3            b.n     1fff12f6 <routine12b0+0x46>              
+1fff134c:       e7d3            b.n     1fff12f6 <set_ram124+0x46>               
 1fff134e:       b570            push    {r4, r5, r6, lr}                         
 1fff1350:       2400            movs    r4, #0                                   
 1fff1352:       4622            mov     r2, r4                                   
 1fff1354:       f06f 052f       mvn.w   r5, #47 ; 0x2f                           
-1fff1358:       e009            b.n     1fff136e <routine12b0+0xbe>              
+1fff1358:       e009            b.n     1fff136e <set_ram124+0xbe>               
 1fff135a:       f1a3 0630       sub.w   r6, r3, #48     ; 0x30                   
 1fff135e:       2e09            cmp     r6, #9                                   
-1fff1360:       d80b            bhi.n   1fff137a <routine12b0+0xca>              
+1fff1360:       d80b            bhi.n   1fff137a <set_ram124+0xca>               
 1fff1362:       eb04 0484       add.w   r4, r4, r4, lsl #2                       
 1fff1366:       eb05 0444       add.w   r4, r5, r4, lsl #1                       
 1fff136a:       441c            add     r4, r3                                   
 1fff136c:       1c52            adds    r2, r2, #1                               
 1fff136e:       5c83            ldrb    r3, [r0, r2]                             
 1fff1370:       2b00            cmp     r3, #0                                   
-1fff1372:       d1f2            bne.n   1fff135a <routine12b0+0xaa>              
+1fff1372:       d1f2            bne.n   1fff135a <set_ram124+0xaa>               
 1fff1374:       2000            movs    r0, #0                                   
 1fff1376:       600c            str     r4, [r1, #0]                             
 1fff1378:       bd70            pop     {r4, r5, r6, pc}                         
@@ -2256,28 +2353,28 @@ Disassembly of section .arm:
 1fff1382:       1e52            subs    r2, r2, #1                               
 1fff1384:       548b            strb    r3, [r1, r2]                             
 1fff1386:       240a            movs    r4, #10                                  
-1fff1388:       b978            cbnz    r0, 1fff13aa <routine12b0+0xfa>          
+1fff1388:       b978            cbnz    r0, 1fff13aa <set_ram124+0xfa>           
 1fff138a:       2030            movs    r0, #48 ; 0x30                           
 1fff138c:       1e52            subs    r2, r2, #1                               
 1fff138e:       5488            strb    r0, [r1, r2]                             
-1fff1390:       e00e            b.n     1fff13b0 <routine12b0+0x100>             
+1fff1390:       e00e            b.n     1fff13b0 <set_ram124+0x100>              
 1fff1392:       fbb0 f3f4       udiv    r3, r0, r4                               
 1fff1396:       fb04 0013       mls     r0, r4, r3, r0                           
 1fff139a:       1e52            subs    r2, r2, #1                               
 1fff139c:       2809            cmp     r0, #9                                   
-1fff139e:       d801            bhi.n   1fff13a4 <routine12b0+0xf4>              
+1fff139e:       d801            bhi.n   1fff13a4 <set_ram124+0xf4>               
 1fff13a0:       3030            adds    r0, #48 ; 0x30                           
-1fff13a2:       e000            b.n     1fff13a6 <routine12b0+0xf6>              
+1fff13a2:       e000            b.n     1fff13a6 <set_ram124+0xf6>               
 1fff13a4:       3037            adds    r0, #55 ; 0x37                           
 1fff13a6:       5488            strb    r0, [r1, r2]                             
 1fff13a8:       4618            mov     r0, r3                                   
-1fff13aa:       b10a            cbz     r2, 1fff13b0 <routine12b0+0x100>         
+1fff13aa:       b10a            cbz     r2, 1fff13b0 <set_ram124+0x100>          
 1fff13ac:       2800            cmp     r0, #0                                   
-1fff13ae:       d1f0            bne.n   1fff1392 <routine12b0+0xe2>              
+1fff13ae:       d1f0            bne.n   1fff1392 <set_ram124+0xe2>               
 1fff13b0:       1888            adds    r0, r1, r2                               
 1fff13b2:       bd10            pop     {r4, pc}                                 
 1fff13b4:       2860            cmp     r0, #96 ; 0x60                           
-1fff13b6:       d101            bne.n   1fff13bc <routine12b0+0x10c>             
+1fff13b6:       d101            bne.n   1fff13bc <set_ram124+0x10c>              
 1fff13b8:       2000            movs    r0, #0                                   
 1fff13ba:       4770            bx      lr                                       
 1fff13bc:       3820            subs    r0, #32                                  
@@ -2288,34 +2385,34 @@ Disassembly of section .arm:
 1fff13c6:       2600            movs    r6, #0                                   
 1fff13c8:       4635            mov     r5, r6                                   
 1fff13ca:       7800            ldrb    r0, [r0, #0]                             
-1fff13cc:       f7ff fff2       bl      1fff13b4 <routine12b0+0x104>             
+1fff13cc:       f7ff fff2       bl      1fff13b4 <set_ram124+0x104>              
 1fff13d0:       4604            mov     r4, r0                                   
 1fff13d2:       1e40            subs    r0, r0, #1                               
 1fff13d4:       282c            cmp     r0, #44 ; 0x2c                           
-1fff13d6:       d84c            bhi.n   1fff1472 <routine12b0+0x1c2>             
+1fff13d6:       d84c            bhi.n   1fff1472 <set_ram124+0x1c2>              
 1fff13d8:       1c5b            adds    r3, r3, #1                               
-1fff13da:       e048            b.n     1fff146e <routine12b0+0x1be>             
+1fff13da:       e048            b.n     1fff146e <set_ram124+0x1be>              
 1fff13dc:       2c03            cmp     r4, #3                                   
-1fff13de:       db26            blt.n   1fff142e <routine12b0+0x17e>             
+1fff13de:       db26            blt.n   1fff142e <set_ram124+0x17e>              
 1fff13e0:       7818            ldrb    r0, [r3, #0]                             
-1fff13e2:       f7ff ffe7       bl      1fff13b4 <routine12b0+0x104>             
+1fff13e2:       f7ff ffe7       bl      1fff13b4 <set_ram124+0x104>              
 1fff13e6:       0087            lsls    r7, r0, #2                               
 1fff13e8:       7858            ldrb    r0, [r3, #1]                             
-1fff13ea:       f7ff ffe3       bl      1fff13b4 <routine12b0+0x104>             
+1fff13ea:       f7ff ffe3       bl      1fff13b4 <set_ram124+0x104>              
 1fff13ee:       ea47 1010       orr.w   r0, r7, r0, lsr #4                       
 1fff13f2:       7008            strb    r0, [r1, #0]                             
 1fff13f4:       7858            ldrb    r0, [r3, #1]                             
-1fff13f6:       f7ff ffdd       bl      1fff13b4 <routine12b0+0x104>             
+1fff13f6:       f7ff ffdd       bl      1fff13b4 <set_ram124+0x104>              
 1fff13fa:       0107            lsls    r7, r0, #4                               
 1fff13fc:       7898            ldrb    r0, [r3, #2]                             
-1fff13fe:       f7ff ffd9       bl      1fff13b4 <routine12b0+0x104>             
+1fff13fe:       f7ff ffd9       bl      1fff13b4 <set_ram124+0x104>              
 1fff1402:       ea47 0090       orr.w   r0, r7, r0, lsr #2                       
 1fff1406:       7048            strb    r0, [r1, #1]                             
 1fff1408:       78d8            ldrb    r0, [r3, #3]                             
-1fff140a:       f7ff ffd3       bl      1fff13b4 <routine12b0+0x104>             
+1fff140a:       f7ff ffd3       bl      1fff13b4 <set_ram124+0x104>              
 1fff140e:       4607            mov     r7, r0                                   
 1fff1410:       7898            ldrb    r0, [r3, #2]                             
-1fff1412:       f7ff ffcf       bl      1fff13b4 <routine12b0+0x104>             
+1fff1412:       f7ff ffcf       bl      1fff13b4 <set_ram124+0x104>              
 1fff1416:       ea47 1080       orr.w   r0, r7, r0, lsl #6                       
 1fff141a:       7088            strb    r0, [r1, #2]                             
 1fff141c:       7808            ldrb    r0, [r1, #0]                             
@@ -2326,26 +2423,26 @@ Disassembly of section .arm:
 1fff1426:       1cc9            adds    r1, r1, #3                               
 1fff1428:       443e            add     r6, r7                                   
 1fff142a:       4406            add     r6, r0                                   
-1fff142c:       e01d            b.n     1fff146a <routine12b0+0x1ba>             
+1fff142c:       e01d            b.n     1fff146a <set_ram124+0x1ba>              
 1fff142e:       2c01            cmp     r4, #1                                   
-1fff1430:       db0c            blt.n   1fff144c <routine12b0+0x19c>             
+1fff1430:       db0c            blt.n   1fff144c <set_ram124+0x19c>              
 1fff1432:       7818            ldrb    r0, [r3, #0]                             
-1fff1434:       f7ff ffbe       bl      1fff13b4 <routine12b0+0x104>             
+1fff1434:       f7ff ffbe       bl      1fff13b4 <set_ram124+0x104>              
 1fff1438:       0087            lsls    r7, r0, #2                               
 1fff143a:       7858            ldrb    r0, [r3, #1]                             
-1fff143c:       f7ff ffba       bl      1fff13b4 <routine12b0+0x104>             
+1fff143c:       f7ff ffba       bl      1fff13b4 <set_ram124+0x104>              
 1fff1440:       ea47 1010       orr.w   r0, r7, r0, lsr #4                       
 1fff1444:       7008            strb    r0, [r1, #0]                             
 1fff1446:       b2c0            uxtb    r0, r0                                   
 1fff1448:       1c6d            adds    r5, r5, #1                               
 1fff144a:       4406            add     r6, r0                                   
 1fff144c:       2c02            cmp     r4, #2                                   
-1fff144e:       db0c            blt.n   1fff146a <routine12b0+0x1ba>             
+1fff144e:       db0c            blt.n   1fff146a <set_ram124+0x1ba>              
 1fff1450:       7858            ldrb    r0, [r3, #1]                             
-1fff1452:       f7ff ffaf       bl      1fff13b4 <routine12b0+0x104>             
+1fff1452:       f7ff ffaf       bl      1fff13b4 <set_ram124+0x104>              
 1fff1456:       0107            lsls    r7, r0, #4                               
 1fff1458:       7898            ldrb    r0, [r3, #2]                             
-1fff145a:       f7ff ffab       bl      1fff13b4 <routine12b0+0x104>             
+1fff145a:       f7ff ffab       bl      1fff13b4 <set_ram124+0x104>              
 1fff145e:       ea47 0090       orr.w   r0, r7, r0, lsr #2                       
 1fff1462:       7048            strb    r0, [r1, #1]                             
 1fff1464:       b2c0            uxtb    r0, r0                                   
@@ -2354,11 +2451,11 @@ Disassembly of section .arm:
 1fff146a:       1d1b            adds    r3, r3, #4                               
 1fff146c:       1ee4            subs    r4, r4, #3                               
 1fff146e:       2c00            cmp     r4, #0                                   
-1fff1470:       dcb4            bgt.n   1fff13dc <routine12b0+0x12c>             
+1fff1470:       dcb4            bgt.n   1fff13dc <set_ram124+0x12c>              
 1fff1472:       4630            mov     r0, r6                                   
 1fff1474:       6015            str     r5, [r2, #0]                             
 1fff1476:       bdf0            pop     {r4, r5, r6, r7, pc}                     
-1fff1478:       b908            cbnz    r0, 1fff147e <routine12b0+0x1ce>         
+1fff1478:       b908            cbnz    r0, 1fff147e <set_ram124+0x1ce>          
 1fff147a:       2060            movs    r0, #96 ; 0x60                           
 1fff147c:       4770            bx      lr                                       
 1fff147e:       3020            adds    r0, #32                                  
@@ -2368,60 +2465,60 @@ Disassembly of section .arm:
 1fff1486:       4603            mov     r3, r0                                   
 1fff1488:       2400            movs    r4, #0                                   
 1fff148a:       b2d0            uxtb    r0, r2                                   
-1fff148c:       f7ff fff4       bl      1fff1478 <routine12b0+0x1c8>             
+1fff148c:       f7ff fff4       bl      1fff1478 <set_ram124+0x1c8>              
 1fff1490:       f801 0b01       strb.w  r0, [r1], #1                             
-1fff1494:       e02e            b.n     1fff14f4 <routine12b0+0x244>             
+1fff1494:       e02e            b.n     1fff14f4 <set_ram124+0x244>              
 1fff1496:       2a03            cmp     r2, #3                                   
-1fff1498:       db05            blt.n   1fff14a6 <routine12b0+0x1f6>             
+1fff1498:       db05            blt.n   1fff14a6 <set_ram124+0x1f6>              
 1fff149a:       785d            ldrb    r5, [r3, #1]                             
 1fff149c:       789e            ldrb    r6, [r3, #2]                             
 1fff149e:       7818            ldrb    r0, [r3, #0]                             
 1fff14a0:       4434            add     r4, r6                                   
 1fff14a2:       4428            add     r0, r5                                   
-1fff14a4:       e005            b.n     1fff14b2 <routine12b0+0x202>             
+1fff14a4:       e005            b.n     1fff14b2 <set_ram124+0x202>              
 1fff14a6:       2a02            cmp     r2, #2                                   
-1fff14a8:       d105            bne.n   1fff14b6 <routine12b0+0x206>             
+1fff14a8:       d105            bne.n   1fff14b6 <set_ram124+0x206>              
 1fff14aa:       785d            ldrb    r5, [r3, #1]                             
 1fff14ac:       7818            ldrb    r0, [r3, #0]                             
 1fff14ae:       462e            mov     r6, r5                                   
 1fff14b0:       4428            add     r0, r5                                   
 1fff14b2:       4404            add     r4, r0                                   
-1fff14b4:       e002            b.n     1fff14bc <routine12b0+0x20c>             
+1fff14b4:       e002            b.n     1fff14bc <set_ram124+0x20c>              
 1fff14b6:       781d            ldrb    r5, [r3, #0]                             
 1fff14b8:       462e            mov     r6, r5                                   
 1fff14ba:       442c            add     r4, r5                                   
 1fff14bc:       7818            ldrb    r0, [r3, #0]                             
 1fff14be:       0880            lsrs    r0, r0, #2                               
-1fff14c0:       f7ff ffda       bl      1fff1478 <routine12b0+0x1c8>             
+1fff14c0:       f7ff ffda       bl      1fff1478 <set_ram124+0x1c8>              
 1fff14c4:       7008            strb    r0, [r1, #0]                             
 1fff14c6:       7818            ldrb    r0, [r3, #0]                             
 1fff14c8:       0780            lsls    r0, r0, #30                              
 1fff14ca:       0e80            lsrs    r0, r0, #26                              
 1fff14cc:       eb00 1015       add.w   r0, r0, r5, lsr #4                       
-1fff14d0:       f7ff ffd2       bl      1fff1478 <routine12b0+0x1c8>             
+1fff14d0:       f7ff ffd2       bl      1fff1478 <set_ram124+0x1c8>              
 1fff14d4:       7048            strb    r0, [r1, #1]                             
 1fff14d6:       0728            lsls    r0, r5, #28                              
 1fff14d8:       0e80            lsrs    r0, r0, #26                              
 1fff14da:       eb00 1096       add.w   r0, r0, r6, lsr #6                       
-1fff14de:       f7ff ffcb       bl      1fff1478 <routine12b0+0x1c8>             
+1fff14de:       f7ff ffcb       bl      1fff1478 <set_ram124+0x1c8>              
 1fff14e2:       7088            strb    r0, [r1, #2]                             
 1fff14e4:       f006 003f       and.w   r0, r6, #63     ; 0x3f                   
-1fff14e8:       f7ff ffc6       bl      1fff1478 <routine12b0+0x1c8>             
+1fff14e8:       f7ff ffc6       bl      1fff1478 <set_ram124+0x1c8>              
 1fff14ec:       70c8            strb    r0, [r1, #3]                             
 1fff14ee:       1d09            adds    r1, r1, #4                               
 1fff14f0:       1cdb            adds    r3, r3, #3                               
 1fff14f2:       1ed2            subs    r2, r2, #3                               
 1fff14f4:       2a00            cmp     r2, #0                                   
-1fff14f6:       dcce            bgt.n   1fff1496 <routine12b0+0x1e6>             
+1fff14f6:       dcce            bgt.n   1fff1496 <set_ram124+0x1e6>              
 1fff14f8:       2000            movs    r0, #0                                   
 1fff14fa:       7008            strb    r0, [r1, #0]                             
 1fff14fc:       4620            mov     r0, r4                                   
 1fff14fe:       bd70            pop     {r4, r5, r6, pc}                         
-1fff1500:       4a04            ldr     r2, [pc, #16]   ; (1fff1514 <routine12b0+0x264>) 
+1fff1500:       4a04            ldr     r2, [pc, #16]   ; (1fff1514 <set_ram124+0x264>) 
 1fff1502:       6c51            ldr     r1, [r2, #68]   ; 0x44                   
 1fff1504:       f021 0318       bic.w   r3, r1, #24                              
 1fff1508:       2110            movs    r1, #16                                  
-1fff150a:       b900            cbnz    r0, 1fff150e <routine12b0+0x25e>         
+1fff150a:       b900            cbnz    r0, 1fff150e <set_ram124+0x25e>          
 1fff150c:       2108            movs    r1, #8                                   
 1fff150e:       430b            orrs    r3, r1                                   
 1fff1510:       6453            str     r3, [r2, #68]   ; 0x44                   
@@ -2435,61 +2532,61 @@ Disassembly of section .arm:
 1fff1522:       7ca5            ldrb    r5, [r4, #18]                            
 1fff1524:       460f            mov     r7, r1                                   
 1fff1526:       2840            cmp     r0, #64 ; 0x40                           
-1fff1528:       d13e            bne.n   1fff15a8 <routine12b0+0x2f8>             
+1fff1528:       d13e            bne.n   1fff15a8 <set_ram124+0x2f8>              
 1fff152a:       f1a5 0010       sub.w   r0, r5, #16                              
 1fff152e:       2807            cmp     r0, #7                                   
-1fff1530:       d837            bhi.n   1fff15a2 <routine12b0+0x2f2>             
+1fff1530:       d837            bhi.n   1fff15a2 <set_ram124+0x2f2>              
 1fff1532:       2052            movs    r0, #82 ; 0x52                           
 1fff1534:       f884 0035       strb.w  r0, [r4, #53]   ; 0x35                   
 1fff1538:       200f            movs    r0, #15                                  
 1fff153a:       f884 0031       strb.w  r0, [r4, #49]   ; 0x31                   
 1fff153e:       2d10            cmp     r5, #16                                  
-1fff1540:       d103            bne.n   1fff154a <routine12b0+0x29a>             
+1fff1540:       d103            bne.n   1fff154a <set_ram124+0x29a>              
 1fff1542:       2000            movs    r0, #0                                   
 1fff1544:       f884 0032       strb.w  r0, [r4, #50]   ; 0x32                   
-1fff1548:       e007            b.n     1fff155a <routine12b0+0x2aa>             
+1fff1548:       e007            b.n     1fff155a <set_ram124+0x2aa>              
 1fff154a:       2d14            cmp     r5, #20                                  
-1fff154c:       d305            bcc.n   1fff155a <routine12b0+0x2aa>             
+1fff154c:       d305            bcc.n   1fff155a <set_ram124+0x2aa>              
 1fff154e:       20d2            movs    r0, #210        ; 0xd2                   
 1fff1550:       f884 0037       strb.w  r0, [r4, #55]   ; 0x37                   
 1fff1554:       2011            movs    r0, #17                                  
 1fff1556:       f884 0033       strb.w  r0, [r4, #51]   ; 0x33                   
 1fff155a:       201c            movs    r0, #28                                  
 1fff155c:       2d16            cmp     r5, #22                                  
-1fff155e:       d301            bcc.n   1fff1564 <routine12b0+0x2b4>             
+1fff155e:       d301            bcc.n   1fff1564 <set_ram124+0x2b4>              
 1fff1560:       f244 001c       movw    r0, #16412      ; 0x401c                 
 1fff1564:       8360            strh    r0, [r4, #26]                            
 1fff1566:       f44f 70fe       mov.w   r0, #508        ; 0x1fc                  
-1fff156a:       d301            bcc.n   1fff1570 <routine12b0+0x2c0>             
+1fff156a:       d301            bcc.n   1fff1570 <set_ram124+0x2c0>              
 1fff156c:       f244 50fc       movw    r0, #17916      ; 0x45fc                 
 1fff1570:       8320            strh    r0, [r4, #24]                            
 1fff1572:       1e69            subs    r1, r5, #1                               
 1fff1574:       4620            mov     r0, r4                                   
 1fff1576:       f009 fbd9       bl      1fffad2c <IAP_LOCATION+0x8d3c>           
 1fff157a:       05f8            lsls    r0, r7, #23                              
-1fff157c:       d503            bpl.n   1fff1586 <routine12b0+0x2d6>             
+1fff157c:       d503            bpl.n   1fff1586 <set_ram124+0x2d6>              
 1fff157e:       f244 4101       movw    r1, #17409      ; 0x4401                 
-1fff1582:       4a0b            ldr     r2, [pc, #44]   ; (1fff15b0 <routine12b0+0x300>) 
-1fff1584:       e005            b.n     1fff1592 <routine12b0+0x2e2>             
-1fff1586:       4a0b            ldr     r2, [pc, #44]   ; (1fff15b4 <routine12b0+0x304>) 
+1fff1582:       4a0b            ldr     r2, [pc, #44]   ; (1fff15b0 <set_ram124+0x300>) 
+1fff1584:       e005            b.n     1fff1592 <set_ram124+0x2e2>              
+1fff1586:       4a0b            ldr     r2, [pc, #44]   ; (1fff15b4 <set_ram124+0x304>) 
 1fff1588:       f244 0105       movw    r1, #16389      ; 0x4005                 
 1fff158c:       2d16            cmp     r5, #22                                  
-1fff158e:       d300            bcc.n   1fff1592 <routine12b0+0x2e2>             
-1fff1590:       4e09            ldr     r6, [pc, #36]   ; (1fff15b8 <routine12b0+0x308>) 
-1fff1592:       480a            ldr     r0, [pc, #40]   ; (1fff15bc <routine12b0+0x30c>) 
+1fff158e:       d300            bcc.n   1fff1592 <set_ram124+0x2e2>              
+1fff1590:       4e09            ldr     r6, [pc, #36]   ; (1fff15b8 <set_ram124+0x308>) 
+1fff1592:       480a            ldr     r0, [pc, #40]   ; (1fff15bc <set_ram124+0x30c>) 
 1fff1594:       4633            mov     r3, r6                                   
 1fff1596:       4302            orrs    r2, r0                                   
 1fff1598:       4620            mov     r0, r4                                   
 1fff159a:       e8bd 41f0       ldmia.w sp!, {r4, r5, r6, r7, r8, lr}            
 1fff159e:       f009 bbd0       b.w     1fffad42 <IAP_LOCATION+0x8d52>           
-1fff15a2:       4807            ldr     r0, [pc, #28]   ; (1fff15c0 <routine12b0+0x310>) 
+1fff15a2:       4807            ldr     r0, [pc, #28]   ; (1fff15c0 <set_ram124+0x310>) 
 1fff15a4:       e8bd 81f0       ldmia.w sp!, {r4, r5, r6, r7, r8, pc}            
-1fff15a8:       4805            ldr     r0, [pc, #20]   ; (1fff15c0 <routine12b0+0x310>) 
+1fff15a8:       4805            ldr     r0, [pc, #20]   ; (1fff15c0 <set_ram124+0x310>) 
 1fff15aa:       1c40            adds    r0, r0, #1                               
-1fff15ac:       e7fa            b.n     1fff15a4 <routine12b0+0x2f4>             
+1fff15ac:       e7fa            b.n     1fff15a4 <set_ram124+0x2f4>              
 1fff15ae:       0000            movs    r0, r0                                   
 1fff15b0:       0000            movs    r0, r0                                   
-1fff15b2:       bb11            cbnz    r1, 1fff15fa <routine12b0+0x34a>         
+1fff15b2:       bb11            cbnz    r1, 1fff15fa <set_ram124+0x34a>          
 1fff15b4:       0000            movs    r0, r0                                   
 1fff15b6:       eb13 8000                       ; <UNDEFINED> instruction: 0xeb138000 
 1fff15ba:       3288            adds    r2, #136        ; 0x88                   
@@ -2498,11 +2595,11 @@ Disassembly of section .arm:
 1fff15c0:       0007            movs    r7, r0                                   
 1fff15c2:       0002            movs    r2, r0                                   
 1fff15c4:       2a20            cmp     r2, #32                                  
-1fff15c6:       db04            blt.n   1fff15d2 <routine12b0+0x322>             
+1fff15c6:       db04            blt.n   1fff15d2 <set_ram124+0x322>              
 1fff15c8:       2300            movs    r3, #0                                   
 1fff15ca:       3a20            subs    r2, #32                                  
 1fff15cc:       fa00 f102       lsl.w   r1, r0, r2                               
-1fff15d0:       e006            b.n     1fff15e0 <routine12b0+0x330>             
+1fff15d0:       e006            b.n     1fff15e0 <set_ram124+0x330>              
 1fff15d2:       fa00 f302       lsl.w   r3, r0, r2                               
 1fff15d6:       4091            lsls    r1, r2                                   
 1fff15d8:       f1c2 0220       rsb     r2, r2, #32                              
@@ -2512,34 +2609,34 @@ Disassembly of section .arm:
 1fff15e2:       4770            bx      lr                                       
 1fff15e4:       ea40 0301       orr.w   r3, r0, r1                               
 1fff15e8:       079b            lsls    r3, r3, #30                              
-1fff15ea:       d10a            bne.n   1fff1602 <routine12b0+0x352>             
-1fff15ec:       e002            b.n     1fff15f4 <routine12b0+0x344>             
+1fff15ea:       d10a            bne.n   1fff1602 <set_ram124+0x352>              
+1fff15ec:       e002            b.n     1fff15f4 <set_ram124+0x344>              
 1fff15ee:       c908            ldmia   r1!, {r3}                                
 1fff15f0:       1f12            subs    r2, r2, #4                               
 1fff15f2:       c008            stmia   r0!, {r3}                                
 1fff15f4:       2a04            cmp     r2, #4                                   
-1fff15f6:       d2fa            bcs.n   1fff15ee <routine12b0+0x33e>             
-1fff15f8:       e003            b.n     1fff1602 <routine12b0+0x352>             
+1fff15f6:       d2fa            bcs.n   1fff15ee <set_ram124+0x33e>              
+1fff15f8:       e003            b.n     1fff1602 <set_ram124+0x352>              
 1fff15fa:       f811 3b01       ldrb.w  r3, [r1], #1                             
 1fff15fe:       f800 3b01       strb.w  r3, [r0], #1                             
 1fff1602:       1e52            subs    r2, r2, #1                               
-1fff1604:       d2f9            bcs.n   1fff15fa <routine12b0+0x34a>             
+1fff1604:       d2f9            bcs.n   1fff15fa <set_ram124+0x34a>              
 1fff1606:       4770            bx      lr                                       
 1fff1608:       b2d2            uxtb    r2, r2                                   
-1fff160a:       e001            b.n     1fff1610 <routine12b0+0x360>             
+1fff160a:       e001            b.n     1fff1610 <set_ram124+0x360>              
 1fff160c:       f800 2b01       strb.w  r2, [r0], #1                             
 1fff1610:       1e49            subs    r1, r1, #1                               
-1fff1612:       d2fb            bcs.n   1fff160c <routine12b0+0x35c>             
+1fff1612:       d2fb            bcs.n   1fff160c <set_ram124+0x35c>              
 1fff1614:       4770            bx      lr                                       
 1fff1616:       2200            movs    r2, #0                                   
-1fff1618:       e7f6            b.n     1fff1608 <routine12b0+0x358>             
+1fff1618:       e7f6            b.n     1fff1608 <set_ram124+0x358>              
 1fff161a:       b510            push    {r4, lr}                                 
 1fff161c:       4604            mov     r4, r0                                   
 1fff161e:       4608            mov     r0, r1                                   
 1fff1620:       4611            mov     r1, r2                                   
 1fff1622:       4602            mov     r2, r0                                   
 1fff1624:       4620            mov     r0, r4                                   
-1fff1626:       f7ff ffef       bl      1fff1608 <routine12b0+0x358>             
+1fff1626:       f7ff ffef       bl      1fff1608 <set_ram124+0x358>              
 1fff162a:       4620            mov     r0, r4                                   
 1fff162c:       bd10            pop     {r4, pc}                                 
 1fff162e:       4770            bx      lr                                       
@@ -2583,19 +2680,19 @@ Disassembly of section .arm:
 1fff1696:       462a            mov     r2, r5                                   
 1fff1698:       4639            mov     r1, r7                                   
 1fff169a:       4640            mov     r0, r8                                   
-1fff169c:       f7ff f852       bl      1fff0744 <reset2_cont+0x1ec>             
+1fff169c:       f7ff f852       bl      1fff0744 <&crp5+0x11c>                   
 1fff16a0:       6030            str     r0, [r6, #0]                             
 1fff16a2:       2800            cmp     r0, #0                                   
-1fff16a4:       d112            bne.n   1fff16cc <routine12b0+0x41c>             
+1fff16a4:       d112            bne.n   1fff16cc <set_ram124+0x41c>              
 1fff16a6:       2d00            cmp     r5, #0                                   
-1fff16a8:       d010            beq.n   1fff16cc <routine12b0+0x41c>             
+1fff16a8:       d010            beq.n   1fff16cc <set_ram124+0x41c>              
 1fff16aa:       6920            ldr     r0, [r4, #16]                            
 1fff16ac:       f7ff f886       bl      1fff07bc <rounded_divide+0x3a>           
 1fff16b0:       f1b9 0f00       cmp.w   r9, #0                                   
 1fff16b4:       462a            mov     r2, r5                                   
 1fff16b6:       4639            mov     r1, r7                                   
 1fff16b8:       4640            mov     r0, r8                                   
-1fff16ba:       d103            bne.n   1fff16c4 <routine12b0+0x414>             
+1fff16ba:       d103            bne.n   1fff16c4 <set_ram124+0x414>              
 1fff16bc:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
 1fff16c0:       f7ff b93e       b.w     1fff0940 <rounded_divide+0x1be>          
 1fff16c4:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
@@ -2671,21 +2768,21 @@ Disassembly of section .arm:
 1fff1718:       f100 010c       add.w   r1, r0, #12                              
 1fff171c:       2264            movs    r2, #100        ; 0x64                   
 1fff171e:       4618            mov     r0, r3                                   
-1fff1720:       f7fe ff89       bl      1fff0636 <reset2_cont+0xde>              
+1fff1720:       f7fe ff89       bl      1fff0636 <&crp5+0xe>                     
 1fff1724:       6028            str     r0, [r5, #0]                             
 1fff1726:       2800            cmp     r0, #0                                   
 1fff1728:       d12a            bne.n   1fff1780 <routine170e+0x72>              
 1fff172a:       2266            movs    r2, #102        ; 0x66                   
 1fff172c:       1d21            adds    r1, r4, #4                               
 1fff172e:       68e3            ldr     r3, [r4, #12]                            
-1fff1730:       f7fe ff81       bl      1fff0636 <reset2_cont+0xde>              
+1fff1730:       f7fe ff81       bl      1fff0636 <&crp5+0xe>                     
 1fff1734:       6028            str     r0, [r5, #0]                             
 1fff1736:       2800            cmp     r0, #0                                   
 1fff1738:       d122            bne.n   1fff1780 <routine170e+0x72>              
 1fff173a:       2266            movs    r2, #102        ; 0x66                   
 1fff173c:       f104 0108       add.w   r1, r4, #8                               
 1fff1740:       68e3            ldr     r3, [r4, #12]                            
-1fff1742:       f7fe ff78       bl      1fff0636 <reset2_cont+0xde>              
+1fff1742:       f7fe ff78       bl      1fff0636 <&crp5+0xe>                     
 1fff1746:       6028            str     r0, [r5, #0]                             
 1fff1748:       2800            cmp     r0, #0                                   
 1fff174a:       d119            bne.n   1fff1780 <routine170e+0x72>              
@@ -2783,14 +2880,14 @@ Disassembly of section .arm:
 1fff1836:       6800            ldr     r0, [r0, #0]                             
 1fff1838:       6050            str     r0, [r2, #4]                             
 1fff183a:       e7f3            b.n     1fff1824 <real_iap+0x84>                 
-1fff183c:       f7ff ff48       bl      1fff16d0 <routine12b0+0x420>             
+1fff183c:       f7ff ff48       bl      1fff16d0 <set_ram124+0x420>              
 1fff1840:       e009            b.n     1fff1856 <real_iap+0xb6>                 
 1fff1842:       4601            mov     r1, r0                                   
 1fff1844:       2001            movs    r0, #1                                   
 1fff1846:       e001            b.n     1fff184c <real_iap+0xac>                 
 1fff1848:       4601            mov     r1, r0                                   
 1fff184a:       2000            movs    r0, #0                                   
-1fff184c:       f7ff ff1a       bl      1fff1684 <routine12b0+0x3d4>             
+1fff184c:       f7ff ff1a       bl      1fff1684 <set_ram124+0x3d4>              
 1fff1850:       e001            b.n     1fff1856 <real_iap+0xb6>                 
 1fff1852:       2001            movs    r0, #1                                   
 1fff1854:       6010            str     r0, [r2, #0]                             
@@ -2903,7 +3000,7 @@ Disassembly of section .arm:
 1fff1942:       4622            mov     r2, r4                                   
 1fff1944:       2100            movs    r1, #0                                   
 1fff1946:       2001            movs    r0, #1                                   
-1fff1948:       f7ff fe3c       bl      1fff15c4 <routine12b0+0x314>             
+1fff1948:       f7ff fe3c       bl      1fff15c4 <set_ram124+0x314>              
 1fff194c:       4307            orrs    r7, r0                                   
 1fff194e:       ea41 0909       orr.w   r9, r1, r9                               
 1fff1952:       f7ff fed4       bl      1fff16fe <unlock_bootblock>              
@@ -2971,7 +3068,7 @@ Disassembly of section .arm:
 1fff19fc:       4622            mov     r2, r4                                   
 1fff19fe:       2100            movs    r1, #0                                   
 1fff1a00:       2001            movs    r0, #1                                   
-1fff1a02:       f7ff fddf       bl      1fff15c4 <routine12b0+0x314>             
+1fff1a02:       f7ff fddf       bl      1fff15c4 <set_ram124+0x314>              
 1fff1a06:       4305            orrs    r5, r0                                   
 1fff1a08:       430e            orrs    r6, r1                                   
 1fff1a0a:       1c64            adds    r4, r4, #1                               
@@ -3152,21 +3249,21 @@ Disassembly of section .arm:
 1fff1bd6:       2265            movs    r2, #101        ; 0x65                   
 1fff1bd8:       a903            add     r1, sp, #12                              
 1fff1bda:       4618            mov     r0, r3                                   
-1fff1bdc:       f7fe fd2b       bl      1fff0636 <reset2_cont+0xde>              
+1fff1bdc:       f7fe fd2b       bl      1fff0636 <&crp5+0xe>                     
 1fff1be0:       6028            str     r0, [r5, #0]                             
 1fff1be2:       2800            cmp     r0, #0                                   
 1fff1be4:       d16f            bne.n   1fff1cc6 <real_iap+0x526>                
 1fff1be6:       2268            movs    r2, #104        ; 0x68                   
 1fff1be8:       a901            add     r1, sp, #4                               
 1fff1bea:       9b03            ldr     r3, [sp, #12]                            
-1fff1bec:       f7fe fd23       bl      1fff0636 <reset2_cont+0xde>              
+1fff1bec:       f7fe fd23       bl      1fff0636 <&crp5+0xe>                     
 1fff1bf0:       6028            str     r0, [r5, #0]                             
 1fff1bf2:       2800            cmp     r0, #0                                   
 1fff1bf4:       d179            bne.n   1fff1cea <real_iap+0x54a>                
 1fff1bf6:       2267            movs    r2, #103        ; 0x67                   
 1fff1bf8:       a902            add     r1, sp, #8                               
 1fff1bfa:       9b03            ldr     r3, [sp, #12]                            
-1fff1bfc:       f7fe fd1b       bl      1fff0636 <reset2_cont+0xde>              
+1fff1bfc:       f7fe fd1b       bl      1fff0636 <&crp5+0xe>                     
 1fff1c00:       6028            str     r0, [r5, #0]                             
 1fff1c02:       2800            cmp     r0, #0                                   
 1fff1c04:       d171            bne.n   1fff1cea <real_iap+0x54a>                
@@ -13311,7 +13408,7 @@ Disassembly of section .arm:
 1fff808e:       4760            bx      ip                                       
 1fff8090:       6808            ldr     r0, [r1, #0]                             
 1fff8092:       2140            movs    r1, #64 ; 0x40                           
-1fff8094:       f7f9 fabf       bl      1fff1616 <routine12b0+0x366>             
+1fff8094:       f7f9 fabf       bl      1fff1616 <set_ram124+0x366>              
 1fff8098:       2000            movs    r0, #0                                   
 1fff809a:       bd70            pop     {r4, r5, r6, pc}                         
 1fff809c:       b430            push    {r4, r5}                                 
@@ -13471,7 +13568,7 @@ Disassembly of section .arm:
 1fff8204:       e9c5 1000       strd    r1, r0, [r5]                             
 1fff8208:       2148            movs    r1, #72 ; 0x48                           
 1fff820a:       4620            mov     r0, r4                                   
-1fff820c:       f7f9 fa03       bl      1fff1616 <routine12b0+0x366>             
+1fff820c:       f7f9 fa03       bl      1fff1616 <set_ram124+0x366>              
 1fff8210:       f2af 10cb       subw    r0, pc, #459    ; 0x1cb                  
 1fff8214:       f8c4 8000       str.w   r8, [r4]                                 
 1fff8218:       6420            str     r0, [r4, #64]   ; 0x40                   
@@ -14364,7 +14461,7 @@ Disassembly of section .arm:
 1fff8af8:       4604            mov     r4, r0                                   
 1fff8afa:       4615            mov     r5, r2                                   
 1fff8afc:       f44f 71b6       mov.w   r1, #364        ; 0x16c                  
-1fff8b00:       f7f8 fd89       bl      1fff1616 <routine12b0+0x366>             
+1fff8b00:       f7f8 fd89       bl      1fff1616 <set_ram124+0x366>              
 1fff8b04:       7b28            ldrb    r0, [r5, #12]                            
 1fff8b06:       f884 00e9       strb.w  r0, [r4, #233]  ; 0xe9                   
 1fff8b0a:       4623            mov     r3, r4                                   
@@ -14759,7 +14856,7 @@ Disassembly of section .arm:
 1fff8ec0:       d1f7            bne.n   1fff8eb2 <IAP_LOCATION+0x6ec2>           
 1fff8ec2:       2128            movs    r1, #40 ; 0x28                           
 1fff8ec4:       4628            mov     r0, r5                                   
-1fff8ec6:       f7f8 fba6       bl      1fff1616 <routine12b0+0x366>             
+1fff8ec6:       f7f8 fba6       bl      1fff1616 <set_ram124+0x366>              
 1fff8eca:       616f            str     r7, [r5, #20]                            
 1fff8ecc:       6820            ldr     r0, [r4, #0]                             
 1fff8ece:       60e8            str     r0, [r5, #12]                            
@@ -15064,7 +15161,7 @@ Disassembly of section .arm:
 1fff91a0:       e9c4 1000       strd    r1, r0, [r4]                             
 1fff91a4:       2128            movs    r1, #40 ; 0x28                           
 1fff91a6:       4628            mov     r0, r5                                   
-1fff91a8:       f7f8 fa35       bl      1fff1616 <routine12b0+0x366>             
+1fff91a8:       f7f8 fa35       bl      1fff1616 <set_ram124+0x366>              
 1fff91ac:       f8c5 a000       str.w   sl, [r5]                                 
 1fff91b0:       6820            ldr     r0, [r4, #0]                             
 1fff91b2:       60a8            str     r0, [r5, #8]                             
@@ -15086,7 +15183,7 @@ Disassembly of section .arm:
 1fff91d6:       d1f7            bne.n   1fff91c8 <IAP_LOCATION+0x71d8>           
 1fff91d8:       00c9            lsls    r1, r1, #3                               
 1fff91da:       68a8            ldr     r0, [r5, #8]                             
-1fff91dc:       f7f8 fa1b       bl      1fff1616 <routine12b0+0x366>             
+1fff91dc:       f7f8 fa1b       bl      1fff1616 <set_ram124+0x366>              
 1fff91e0:       2000            movs    r0, #0                                   
 1fff91e2:       e008            b.n     1fff91f6 <IAP_LOCATION+0x7206>           
 1fff91e4:       6922            ldr     r2, [r4, #16]                            
@@ -15474,7 +15571,7 @@ Disassembly of section .arm:
 1fff959a:       d113            bne.n   1fff95c4 <IAP_LOCATION+0x75d4>           
 1fff959c:       2112            movs    r1, #18                                  
 1fff959e:       4620            mov     r0, r4                                   
-1fff95a0:       f7f8 f839       bl      1fff1616 <routine12b0+0x366>             
+1fff95a0:       f7f8 f839       bl      1fff1616 <set_ram124+0x366>              
 1fff95a4:       2070            movs    r0, #112        ; 0x70                   
 1fff95a6:       7020            strb    r0, [r4, #0]                             
 1fff95a8:       2002            movs    r0, #2                                   
@@ -16001,7 +16098,7 @@ Disassembly of section .arm:
 1fff9ab6:       d1f7            bne.n   1fff9aa8 <IAP_LOCATION+0x7ab8>           
 1fff9ab8:       21a8            movs    r1, #168        ; 0xa8                   
 1fff9aba:       4628            mov     r0, r5                                   
-1fff9abc:       f7f7 fdab       bl      1fff1616 <routine12b0+0x366>             
+1fff9abc:       f7f7 fdab       bl      1fff1616 <set_ram124+0x366>              
 1fff9ac0:       f845 af6c       str.w   sl, [r5, #108]!                          
 1fff9ac4:       68a0            ldr     r0, [r4, #8]                             
 1fff9ac6:       61e8            str     r0, [r5, #28]                            
@@ -18215,7 +18312,7 @@ Disassembly of section .arm:
 1fffaf68:       f7ff fd5a       bl      1fffaa20 <IAP_LOCATION+0x8a30>           
 1fffaf6c:       2180            movs    r1, #128        ; 0x80                   
 1fffaf6e:       4620            mov     r0, r4                                   
-1fffaf70:       f7f6 fb51       bl      1fff1616 <routine12b0+0x366>             
+1fffaf70:       f7f6 fb51       bl      1fff1616 <set_ram124+0x366>              
 1fffaf74:       f008 00c1       and.w   r0, r8, #193    ; 0xc1                   
 1fffaf78:       28c1            cmp     r0, #193        ; 0xc1                   
 1fffaf7a:       d103            bne.n   1fffaf84 <IAP_LOCATION+0x8f94>           
@@ -18329,7 +18426,7 @@ Disassembly of section .arm:
 1fffb06c:       4d62            ldr     r5, [pc, #392]  ; (1fffb1f8 <IAP_LOCATION+0x9208>) 
 1fffb06e:       e7e4            b.n     1fffb03a <IAP_LOCATION+0x904a>           
 1fffb070:       4628            mov     r0, r5                                   
-1fffb072:       f7f6 fa45       bl      1fff1500 <routine12b0+0x250>             
+1fffb072:       f7f6 fa45       bl      1fff1500 <set_ram124+0x250>              
 1fffb076:       4639            mov     r1, r7                                   
 1fffb078:       2200            movs    r2, #0                                   
 1fffb07a:       4620            mov     r0, r4                                   
@@ -18558,7 +18655,7 @@ Disassembly of section .arm:
 1fffb292:       9a00            ldr     r2, [sp, #0]                             
 1fffb294:       990c            ldr     r1, [sp, #48]   ; 0x30                   
 1fffb296:       9808            ldr     r0, [sp, #32]                            
-1fffb298:       f7f6 f9a4       bl      1fff15e4 <routine12b0+0x334>             
+1fffb298:       f7f6 f9a4       bl      1fff15e4 <set_ram124+0x334>              
 1fffb29c:       2000            movs    r0, #0                                   
 1fffb29e:       9006            str     r0, [sp, #24]                            
 1fffb2a0:       e0ef            b.n     1fffb482 <IAP_LOCATION+0x9492>           
@@ -18577,7 +18674,7 @@ Disassembly of section .arm:
 1fffb2c0:       9a00            ldr     r2, [sp, #0]                             
 1fffb2c2:       9908            ldr     r1, [sp, #32]                            
 1fffb2c4:       980c            ldr     r0, [sp, #48]   ; 0x30                   
-1fffb2c6:       f7f6 f98d       bl      1fff15e4 <routine12b0+0x334>             
+1fffb2c6:       f7f6 f98d       bl      1fff15e4 <set_ram124+0x334>              
 1fffb2ca:       e0da            b.n     1fffb482 <IAP_LOCATION+0x9492>           
 1fffb2cc:       f1bb 0f00       cmp.w   fp, #0                                   
 1fffb2d0:       d13e            bne.n   1fffb350 <IAP_LOCATION+0x9360>           
@@ -19119,7 +19216,7 @@ Disassembly of section .arm:
 1fffb794:       2214            movs    r2, #20                                  
 1fffb796:       4639            mov     r1, r7                                   
 1fffb798:       a817            add     r0, sp, #92     ; 0x5c                   
-1fffb79a:       f7f5 ff23       bl      1fff15e4 <routine12b0+0x334>             
+1fffb79a:       f7f5 ff23       bl      1fff15e4 <set_ram124+0x334>              
 1fffb79e:       2500            movs    r5, #0                                   
 1fffb7a0:       9514            str     r5, [sp, #80]   ; 0x50                   
 1fffb7a2:       a917            add     r1, sp, #92     ; 0x5c                   
@@ -19194,7 +19291,7 @@ Disassembly of section .arm:
 1fffb844:       4652            mov     r2, sl                                   
 1fffb846:       6809            ldr     r1, [r1, #0]                             
 1fffb848:       ea41 0109       orr.w   r1, r1, r9                               
-1fffb84c:       f7f5 feca       bl      1fff15e4 <routine12b0+0x334>             
+1fffb84c:       f7f5 feca       bl      1fff15e4 <set_ram124+0x334>              
 1fffb850:       f8cd 905c       str.w   r9, [sp, #92]   ; 0x5c                   
 1fffb854:       f1b8 0f00       cmp.w   r8, #0                                   
 1fffb858:       d00c            beq.n   1fffb874 <IAP_LOCATION+0x9884>           
@@ -19205,7 +19302,7 @@ Disassembly of section .arm:
 1fffb862:       4301            orrs    r1, r0                                   
 1fffb864:       68b8            ldr     r0, [r7, #8]                             
 1fffb866:       4450            add     r0, sl                                   
-1fffb868:       f7f5 febc       bl      1fff15e4 <routine12b0+0x334>             
+1fffb868:       f7f5 febc       bl      1fff15e4 <set_ram124+0x334>              
 1fffb86c:       e002            b.n     1fffb874 <IAP_LOCATION+0x9884>           
 1fffb86e:       2000            movs    r0, #0                                   
 1fffb870:       4680            mov     r8, r0                                   
@@ -19364,7 +19461,7 @@ Disassembly of section .arm:
 1fffb9dc:       460c            mov     r4, r1                                   
 1fffb9de:       2214            movs    r2, #20                                  
 1fffb9e0:       a819            add     r0, sp, #100    ; 0x64                   
-1fffb9e2:       f7f5 fdff       bl      1fff15e4 <routine12b0+0x334>             
+1fffb9e2:       f7f5 fdff       bl      1fff15e4 <set_ram124+0x334>              
 1fffb9e6:       2600            movs    r6, #0                                   
 1fffb9e8:       9618            str     r6, [sp, #96]   ; 0x60                   
 1fffb9ea:       6860            ldr     r0, [r4, #4]                             
@@ -19451,7 +19548,7 @@ Disassembly of section .arm:
 1fffbaac:       f8db 1000       ldr.w   r1, [fp]                                 
 1fffbab0:       4632            mov     r2, r6                                   
 1fffbab2:       ea41 0109       orr.w   r1, r1, r9                               
-1fffbab6:       f7f5 fd95       bl      1fff15e4 <routine12b0+0x334>             
+1fffbab6:       f7f5 fd95       bl      1fff15e4 <set_ram124+0x334>              
 1fffbaba:       f1ba 0f00       cmp.w   sl, #0                                   
 1fffbabe:       d008            beq.n   1fffbad2 <IAP_LOCATION+0x9ae2>           
 1fffbac0:       f8db 1000       ldr.w   r1, [fp]                                 
@@ -19460,7 +19557,7 @@ Disassembly of section .arm:
 1fffbac8:       4301            orrs    r1, r0                                   
 1fffbaca:       68a0            ldr     r0, [r4, #8]                             
 1fffbacc:       4430            add     r0, r6                                   
-1fffbace:       f7f5 fd89       bl      1fff15e4 <routine12b0+0x334>             
+1fffbace:       f7f5 fd89       bl      1fff15e4 <set_ram124+0x334>              
 1fffbad2:       eb0b 0007       add.w   r0, fp, r7                               
 1fffbad6:       f890 1034       ldrb.w  r1, [r0, #52]   ; 0x34                   
 1fffbada:       464a            mov     r2, r9                                   
