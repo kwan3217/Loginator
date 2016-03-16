@@ -2,7 +2,7 @@
 bootstrap.o:     file format elf32-little
 
 
-Disassembly of section .arm:
+Disassembly of section .bootrom:
 
 1fff0000 <&stack>:
 1fff0000:       10001ffc        .word   0x10001ffc                               
@@ -200,18 +200,19 @@ Disassembly of section .arm:
 ##   int cmdlen; //stored at sp+4, so in slot for r3
 ##   int sp_r2;  //stored at sp,   so in slot for r2
 ##   while(read_str(&ram[128],0x46,&cmdlen)!=0) ; //keep reading until we are successful
+##   //set up parsing table. 
 ##   for(int i=0;i<5;i++) {
-##     ram[1bc+i*4]=0x7a;
+##     ram[1bc+i*4]=0x7a; 
 ##   }
-##   routine12e2(&ram[128],cmdlen,&ram[1bc],5,15);
+##   routine12e2(&ram[128],cmdlen,&parsetable,5,15);
 ##   
 1fff00f4:       e92d 41fc       stmdb   sp!, {r2, r3, r4, r5, r6, r7, r8, lr}    ## push a bunch of stuff
 1fff00f8:       4efe            ldr     r6, [pc, #1016] ; (1fff04f4 <&crp2>)     ## r6=&crp2
 1fff00fa:       f8df 83fc       ldr.w   r8, [pc, #1020] ; 1fff04f8 <&isp_ram_vars> ## r8=&isp_ram_vars
 1fff00fe:       4fff            ldr     r7, [pc, #1020] ; (1fff04fc <&crp3>)     ## r7=&crp3
-1fff0100:       4dff            ldr     r5, [pc, #1020] ; (1fff0500 <&ram[1bc]>) ## r5=&ram[1bc]
+1fff0100:       4dff            ldr     r5, [pc, #1020] ; (1fff0500 <&parsetable>) ## r5=&parsetable
 1fff0102:       2400            movs    r4, #0                                   ## r4=0
-1fff0104:       48fe            ldr     r0, [pc, #1016] ; (1fff0500 <&ram[1bc]>) ## r0=&ram[1bc]
+1fff0104:       48fe            ldr     r0, [pc, #1016] ; (1fff0500 <&parsetable>) ## r0=&parsetable
 1fff0106:       aa01            add     r2, sp, #4                               ## r2=sp+4
 1fff0108:       2146            movs    r1, #70 ; 0x46                           ## r1=0x46
 1fff010a:       3894            subs    r0, #148        ; 0x94                   ## r0-=0x94=&ram[128]
@@ -219,41 +220,41 @@ Disassembly of section .arm:
 1fff0110:       2800            cmp     r0, #0                                   ## compare r0 to 0
 1fff0112:       d1f7            bne.n   1fff0104 <interpret_command+0x10>        ## if not equal, jump back up and read again
 1fff0114:       217a            movs    r1, #122        ; 0x7a                   ## r1=0x7a
-1fff0116:       f855 2020       ldr.w   r2, [r5, r0, lsl #2]                     ## r2=[r5+r0<<2]=[&ram[1bc]+r0<<2]=ram[1bc+r0*4]
+1fff0116:       f855 2020       ldr.w   r2, [r5, r0, lsl #2]                     ## r2=[r5+r0<<2]=[&parsetable+r0<<2]=ram[1bc+r0*4]
 1fff011a:       1c40            adds    r0, r0, #1                               ## r0++
 1fff011c:       7011            strb    r1, [r2, #0]                             ## ram[1bc+old_r0*4]=0x7a
 1fff011e:       2805            cmp     r0, #5                                   ## compare r0 to 5
 1fff0120:       dbf9            blt.n   1fff0116 <interpret_command+0x22>        ## if less than, jump back up.
 1fff0122:       230f            movs    r3, #15                                  ## r3=15
-1fff0124:       4af6            ldr     r2, [pc, #984]  ; (1fff0500 <&ram[1bc]>) ## r2=&ram[1bc]
+1fff0124:       4af6            ldr     r2, [pc, #984]  ; (1fff0500 <&parsetable>) ## r2=&parsetable
 1fff0126:       9300            str     r3, [sp, #0]                             ## sp_r2=r3=15
 1fff0128:       2305            movs    r3, #5                                   ## r3=5
 1fff012a:       f1a2 0094       sub.w   r0, r2, #148    ; 0x94                   ## r0=r2-0x94
 1fff012e:       9901            ldr     r1, [sp, #4]                             ## r1=cmdlen
-1fff0130:       f001 f8d7       bl      1fff12e2 <routine12e2>                   ## call routine12e2
-1fff0134:       2800            cmp     r0, #0                                   
-1fff0136:       d0e5            beq.n   1fff0104 <interpret_command+0x10>        
-1fff0138:       6829            ldr     r1, [r5, #0]                             
-1fff013a:       7809            ldrb    r1, [r1, #0]                             
-1fff013c:       2952            cmp     r1, #82 ; 0x52                           
-1fff013e:       d005            beq.n   1fff014c <interpret_command+0x58>        
-1fff0140:       2954            cmp     r1, #84 ; 0x54                           
-1fff0142:       d003            beq.n   1fff014c <interpret_command+0x58>        
-1fff0144:       2947            cmp     r1, #71 ; 0x47                           
-1fff0146:       d001            beq.n   1fff014c <interpret_command+0x58>        
-1fff0148:       294d            cmp     r1, #77 ; 0x4d                           
-1fff014a:       d101            bne.n   1fff0150 <interpret_command+0x5c>        
-1fff014c:       2201            movs    r2, #1                                   
-1fff014e:       e007            b.n     1fff0160 <interpret_command+0x6c>        
-1fff0150:       2200            movs    r2, #0                                   
-1fff0152:       2957            cmp     r1, #87 ; 0x57                           
-1fff0154:       d001            beq.n   1fff015a <interpret_command+0x66>        
-1fff0156:       2943            cmp     r1, #67 ; 0x43                           
-1fff0158:       d101            bne.n   1fff015e <interpret_command+0x6a>        
-1fff015a:       2401            movs    r4, #1                                   
-1fff015c:       e000            b.n     1fff0160 <interpret_command+0x6c>        
-1fff015e:       2400            movs    r4, #0                                   
-1fff0160:       f8d8 1008       ldr.w   r1, [r8, #8]                             
+1fff0130:       f001 f8d7       bl      1fff12e2 <routine12e2>                   ## call routine12e2(&ram[128],cmdlen,&parsetable,5,15)
+1fff0134:       2800            cmp     r0, #0                                   ## compare return value to 0
+1fff0136:       d0e5            beq.n   1fff0104 <interpret_command+0x10>        ## if equal, go back up and read another command (this command can't be processed)
+1fff0138:       6829            ldr     r1, [r5, #0]                             ## r1=[r5]=parsetable
+1fff013a:       7809            ldrb    r1, [r1, #0]                             ## r1=
+1fff013c:       2952            cmp     r1, #82 ; 0x52                           ## Is the command 'R' (read memory)?
+1fff013e:       d005            beq.n   1fff014c <interpret_command+0x58>        ## jump if it is
+1fff0140:       2954            cmp     r1, #84 ; 0x54                           ## Is the command 'T' (undocumented)?
+1fff0142:       d003            beq.n   1fff014c <interpret_command+0x58>        ## jump if it is
+1fff0144:       2947            cmp     r1, #71 ; 0x47                           ## Is the command 'G' (Go to address and execute)?
+1fff0146:       d001            beq.n   1fff014c <interpret_command+0x58>        ## jump if it is
+1fff0148:       294d            cmp     r1, #77 ; 0x4d                           ## Is the command 'M' (Compare memory)?
+1fff014a:       d101            bne.n   1fff0150 <interpret_command+0x5c>        ## jump to target 2 if it isn't
+1fff014c:       2201            movs    r2, #1                                   ## r2=1
+1fff014e:       e007            b.n     1fff0160 <interpret_command+0x6c>        ## skip down some
+1fff0150:       2200            movs    r2, #0                                   ## r2=0
+1fff0152:       2957            cmp     r1, #87 ; 0x57                           ## Is the command 'W' (Write to RAM)?
+1fff0154:       d001            beq.n   1fff015a <interpret_command+0x66>        ## jump if it is
+1fff0156:       2943            cmp     r1, #67 ; 0x43                           ## Is the command 'C' (Copy RAM to Flash)?
+1fff0158:       d101            bne.n   1fff015e <interpret_command+0x6a>        ## jump if it's not
+1fff015a:       2401            movs    r4, #1                                   ## r4=1
+1fff015c:       e000            b.n     1fff0160 <interpret_command+0x6c>        ## skip down
+1fff015e:       2400            movs    r4, #0                                   ## r4=0
+1fff0160:       f8d8 1008       ldr.w   r1, [r8, #8]                             ## 
 1fff0164:       6833            ldr     r3, [r6, #0]                             
 1fff0166:       4299            cmp     r1, r3                                   
 1fff0168:       d006            beq.n   1fff0178 <interpret_command+0x84>        
@@ -415,12 +416,12 @@ Disassembly of section .arm:
 1fff0240:       48b5            ldr     r0, [pc, #724]  ; (1fff0518 <&Synchronized>) 
 1fff0242:       f000 ffdd       bl      1fff1200 <write_str>                     ## write_str("Synchronized")
 1fff0246:       f000 fffd       bl      1fff1244 <has_read>                      ## has_read()
-1fff024a:       48ad            ldr     r0, [pc, #692]  ; (1fff0500 <&ram[1bc]>) ## r0=&ram[1bc]
+1fff024a:       48ad            ldr     r0, [pc, #692]  ; (1fff0500 <&parsetable>) ## r0=&parsetable
 1fff024c:       2200            movs    r2, #0                                   ## r2=0
 1fff024e:       2146            movs    r1, #70 ; 0x46                           ## r1=0x46
 1fff0250:       3894            subs    r0, #148        ; 0x94                   ## r0-=0x94=&ram[128]
 1fff0252:       f001 f808       bl      1fff1266 <read_str>                      ## read_str(&ram[128],0x46,0)
-1fff0256:       48aa            ldr     r0, [pc, #680]  ; (1fff0500 <&ram[1bc]>) ## r0=&ram[1bc];
+1fff0256:       48aa            ldr     r0, [pc, #680]  ; (1fff0500 <&parsetable>) ## r0=&parsetable;
 1fff0258:       49af            ldr     r1, [pc, #700]  ; (1fff0518 <&Synchronized>) ## r1=&Synchronized
 1fff025a:       3894            subs    r0, #148        ; 0x94                   ## r0-=0x94=&ram[128]
 1fff025c:       f001 f832       bl      1fff12c4 <strcmp>                        ## r0=strcmp(Synchronized, ram[128])
@@ -505,7 +506,9 @@ Disassembly of section .arm:
 ##   ram[118]=12000;  //ignore results of oscillator, since we are using IRC which is hard-wired to 12MHz
 ##   write_str("OK");
 ##   ram[11c]=1
-##   ram[1bc]=&ram[16e];
+##   //Set up parse field table. This points to five buffers in ram, each big
+##   //enough to hold 14 bytes plus a null terminator.
+##   parsetable=&ram[16e];
 ##   ram[1c0]=&ram[17d];
 ##   ram[1c4]=&ram[18c];
 ##   ram[1c8]=&ram[19b];
@@ -524,7 +527,7 @@ Disassembly of section .arm:
 1fff0302:       f7ff ff4e       bl      1fff01a2 <autobaud>                      ## autobaud()
 1fff0306:       4888            ldr     r0, [pc, #544]  ; (1fff0528 <&OK>)       ## r0=&OK
 1fff0308:       f000 ff7a       bl      1fff1200 <write_str>                     ## write_str("OK")
-1fff030c:       487c            ldr     r0, [pc, #496]  ; (1fff0500 <&ram[1bc]>) ## r0=&ram[1bc]
+1fff030c:       487c            ldr     r0, [pc, #496]  ; (1fff0500 <&parsetable>) ## r0=&parsetable
 1fff030e:       2200            movs    r2, #0                                   ## r2=0
 1fff0310:       2146            movs    r1, #70 ; 0x46                           ## r1=0x46
 1fff0312:       3894            subs    r0, #148        ; 0x94                   ## r0-=0x94=&ram[128]
@@ -534,11 +537,11 @@ Disassembly of section .arm:
 1fff031e:       4882            ldr     r0, [pc, #520]  ; (1fff0528 <&OK>)       ## r0=&OK
 1fff0320:       f000 ff6e       bl      1fff1200 <write_str>                     ## write_str("OK")
 1fff0324:       2001            movs    r0, #1                                   ## r0=1
-1fff0326:       4976            ldr     r1, [pc, #472]  ; (1fff0500 <&ram[1bc]>) ## r1=&ram[1bc]
+1fff0326:       4976            ldr     r1, [pc, #472]  ; (1fff0500 <&parsetable>) ## r1=&parsetable
 1fff0328:       6060            str     r0, [r4, #4]                             ## ram[11c]=r0=1
-1fff032a:       4875            ldr     r0, [pc, #468]  ; (1fff0500 <&ram[1bc]>) ## r0=&ram[1bc]
+1fff032a:       4875            ldr     r0, [pc, #468]  ; (1fff0500 <&parsetable>) ## r0=&parsetable
 1fff032c:       394e            subs    r1, #78 ; 0x4e                           ## r1-=0x4e=&ram[16e]
-1fff032e:       6001            str     r1, [r0, #0]                             ## ram[1bc]=&ram[16e]
+1fff032e:       6001            str     r1, [r0, #0]                             ## parsetable=&ram[16e]
 1fff0330:       310f            adds    r1, #15                                  ## r1+=0x0F=&ram[17d]
 1fff0332:       6041            str     r1, [r0, #4]                             ## ram[1c0]=&ram[17d]
 1fff0334:       310f            adds    r1, #15                                  ## r1+=0x0F=&ram[18c]
@@ -767,7 +770,7 @@ Disassembly of section .arm:
 1fff04fc <&crp3>:
 1fff04fc:       1fff00d0        .word   0x1fff00d0                               
 
-1fff0500 <&ram[1bc]>:
+1fff0500 <&parsetable>:
 1fff0500:       100001bc        .word   0x100001bc                               
 
 1fff0504 <&crp1>:
@@ -2526,36 +2529,51 @@ Disassembly of section .arm:
 
 1fff12e2 <routine12e2>:
 ## Rough C translation
-##   routine12e2(&ram[128],cmdlen,&ram[1bc],5);
-## void routine12e2(char* buf, int cmdlen, int* p2, int p3, int p4) {
-##   
+##   routine12e2(&ram[128],cmdlen,&parsetable,5);
+## int routine12e2(char buf[], int cmdlen, int p2[], int p3, int p4) {
+##   char c;  //stored in r0
+##   int i=0; //stored in r1. Loop counter?
+##   c=buf[0];
+##   if(i==0) return 0;
+##   p4-=2;
+##   int r4=0;
+##   int r5=0;
+##   goto 1346;
+##   for(;;) {
+##     if(c+1>p3) break;
+##     if(c!=' ' || r5<p4) {
+##       r8=p2[c];
+##     }
+##   1346:
+##     if(i>cmdlen) break;
+##   }
 1fff12e2:       e92d 43f0       stmdb   sp!, {r4, r5, r6, r7, r8, r9, lr}        ## push stuff
 1fff12e6:       4606            mov     r6, r0                                   ## r6=buf
 1fff12e8:       4689            mov     r9, r1                                   ## r9=cmdlen
 1fff12ea:       2000            movs    r0, #0                                   ## r0=0
 1fff12ec:       7831            ldrb    r1, [r6, #0]                             ## r1=buf[0]
 1fff12ee:       9f07            ldr     r7, [sp, #28]                            ## r7=p4
-1fff12f0:       4604            mov     r4, r0                                   
-1fff12f2:       4605            mov     r5, r0                                   
-1fff12f4:       b909            cbnz    r1, 1fff12fa <routine12e2+0x18>          
-1fff12f6:       e8bd 83f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, pc}        
-1fff12fa:       2100            movs    r1, #0                                   
-1fff12fc:       1ebf            subs    r7, r7, #2                               
-1fff12fe:       e022            b.n     1fff1346 <routine12e2+0x64>              
-1fff1300:       f100 0c01       add.w   ip, r0, #1                               
-1fff1304:       459c            cmp     ip, r3                                   
-1fff1306:       dc20            bgt.n   1fff134a <routine12e2+0x68>              
-1fff1308:       f816 c001       ldrb.w  ip, [r6, r1]                             
-1fff130c:       f1bc 0f20       cmp.w   ip, #32                                  
-1fff1310:       d008            beq.n   1fff1324 <routine12e2+0x42>              
-1fff1312:       42bd            cmp     r5, r7                                   
-1fff1314:       da06            bge.n   1fff1324 <routine12e2+0x42>              
-1fff1316:       f852 8020       ldr.w   r8, [r2, r0, lsl #2]                     
-1fff131a:       f808 c004       strb.w  ip, [r8, r4]                             
-1fff131e:       1c64            adds    r4, r4, #1                               
-1fff1320:       1c6d            adds    r5, r5, #1                               
-1fff1322:       e00f            b.n     1fff1344 <routine12e2+0x62>              
-1fff1324:       eb06 0c01       add.w   ip, r6, r1                               
+1fff12f0:       4604            mov     r4, r0                                   ## r4=r0=0
+1fff12f2:       4605            mov     r5, r0                                   ## r5=r0=0
+1fff12f4:       b909            cbnz    r1, 1fff12fa <routine12e2+0x18>          ## if r1!=0, skip the return
+1fff12f6:       e8bd 83f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, pc}        ## return
+1fff12fa:       2100            movs    r1, #0                                   ## r1=0
+1fff12fc:       1ebf            subs    r7, r7, #2                               ## r7-=2=p4-2
+1fff12fe:       e022            b.n     1fff1346 <routine12e2+0x64>              ## skip WAY down
+1fff1300:       f100 0c01       add.w   ip, r0, #1                               ## r12=r0+1
+1fff1304:       459c            cmp     ip, r3                                   ## compare r12 to p3
+1fff1306:       dc20            bgt.n   1fff134a <routine12e2+0x68>              ## if greater, leave the loop
+1fff1308:       f816 c001       ldrb.w  ip, [r6, r1]                             ## r12=buf[r1]=buf[i]
+1fff130c:       f1bc 0f20       cmp.w   ip, #32                                  ## compare r12 to ' '
+1fff1310:       d008            beq.n   1fff1324 <routine12e2+0x42>              ## if equal, skip the next bit
+1fff1312:       42bd            cmp     r5, r7                                   ## compare r5 to p4
+1fff1314:       da06            bge.n   1fff1324 <routine12e2+0x42>              ## if greater, skip the next bit
+1fff1316:       f852 8020       ldr.w   r8, [r2, r0, lsl #2]                     ## r8=r2+r0<<2=&p2[r0]
+1fff131a:       f808 c004       strb.w  ip, [r8, r4]                             ## p2[r0]=(byte)r12
+1fff131e:       1c64            adds    r4, r4, #1                               ## r4++
+1fff1320:       1c6d            adds    r5, r5, #1                               ## r5++
+1fff1322:       e00f            b.n     1fff1344 <routine12e2+0x62>              ## skip down to loop comparison
+1fff1324:       eb06 0c01       add.w   ip, r6, r1                               ## skip target - r12=r6+1
 1fff1328:       f89c c001       ldrb.w  ip, [ip, #1]                             
 1fff132c:       f1bc 0f20       cmp.w   ip, #32                                  
 1fff1330:       d101            bne.n   1fff1336 <routine12e2+0x54>              
@@ -2567,8 +2585,8 @@ Disassembly of section .arm:
 1fff133e:       f80c 5004       strb.w  r5, [ip, r4]                             
 1fff1342:       462c            mov     r4, r5                                   
 1fff1344:       1c49            adds    r1, r1, #1                               
-1fff1346:       4549            cmp     r1, r9                                   
-1fff1348:       ddda            ble.n   1fff1300 <routine12e2+0x1e>              
+1fff1346:       4549            cmp     r1, r9                                   ## compare r1 to cmdlen
+1fff1348:       ddda            ble.n   1fff1300 <routine12e2+0x1e>              ## if less or equal, jump back to top of loop
 1fff134a:       1c40            adds    r0, r0, #1                               
 1fff134c:       e7d3            b.n     1fff12f6 <routine12e2+0x14>              
 1fff134e:       b570            push    {r4, r5, r6, lr}                         
