@@ -231,24 +231,24 @@ Disassembly of section .bootrom:
 1fff0124:       4af6            ldr     r2, [pc, #984]  ; (1fff0500 <&parsetable>) ## r2=&parsetable
 1fff0126:       9300            str     r3, [sp, #0]                             ## sp_r2=r3=15
 1fff0128:       2305            movs    r3, #5                                   ## r3=5
-1fff012a:       f1a2 0094       sub.w   r0, r2, #148    ; 0x94                   ## r0=r2-0x94
+1fff012a:       f1a2 0094       sub.w   r0, r2, #148    ; 0x94                   ## r0=r2-0x94=&inbuf
 1fff012e:       9901            ldr     r1, [sp, #4]                             ## r1=cmdlen
-1fff0130:       f001 f8d7       bl      1fff12e2 <parse_cmd_params>              ## call routine12e2(&ram[128],cmdlen,&parsetable,5,15)
+1fff0130:       f001 f8d7       bl      1fff12e2 <parse_cmd_params>              ## call parse_cmd_params(inbuf,cmdlen,parsetable,5,15)
 1fff0134:       2800            cmp     r0, #0                                   ## compare return value to 0
 1fff0136:       d0e5            beq.n   1fff0104 <interpret_command+0x10>        ## if equal, go back up and read another command (this command can't be processed)
 1fff0138:       6829            ldr     r1, [r5, #0]                             ## r1=[r5]=parsetable
-1fff013a:       7809            ldrb    r1, [r1, #0]                             ## r1=
+1fff013a:       7809            ldrb    r1, [r1, #0]                             ## r1=parsetable[0][0]
 1fff013c:       2952            cmp     r1, #82 ; 0x52                           ## Is the command 'R' (read memory)?
-1fff013e:       d005            beq.n   1fff014c <interpret_command+0x58>        ## jump if it is
+1fff013e:       d005            beq.n   1fff014c <interpret_command+0x58>        ## jump to set restricted flag if it is
 1fff0140:       2954            cmp     r1, #84 ; 0x54                           ## Is the command 'T' (undocumented)?
-1fff0142:       d003            beq.n   1fff014c <interpret_command+0x58>        ## jump if it is
+1fff0142:       d003            beq.n   1fff014c <interpret_command+0x58>        ## jump to set restricted flag if it is
 1fff0144:       2947            cmp     r1, #71 ; 0x47                           ## Is the command 'G' (Go to address and execute)?
-1fff0146:       d001            beq.n   1fff014c <interpret_command+0x58>        ## jump if it is
+1fff0146:       d001            beq.n   1fff014c <interpret_command+0x58>        ## jump to set restricted flag if it is
 1fff0148:       294d            cmp     r1, #77 ; 0x4d                           ## Is the command 'M' (Compare memory)?
-1fff014a:       d101            bne.n   1fff0150 <interpret_command+0x5c>        ## jump to target 2 if it isn't
-1fff014c:       2201            movs    r2, #1                                   ## r2=1
-1fff014e:       e007            b.n     1fff0160 <interpret_command+0x6c>        ## skip down some
-1fff0150:       2200            movs    r2, #0                                   ## r2=0
+1fff014a:       d101            bne.n   1fff0150 <interpret_command+0x5c>        ## skip the set restricted flag if it isn't
+1fff014c:       2201            movs    r2, #1                                   ## r2=1, command is restricted if any crp level is active
+1fff014e:       e007            b.n     1fff0160 <interpret_command+0x6c>        ## skip the else block 
+1fff0150:       2200            movs    r2, #0                                   ## r2=0, command is enabled in at least one crp level
 1fff0152:       2957            cmp     r1, #87 ; 0x57                           ## Is the command 'W' (Write to RAM)?
 1fff0154:       d001            beq.n   1fff015a <interpret_command+0x66>        ## jump if it is
 1fff0156:       2943            cmp     r1, #67 ; 0x43                           ## Is the command 'C' (Copy RAM to Flash)?
@@ -256,26 +256,26 @@ Disassembly of section .bootrom:
 1fff015a:       2401            movs    r4, #1                                   ## r4=1
 1fff015c:       e000            b.n     1fff0160 <interpret_command+0x6c>        ## skip down
 1fff015e:       2400            movs    r4, #0                                   ## r4=0
-1fff0160:       f8d8 1008       ldr.w   r1, [r8, #8]                             ## 
-1fff0164:       6833            ldr     r3, [r6, #0]                             
-1fff0166:       4299            cmp     r1, r3                                   
-1fff0168:       d006            beq.n   1fff0178 <interpret_command+0x84>        
-1fff016a:       683b            ldr     r3, [r7, #0]                             
-1fff016c:       4299            cmp     r1, r3                                   
-1fff016e:       d003            beq.n   1fff0178 <interpret_command+0x84>        
-1fff0170:       4be4            ldr     r3, [pc, #912]  ; (1fff0504 <&crp1>)     
-1fff0172:       681b            ldr     r3, [r3, #0]                             
-1fff0174:       4299            cmp     r1, r3                                   
-1fff0176:       d101            bne.n   1fff017c <interpret_command+0x88>        
-1fff0178:       2a01            cmp     r2, #1                                   
+1fff0160:       f8d8 1008       ldr.w   r1, [r8, #8]                             ## r1=ram_usercrp
+1fff0164:       6833            ldr     r3, [r6, #0]                             ## r3=crp2
+1fff0166:       4299            cmp     r1, r3                                   ## compare ram_usercrp to crp2
+1fff0168:       d006            beq.n   1fff0178 <interpret_command+0x84>        ## jump if equal
+1fff016a:       683b            ldr     r3, [r7, #0]                             ## r3=crp3
+1fff016c:       4299            cmp     r1, r3                                   ## compare ram_usercrp to crp3
+1fff016e:       d003            beq.n   1fff0178 <interpret_command+0x84>        ## jump if equal
+1fff0170:       4be4            ldr     r3, [pc, #912]  ; (1fff0504 <&crp1>)     ## r3=&crp1
+1fff0172:       681b            ldr     r3, [r3, #0]                             ## r3=crp1
+1fff0174:       4299            cmp     r1, r3                                   ## compare ram_usercrp to crp1
+1fff0176:       d101            bne.n   1fff017c <interpret_command+0x88>        ## if not equal, skip down
+1fff0178:       2a01            cmp     r2, #1                                   ## 
 1fff017a:       d007            beq.n   1fff018c <interpret_command+0x98>        
-1fff017c:       6832            ldr     r2, [r6, #0]                             
-1fff017e:       4291            cmp     r1, r2                                   
-1fff0180:       d002            beq.n   1fff0188 <interpret_command+0x94>        
-1fff0182:       683a            ldr     r2, [r7, #0]                             
-1fff0184:       4291            cmp     r1, r2                                   
-1fff0186:       d109            bne.n   1fff019c <interpret_command+0xa8>        
-1fff0188:       2c01            cmp     r4, #1                                   
+1fff017c:       6832            ldr     r2, [r6, #0]                             ## r2=crp2
+1fff017e:       4291            cmp     r1, r2                                   ## compare ram_usercrp to crp2
+1fff0180:       d002            beq.n   1fff0188 <interpret_command+0x94>        ## if equal, skip the next bit
+1fff0182:       683a            ldr     r2, [r7, #0]                             ## r2=crp3
+1fff0184:       4291            cmp     r1, r2                                   ## compare ram_usercrp to crp2
+1fff0186:       d109            bne.n   1fff019c <interpret_command+0xa8>        ## if not equal, skip down to the command dispatcher
+1fff0188:       2c01            cmp     r4, #1                                   ## compare
 1fff018a:       d107            bne.n   1fff019c <interpret_command+0xa8>        
 1fff018c:       220f            movs    r2, #15                                  
 1fff018e:       2013            movs    r0, #19                                  
@@ -283,7 +283,7 @@ Disassembly of section .bootrom:
 1fff0192:       f001 f8f4       bl      1fff137e <uint32_to_string>              
 1fff0196:       f001 f833       bl      1fff1200 <write_str>                     
 1fff019a:       e7b3            b.n     1fff0104 <interpret_command+0x10>        
-1fff019c:       f000 ff46       bl      1fff102c <routine102c>                   
+1fff019c:       f000 ff46       bl      1fff102c <dispatch_command>              ## call command dispatcher
 1fff01a0:       e7b0            b.n     1fff0104 <interpret_command+0x10>        
 
 1fff01a2 <autobaud>:
@@ -1365,22 +1365,24 @@ Disassembly of section .bootrom:
 1fff0992:       0000            movs    r0, r0                                   
 1fff0994:       0090            lsls    r0, r2, #2                               
 1fff0996:       0020            movs    r0, r4                                   
-1fff0998:       b57f            push    {r0, r1, r2, r3, r4, r5, r6, lr}         
-1fff099a:       4dff            ldr     r5, [pc, #1020] ; (1fff0d98 <rounded_divide+0x616>) 
+
+1fff0998 <handle_command_T>:
+1fff0998:       b57f            push    {r0, r1, r2, r3, r4, r5, r6, lr}         ## push r4-6, lr, and make room for 4 local variables
+1fff099a:       4dff            ldr     r5, [pc, #1020] ; (1fff0d98 <handle_command_B+0x70>) 
 1fff099c:       2264            movs    r2, #100        ; 0x64                   
 1fff099e:       68a8            ldr     r0, [r5, #8]                             
 1fff09a0:       4669            mov     r1, sp                                   
 1fff09a2:       9b00            ldr     r3, [sp, #0]                             
 1fff09a4:       f7ff fe47       bl      1fff0636 <routine0636>                   
 1fff09a8:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff09ac:       d11e            bne.n   1fff09ec <rounded_divide+0x26a>          
+1fff09ac:       d11e            bne.n   1fff09ec <handle_command_T+0x54>         
 1fff09ae:       6868            ldr     r0, [r5, #4]                             
 1fff09b0:       2267            movs    r2, #103        ; 0x67                   
 1fff09b2:       a903            add     r1, sp, #12                              
 1fff09b4:       9b00            ldr     r3, [sp, #0]                             
 1fff09b6:       f7ff fe3e       bl      1fff0636 <routine0636>                   
 1fff09ba:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff09be:       d115            bne.n   1fff09ec <rounded_divide+0x26a>          
+1fff09be:       d115            bne.n   1fff09ec <handle_command_T+0x54>         
 1fff09c0:       2300            movs    r3, #0                                   
 1fff09c2:       2269            movs    r2, #105        ; 0x69                   
 1fff09c4:       a902            add     r1, sp, #8                               
@@ -1389,12 +1391,12 @@ Disassembly of section .bootrom:
 1fff09cc:       b2c4            uxtb    r4, r0                                   
 1fff09ce:       9802            ldr     r0, [sp, #8]                             
 1fff09d0:       2808            cmp     r0, #8                                   
-1fff09d2:       d003            beq.n   1fff09dc <rounded_divide+0x25a>          
+1fff09d2:       d003            beq.n   1fff09dc <handle_command_T+0x44>         
 1fff09d4:       2810            cmp     r0, #16                                  
-1fff09d6:       d001            beq.n   1fff09dc <rounded_divide+0x25a>          
+1fff09d6:       d001            beq.n   1fff09dc <handle_command_T+0x44>         
 1fff09d8:       240c            movs    r4, #12                                  
-1fff09da:       e007            b.n     1fff09ec <rounded_divide+0x26a>          
-1fff09dc:       b934            cbnz    r4, 1fff09ec <rounded_divide+0x26a>      
+1fff09da:       e007            b.n     1fff09ec <handle_command_T+0x54>         
+1fff09dc:       b934            cbnz    r4, 1fff09ec <handle_command_T+0x54>     
 1fff09de:       2300            movs    r3, #0                                   
 1fff09e0:       2269            movs    r2, #105        ; 0x69                   
 1fff09e2:       a901            add     r1, sp, #4                               
@@ -1406,41 +1408,43 @@ Disassembly of section .bootrom:
 1fff09f0:       6829            ldr     r1, [r5, #0]                             
 1fff09f2:       f000 fcc4       bl      1fff137e <uint32_to_string>              
 1fff09f6:       f000 fc03       bl      1fff1200 <write_str>                     
-1fff09fa:       48e8            ldr     r0, [pc, #928]  ; (1fff0d9c <rounded_divide+0x61a>) 
+1fff09fa:       48e8            ldr     r0, [pc, #928]  ; (1fff0d9c <handle_command_B+0x74>) 
 1fff09fc:       2c00            cmp     r4, #0                                   
-1fff09fe:       d11e            bne.n   1fff0a3e <rounded_divide+0x2bc>          
+1fff09fe:       d11e            bne.n   1fff0a3e <handle_command_T+0xa6>         
 1fff0a00:       9900            ldr     r1, [sp, #0]                             
-1fff0a02:       e01a            b.n     1fff0a3a <rounded_divide+0x2b8>          
+1fff0a02:       e01a            b.n     1fff0a3a <handle_command_T+0xa2>         
 1fff0a04:       9901            ldr     r1, [sp, #4]                             
-1fff0a06:       b129            cbz     r1, 1fff0a14 <rounded_divide+0x292>      
+1fff0a06:       b129            cbz     r1, 1fff0a14 <handle_command_T+0x7c>     
 1fff0a08:       6b41            ldr     r1, [r0, #52]   ; 0x34                   
 1fff0a0a:       0409            lsls    r1, r1, #16                              
-1fff0a0c:       d5fc            bpl.n   1fff0a08 <rounded_divide+0x286>          
+1fff0a0c:       d5fc            bpl.n   1fff0a08 <handle_command_T+0x70>         
 1fff0a0e:       6b41            ldr     r1, [r0, #52]   ; 0x34                   
 1fff0a10:       0409            lsls    r1, r1, #16                              
-1fff0a12:       d4fc            bmi.n   1fff0a0e <rounded_divide+0x28c>          
+1fff0a12:       d4fc            bmi.n   1fff0a0e <handle_command_T+0x76>         
 1fff0a14:       9902            ldr     r1, [sp, #8]                             
 1fff0a16:       2908            cmp     r1, #8                                   
 1fff0a18:       6b41            ldr     r1, [r0, #52]   ; 0x34                   
 1fff0a1a:       ea4f 4211       mov.w   r2, r1, lsr #16                          
 1fff0a1e:       9903            ldr     r1, [sp, #12]                            
-1fff0a20:       d105            bne.n   1fff0a2e <rounded_divide+0x2ac>          
+1fff0a20:       d105            bne.n   1fff0a2e <handle_command_T+0x96>         
 1fff0a22:       f801 2b01       strb.w  r2, [r1], #1                             
 1fff0a26:       9103            str     r1, [sp, #12]                            
 1fff0a28:       9900            ldr     r1, [sp, #0]                             
 1fff0a2a:       1e49            subs    r1, r1, #1                               
-1fff0a2c:       e004            b.n     1fff0a38 <rounded_divide+0x2b6>          
+1fff0a2c:       e004            b.n     1fff0a38 <handle_command_T+0xa0>         
 1fff0a2e:       f821 2b02       strh.w  r2, [r1], #2                             
 1fff0a32:       9103            str     r1, [sp, #12]                            
 1fff0a34:       9900            ldr     r1, [sp, #0]                             
 1fff0a36:       1e89            subs    r1, r1, #2                               
 1fff0a38:       9100            str     r1, [sp, #0]                             
 1fff0a3a:       2900            cmp     r1, #0                                   
-1fff0a3c:       d1e2            bne.n   1fff0a04 <rounded_divide+0x282>          
+1fff0a3c:       d1e2            bne.n   1fff0a04 <handle_command_T+0x6c>         
 1fff0a3e:       bd7f            pop     {r0, r1, r2, r3, r4, r5, r6, pc}         
+
+1fff0a40 <handle_command_M>:
 1fff0a40:       b570            push    {r4, r5, r6, lr}                         
-1fff0a42:       4cd5            ldr     r4, [pc, #852]  ; (1fff0d98 <rounded_divide+0x616>) 
-1fff0a44:       4ed6            ldr     r6, [pc, #856]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0a42:       4cd5            ldr     r4, [pc, #852]  ; (1fff0d98 <handle_command_B+0x70>) 
+1fff0a44:       4ed6            ldr     r6, [pc, #856]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0a46:       2300            movs    r3, #0                                   
 1fff0a48:       2269            movs    r2, #105        ; 0x69                   
 1fff0a4a:       1d31            adds    r1, r6, #4                               
@@ -1448,21 +1452,21 @@ Disassembly of section .bootrom:
 1fff0a4e:       f7ff fdf2       bl      1fff0636 <routine0636>                   
 1fff0a52:       f106 0514       add.w   r5, r6, #20                              
 1fff0a56:       6028            str     r0, [r5, #0]                             
-1fff0a58:       b9b8            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
+1fff0a58:       b9b8            cbnz    r0, 1fff0a8a <handle_command_M+0x4a>     
 1fff0a5a:       2300            movs    r3, #0                                   
 1fff0a5c:       2269            movs    r2, #105        ; 0x69                   
 1fff0a5e:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0a62:       68a0            ldr     r0, [r4, #8]                             
 1fff0a64:       f7ff fde7       bl      1fff0636 <routine0636>                   
 1fff0a68:       6028            str     r0, [r5, #0]                             
-1fff0a6a:       b970            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
+1fff0a6a:       b970            cbnz    r0, 1fff0a8a <handle_command_M+0x4a>     
 1fff0a6c:       2300            movs    r3, #0                                   
 1fff0a6e:       2269            movs    r2, #105        ; 0x69                   
 1fff0a70:       f1a5 0108       sub.w   r1, r5, #8                               
 1fff0a74:       68e0            ldr     r0, [r4, #12]                            
 1fff0a76:       f7ff fdde       bl      1fff0636 <routine0636>                   
 1fff0a7a:       6028            str     r0, [r5, #0]                             
-1fff0a7c:       b928            cbnz    r0, 1fff0a8a <rounded_divide+0x308>      
+1fff0a7c:       b928            cbnz    r0, 1fff0a8a <handle_command_M+0x4a>     
 1fff0a7e:       2038            movs    r0, #56 ; 0x38                           
 1fff0a80:       6030            str     r0, [r6, #0]                             
 1fff0a82:       4629            mov     r1, r5                                   
@@ -1475,7 +1479,7 @@ Disassembly of section .bootrom:
 1fff0a94:       f000 fbb4       bl      1fff1200 <write_str>                     
 1fff0a98:       6828            ldr     r0, [r5, #0]                             
 1fff0a9a:       280a            cmp     r0, #10                                  
-1fff0a9c:       d108            bne.n   1fff0ab0 <rounded_divide+0x32e>          
+1fff0a9c:       d108            bne.n   1fff0ab0 <handle_command_M+0x70>         
 1fff0a9e:       6861            ldr     r1, [r4, #4]                             
 1fff0aa0:       220f            movs    r2, #15                                  
 1fff0aa2:       6868            ldr     r0, [r5, #4]                             
@@ -1483,9 +1487,11 @@ Disassembly of section .bootrom:
 1fff0aa8:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0aac:       f000 bba8       b.w     1fff1200 <write_str>                     
 1fff0ab0:       bd70            pop     {r4, r5, r6, pc}                         
+
+1fff0ab2 <handle_command_I>:
 1fff0ab2:       b570            push    {r4, r5, r6, lr}                         
-1fff0ab4:       4cb8            ldr     r4, [pc, #736]  ; (1fff0d98 <rounded_divide+0x616>) 
-1fff0ab6:       4eba            ldr     r6, [pc, #744]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0ab4:       4cb8            ldr     r4, [pc, #736]  ; (1fff0d98 <handle_command_B+0x70>) 
+1fff0ab6:       4eba            ldr     r6, [pc, #744]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0ab8:       2300            movs    r3, #0                                   
 1fff0aba:       2269            movs    r2, #105        ; 0x69                   
 1fff0abc:       1d31            adds    r1, r6, #4                               
@@ -1493,14 +1499,14 @@ Disassembly of section .bootrom:
 1fff0ac0:       f7ff fdb9       bl      1fff0636 <routine0636>                   
 1fff0ac4:       f106 0514       add.w   r5, r6, #20                              
 1fff0ac8:       6028            str     r0, [r5, #0]                             
-1fff0aca:       b970            cbnz    r0, 1fff0aea <rounded_divide+0x368>      
+1fff0aca:       b970            cbnz    r0, 1fff0aea <handle_command_I+0x38>     
 1fff0acc:       2300            movs    r3, #0                                   
 1fff0ace:       2269            movs    r2, #105        ; 0x69                   
 1fff0ad0:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0ad4:       68a0            ldr     r0, [r4, #8]                             
 1fff0ad6:       f7ff fdae       bl      1fff0636 <routine0636>                   
 1fff0ada:       6028            str     r0, [r5, #0]                             
-1fff0adc:       b928            cbnz    r0, 1fff0aea <rounded_divide+0x368>      
+1fff0adc:       b928            cbnz    r0, 1fff0aea <handle_command_I+0x38>     
 1fff0ade:       2035            movs    r0, #53 ; 0x35                           
 1fff0ae0:       6030            str     r0, [r6, #0]                             
 1fff0ae2:       4629            mov     r1, r5                                   
@@ -1513,21 +1519,21 @@ Disassembly of section .bootrom:
 1fff0af4:       f000 fb84       bl      1fff1200 <write_str>                     
 1fff0af8:       6828            ldr     r0, [r5, #0]                             
 1fff0afa:       2808            cmp     r0, #8                                   
-1fff0afc:       d120            bne.n   1fff0b40 <rounded_divide+0x3be>          
-1fff0afe:       48a9            ldr     r0, [pc, #676]  ; (1fff0da4 <rounded_divide+0x622>) 
-1fff0b00:       49a9            ldr     r1, [pc, #676]  ; (1fff0da8 <rounded_divide+0x626>) 
+1fff0afc:       d120            bne.n   1fff0b40 <handle_command_I+0x8e>         
+1fff0afe:       48a9            ldr     r0, [pc, #676]  ; (1fff0da4 <handle_command_B+0x7c>) 
+1fff0b00:       49a9            ldr     r1, [pc, #676]  ; (1fff0da8 <handle_command_B+0x80>) 
 1fff0b02:       6800            ldr     r0, [r0, #0]                             
 1fff0b04:       6809            ldr     r1, [r1, #0]                             
 1fff0b06:       4288            cmp     r0, r1                                   
-1fff0b08:       d007            beq.n   1fff0b1a <rounded_divide+0x398>          
-1fff0b0a:       49a8            ldr     r1, [pc, #672]  ; (1fff0dac <rounded_divide+0x62a>) 
+1fff0b08:       d007            beq.n   1fff0b1a <handle_command_I+0x68>         
+1fff0b0a:       49a8            ldr     r1, [pc, #672]  ; (1fff0dac <handle_command_B+0x84>) 
 1fff0b0c:       6809            ldr     r1, [r1, #0]                             
 1fff0b0e:       4288            cmp     r0, r1                                   
-1fff0b10:       d003            beq.n   1fff0b1a <rounded_divide+0x398>          
-1fff0b12:       49a7            ldr     r1, [pc, #668]  ; (1fff0db0 <rounded_divide+0x62e>) 
+1fff0b10:       d003            beq.n   1fff0b1a <handle_command_I+0x68>         
+1fff0b12:       49a7            ldr     r1, [pc, #668]  ; (1fff0db0 <handle_command_B+0x88>) 
 1fff0b14:       6809            ldr     r1, [r1, #0]                             
 1fff0b16:       4288            cmp     r0, r1                                   
-1fff0b18:       d102            bne.n   1fff0b20 <rounded_divide+0x39e>          
+1fff0b18:       d102            bne.n   1fff0b20 <handle_command_I+0x6e>         
 1fff0b1a:       2000            movs    r0, #0                                   
 1fff0b1c:       6068            str     r0, [r5, #4]                             
 1fff0b1e:       60a8            str     r0, [r5, #8]                             
@@ -1543,18 +1549,20 @@ Disassembly of section .bootrom:
 1fff0b38:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0b3c:       f000 bb60       b.w     1fff1200 <write_str>                     
 1fff0b40:       bd70            pop     {r4, r5, r6, pc}                         
+
+1fff0b42 <handle_command_E>:
 1fff0b42:       e92d 47f0       stmdb   sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
-1fff0b46:       489b            ldr     r0, [pc, #620]  ; (1fff0db4 <rounded_divide+0x632>) 
-1fff0b48:       4993            ldr     r1, [pc, #588]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0b46:       489b            ldr     r0, [pc, #620]  ; (1fff0db4 <handle_command_B+0x8c>) 
+1fff0b48:       4993            ldr     r1, [pc, #588]  ; (1fff0d98 <handle_command_B+0x70>) 
 1fff0b4a:       6802            ldr     r2, [r0, #0]                             
 1fff0b4c:       6848            ldr     r0, [r1, #4]                             
 1fff0b4e:       2a01            cmp     r2, #1                                   
-1fff0b50:       d103            bne.n   1fff0b5a <rounded_divide+0x3d8>          
+1fff0b50:       d103            bne.n   1fff0b5a <handle_command_E+0x18>         
 1fff0b52:       220f            movs    r2, #15                                  
 1fff0b54:       4601            mov     r1, r0                                   
 1fff0b56:       4610            mov     r0, r2                                   
-1fff0b58:       e057            b.n     1fff0c0a <rounded_divide+0x488>          
-1fff0b5a:       4c91            ldr     r4, [pc, #580]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0b58:       e057            b.n     1fff0c0a <handle_command_E+0xc8>         
+1fff0b5a:       4c91            ldr     r4, [pc, #580]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0b5c:       4688            mov     r8, r1                                   
 1fff0b5e:       2300            movs    r3, #0                                   
 1fff0b60:       2269            movs    r2, #105        ; 0x69                   
@@ -1562,63 +1570,63 @@ Disassembly of section .bootrom:
 1fff0b64:       f7ff fd67       bl      1fff0636 <routine0636>                   
 1fff0b68:       f104 0514       add.w   r5, r4, #20                              
 1fff0b6c:       6028            str     r0, [r5, #0]                             
-1fff0b6e:       b940            cbnz    r0, 1fff0b82 <rounded_divide+0x400>      
+1fff0b6e:       b940            cbnz    r0, 1fff0b82 <handle_command_E+0x40>     
 1fff0b70:       2300            movs    r3, #0                                   
 1fff0b72:       2269            movs    r2, #105        ; 0x69                   
 1fff0b74:       f104 0108       add.w   r1, r4, #8                               
 1fff0b78:       f8d8 0008       ldr.w   r0, [r8, #8]                             
 1fff0b7c:       f7ff fd5b       bl      1fff0636 <routine0636>                   
 1fff0b80:       6028            str     r0, [r5, #0]                             
-1fff0b82:       f8df 9220       ldr.w   r9, [pc, #544]  ; 1fff0da4 <rounded_divide+0x622> 
-1fff0b86:       4988            ldr     r1, [pc, #544]  ; (1fff0da8 <rounded_divide+0x626>) 
+1fff0b82:       f8df 9220       ldr.w   r9, [pc, #544]  ; 1fff0da4 <handle_command_B+0x7c> 
+1fff0b86:       4988            ldr     r1, [pc, #544]  ; (1fff0da8 <handle_command_B+0x80>) 
 1fff0b88:       f8d9 0000       ldr.w   r0, [r9]                                 
 1fff0b8c:       6809            ldr     r1, [r1, #0]                             
 1fff0b8e:       2713            movs    r7, #19                                  
-1fff0b90:       4e89            ldr     r6, [pc, #548]  ; (1fff0db8 <rounded_divide+0x636>) 
+1fff0b90:       4e89            ldr     r6, [pc, #548]  ; (1fff0db8 <handle_command_B+0x90>) 
 1fff0b92:       4288            cmp     r0, r1                                   
-1fff0b94:       d003            beq.n   1fff0b9e <rounded_divide+0x41c>          
-1fff0b96:       4985            ldr     r1, [pc, #532]  ; (1fff0dac <rounded_divide+0x62a>) 
+1fff0b94:       d003            beq.n   1fff0b9e <handle_command_E+0x5c>         
+1fff0b96:       4985            ldr     r1, [pc, #532]  ; (1fff0dac <handle_command_B+0x84>) 
 1fff0b98:       6809            ldr     r1, [r1, #0]                             
 1fff0b9a:       4288            cmp     r0, r1                                   
-1fff0b9c:       d109            bne.n   1fff0bb2 <rounded_divide+0x430>          
+1fff0b9c:       d109            bne.n   1fff0bb2 <handle_command_E+0x70>         
 1fff0b9e:       f000 fdae       bl      1fff16fe <unlock_bootblock>              
 1fff0ba2:       6860            ldr     r0, [r4, #4]                             
-1fff0ba4:       b918            cbnz    r0, 1fff0bae <rounded_divide+0x42c>      
+1fff0ba4:       b918            cbnz    r0, 1fff0bae <handle_command_E+0x6c>     
 1fff0ba6:       68a0            ldr     r0, [r4, #8]                             
 1fff0ba8:       6831            ldr     r1, [r6, #0]                             
 1fff0baa:       4288            cmp     r0, r1                                   
-1fff0bac:       d00a            beq.n   1fff0bc4 <rounded_divide+0x442>          
+1fff0bac:       d00a            beq.n   1fff0bc4 <handle_command_E+0x82>         
 1fff0bae:       602f            str     r7, [r5, #0]                             
-1fff0bb0:       e008            b.n     1fff0bc4 <rounded_divide+0x442>          
-1fff0bb2:       497f            ldr     r1, [pc, #508]  ; (1fff0db0 <rounded_divide+0x62e>) 
+1fff0bb0:       e008            b.n     1fff0bc4 <handle_command_E+0x82>         
+1fff0bb2:       497f            ldr     r1, [pc, #508]  ; (1fff0db0 <handle_command_B+0x88>) 
 1fff0bb4:       6809            ldr     r1, [r1, #0]                             
 1fff0bb6:       4288            cmp     r0, r1                                   
-1fff0bb8:       d106            bne.n   1fff0bc8 <rounded_divide+0x446>          
+1fff0bb8:       d106            bne.n   1fff0bc8 <handle_command_E+0x86>         
 1fff0bba:       f000 fda0       bl      1fff16fe <unlock_bootblock>              
 1fff0bbe:       6860            ldr     r0, [r4, #4]                             
 1fff0bc0:       2800            cmp     r0, #0                                   
-1fff0bc2:       d0f0            beq.n   1fff0ba6 <rounded_divide+0x424>          
+1fff0bc2:       d0f0            beq.n   1fff0ba6 <handle_command_E+0x64>         
 1fff0bc4:       f000 fd93       bl      1fff16ee <lock_bootblock>                
 1fff0bc8:       6828            ldr     r0, [r5, #0]                             
-1fff0bca:       b948            cbnz    r0, 1fff0be0 <rounded_divide+0x45e>      
+1fff0bca:       b948            cbnz    r0, 1fff0be0 <handle_command_E+0x9e>     
 1fff0bcc:       2034            movs    r0, #52 ; 0x34                           
 1fff0bce:       6020            str     r0, [r4, #0]                             
-1fff0bd0:       487a            ldr     r0, [pc, #488]  ; (1fff0dbc <rounded_divide+0x63a>) 
-1fff0bd2:       4973            ldr     r1, [pc, #460]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0bd0:       487a            ldr     r0, [pc, #488]  ; (1fff0dbc <handle_command_B+0x94>) 
+1fff0bd2:       4973            ldr     r1, [pc, #460]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0bd4:       6800            ldr     r0, [r0, #0]                             
 1fff0bd6:       60e0            str     r0, [r4, #12]                            
 1fff0bd8:       3114            adds    r1, #20                                  
-1fff0bda:       4871            ldr     r0, [pc, #452]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0bda:       4871            ldr     r0, [pc, #452]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0bdc:       f001 fa08       bl      1fff1ff0 <IAP_LOCATION>                  
 1fff0be0:       f000 fd8d       bl      1fff16fe <unlock_bootblock>              
 1fff0be4:       6860            ldr     r0, [r4, #4]                             
-1fff0be6:       b950            cbnz    r0, 1fff0bfe <rounded_divide+0x47c>      
+1fff0be6:       b950            cbnz    r0, 1fff0bfe <handle_command_E+0xbc>     
 1fff0be8:       68a0            ldr     r0, [r4, #8]                             
 1fff0bea:       6831            ldr     r1, [r6, #0]                             
 1fff0bec:       4288            cmp     r0, r1                                   
-1fff0bee:       d106            bne.n   1fff0bfe <rounded_divide+0x47c>          
+1fff0bee:       d106            bne.n   1fff0bfe <handle_command_E+0xbc>         
 1fff0bf0:       f000 fd7d       bl      1fff16ee <lock_bootblock>                
-1fff0bf4:       4872            ldr     r0, [pc, #456]  ; (1fff0dc0 <rounded_divide+0x63e>) 
+1fff0bf4:       4872            ldr     r0, [pc, #456]  ; (1fff0dc0 <handle_command_B+0x98>) 
 1fff0bf6:       6800            ldr     r0, [r0, #0]                             
 1fff0bf8:       6801            ldr     r1, [r0, #0]                             
 1fff0bfa:       f8c9 1000       str.w   r1, [r9]                                 
@@ -1629,63 +1637,65 @@ Disassembly of section .bootrom:
 1fff0c0a:       f000 fbb8       bl      1fff137e <uint32_to_string>              
 1fff0c0e:       e8bd 47f0       ldmia.w sp!, {r4, r5, r6, r7, r8, r9, sl, lr}    
 1fff0c12:       f000 baf5       b.w     1fff1200 <write_str>                     
+
+1fff0c16 <handle_command_C>:
 1fff0c16:       b570            push    {r4, r5, r6, lr}                         
-1fff0c18:       4866            ldr     r0, [pc, #408]  ; (1fff0db4 <rounded_divide+0x632>) 
-1fff0c1a:       4e5f            ldr     r6, [pc, #380]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0c18:       4866            ldr     r0, [pc, #408]  ; (1fff0db4 <handle_command_B+0x8c>) 
+1fff0c1a:       4e5f            ldr     r6, [pc, #380]  ; (1fff0d98 <handle_command_B+0x70>) 
 1fff0c1c:       6801            ldr     r1, [r0, #0]                             
 1fff0c1e:       6870            ldr     r0, [r6, #4]                             
 1fff0c20:       2901            cmp     r1, #1                                   
-1fff0c22:       d103            bne.n   1fff0c2c <rounded_divide+0x4aa>          
+1fff0c22:       d103            bne.n   1fff0c2c <handle_command_C+0x16>         
 1fff0c24:       220f            movs    r2, #15                                  
 1fff0c26:       4601            mov     r1, r0                                   
 1fff0c28:       4610            mov     r0, r2                                   
-1fff0c2a:       e03a            b.n     1fff0ca2 <rounded_divide+0x520>          
-1fff0c2c:       4d5c            ldr     r5, [pc, #368]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0c2a:       e03a            b.n     1fff0ca2 <handle_command_C+0x8c>         
+1fff0c2c:       4d5c            ldr     r5, [pc, #368]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0c2e:       2300            movs    r3, #0                                   
 1fff0c30:       2269            movs    r2, #105        ; 0x69                   
 1fff0c32:       1d29            adds    r1, r5, #4                               
 1fff0c34:       f7ff fcff       bl      1fff0636 <routine0636>                   
 1fff0c38:       f105 0414       add.w   r4, r5, #20                              
 1fff0c3c:       6020            str     r0, [r4, #0]                             
-1fff0c3e:       b980            cbnz    r0, 1fff0c62 <rounded_divide+0x4e0>      
+1fff0c3e:       b980            cbnz    r0, 1fff0c62 <handle_command_C+0x4c>     
 1fff0c40:       2300            movs    r3, #0                                   
 1fff0c42:       2269            movs    r2, #105        ; 0x69                   
 1fff0c44:       f1a4 010c       sub.w   r1, r4, #12                              
 1fff0c48:       68b0            ldr     r0, [r6, #8]                             
 1fff0c4a:       f7ff fcf4       bl      1fff0636 <routine0636>                   
 1fff0c4e:       6020            str     r0, [r4, #0]                             
-1fff0c50:       b938            cbnz    r0, 1fff0c62 <rounded_divide+0x4e0>      
+1fff0c50:       b938            cbnz    r0, 1fff0c62 <handle_command_C+0x4c>     
 1fff0c52:       2300            movs    r3, #0                                   
 1fff0c54:       2269            movs    r2, #105        ; 0x69                   
 1fff0c56:       f1a4 0108       sub.w   r1, r4, #8                               
 1fff0c5a:       68f0            ldr     r0, [r6, #12]                            
 1fff0c5c:       f7ff fceb       bl      1fff0636 <routine0636>                   
 1fff0c60:       6020            str     r0, [r4, #0]                             
-1fff0c62:       4850            ldr     r0, [pc, #320]  ; (1fff0da4 <rounded_divide+0x622>) 
-1fff0c64:       4952            ldr     r1, [pc, #328]  ; (1fff0db0 <rounded_divide+0x62e>) 
+1fff0c62:       4850            ldr     r0, [pc, #320]  ; (1fff0da4 <handle_command_B+0x7c>) 
+1fff0c64:       4952            ldr     r1, [pc, #328]  ; (1fff0db0 <handle_command_B+0x88>) 
 1fff0c66:       6800            ldr     r0, [r0, #0]                             
 1fff0c68:       6809            ldr     r1, [r1, #0]                             
 1fff0c6a:       4288            cmp     r0, r1                                   
-1fff0c6c:       d10a            bne.n   1fff0c84 <rounded_divide+0x502>          
+1fff0c6c:       d10a            bne.n   1fff0c84 <handle_command_C+0x6e>         
 1fff0c6e:       f000 fd46       bl      1fff16fe <unlock_bootblock>              
-1fff0c72:       4954            ldr     r1, [pc, #336]  ; (1fff0dc4 <rounded_divide+0x642>) 
+1fff0c72:       4954            ldr     r1, [pc, #336]  ; (1fff0dc4 <handle_command_B+0x9c>) 
 1fff0c74:       6868            ldr     r0, [r5, #4]                             
 1fff0c76:       6809            ldr     r1, [r1, #0]                             
 1fff0c78:       4288            cmp     r0, r1                                   
-1fff0c7a:       d201            bcs.n   1fff0c80 <rounded_divide+0x4fe>          
+1fff0c7a:       d201            bcs.n   1fff0c80 <handle_command_C+0x6a>         
 1fff0c7c:       2013            movs    r0, #19                                  
 1fff0c7e:       6020            str     r0, [r4, #0]                             
 1fff0c80:       f000 fd35       bl      1fff16ee <lock_bootblock>                
 1fff0c84:       6820            ldr     r0, [r4, #0]                             
-1fff0c86:       b948            cbnz    r0, 1fff0c9c <rounded_divide+0x51a>      
+1fff0c86:       b948            cbnz    r0, 1fff0c9c <handle_command_C+0x86>     
 1fff0c88:       2033            movs    r0, #51 ; 0x33                           
 1fff0c8a:       6028            str     r0, [r5, #0]                             
-1fff0c8c:       484b            ldr     r0, [pc, #300]  ; (1fff0dbc <rounded_divide+0x63a>) 
-1fff0c8e:       4944            ldr     r1, [pc, #272]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0c8c:       484b            ldr     r0, [pc, #300]  ; (1fff0dbc <handle_command_B+0x94>) 
+1fff0c8e:       4944            ldr     r1, [pc, #272]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0c90:       6800            ldr     r0, [r0, #0]                             
 1fff0c92:       6128            str     r0, [r5, #16]                            
 1fff0c94:       3114            adds    r1, #20                                  
-1fff0c96:       4842            ldr     r0, [pc, #264]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0c96:       4842            ldr     r0, [pc, #264]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0c98:       f001 f9aa       bl      1fff1ff0 <IAP_LOCATION>                  
 1fff0c9c:       6871            ldr     r1, [r6, #4]                             
 1fff0c9e:       220f            movs    r2, #15                                  
@@ -1693,9 +1703,11 @@ Disassembly of section .bootrom:
 1fff0ca2:       f000 fb6c       bl      1fff137e <uint32_to_string>              
 1fff0ca6:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0caa:       f000 baa9       b.w     1fff1200 <write_str>                     
+
+1fff0cae <handle_command_P>:
 1fff0cae:       b570            push    {r4, r5, r6, lr}                         
-1fff0cb0:       4c39            ldr     r4, [pc, #228]  ; (1fff0d98 <rounded_divide+0x616>) 
-1fff0cb2:       4e3b            ldr     r6, [pc, #236]  ; (1fff0da0 <rounded_divide+0x61e>) 
+1fff0cb0:       4c39            ldr     r4, [pc, #228]  ; (1fff0d98 <handle_command_B+0x70>) 
+1fff0cb2:       4e3b            ldr     r6, [pc, #236]  ; (1fff0da0 <handle_command_B+0x78>) 
 1fff0cb4:       2300            movs    r3, #0                                   
 1fff0cb6:       2269            movs    r2, #105        ; 0x69                   
 1fff0cb8:       1d31            adds    r1, r6, #4                               
@@ -1703,14 +1715,14 @@ Disassembly of section .bootrom:
 1fff0cbc:       f7ff fcbb       bl      1fff0636 <routine0636>                   
 1fff0cc0:       f106 0514       add.w   r5, r6, #20                              
 1fff0cc4:       6028            str     r0, [r5, #0]                             
-1fff0cc6:       b970            cbnz    r0, 1fff0ce6 <rounded_divide+0x564>      
+1fff0cc6:       b970            cbnz    r0, 1fff0ce6 <handle_command_P+0x38>     
 1fff0cc8:       2300            movs    r3, #0                                   
 1fff0cca:       2269            movs    r2, #105        ; 0x69                   
 1fff0ccc:       f1a5 010c       sub.w   r1, r5, #12                              
 1fff0cd0:       68a0            ldr     r0, [r4, #8]                             
 1fff0cd2:       f7ff fcb0       bl      1fff0636 <routine0636>                   
 1fff0cd6:       6028            str     r0, [r5, #0]                             
-1fff0cd8:       b928            cbnz    r0, 1fff0ce6 <rounded_divide+0x564>      
+1fff0cd8:       b928            cbnz    r0, 1fff0ce6 <handle_command_P+0x38>     
 1fff0cda:       2032            movs    r0, #50 ; 0x32                           
 1fff0cdc:       6030            str     r0, [r6, #0]                             
 1fff0cde:       4629            mov     r1, r5                                   
@@ -1722,8 +1734,10 @@ Disassembly of section .bootrom:
 1fff0cec:       f000 fb47       bl      1fff137e <uint32_to_string>              
 1fff0cf0:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
 1fff0cf4:       f000 ba84       b.w     1fff1200 <write_str>                     
+
+1fff0cf8 <handle_command_A>:
 1fff0cf8:       b538            push    {r3, r4, r5, lr}                         
-1fff0cfa:       4d27            ldr     r5, [pc, #156]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0cfa:       4d27            ldr     r5, [pc, #156]  ; (1fff0d98 <handle_command_B+0x70>) 
 1fff0cfc:       2300            movs    r3, #0                                   
 1fff0cfe:       2269            movs    r2, #105        ; 0x69                   
 1fff0d00:       4669            mov     r1, sp                                   
@@ -1736,14 +1750,16 @@ Disassembly of section .bootrom:
 1fff0d10:       f000 fb35       bl      1fff137e <uint32_to_string>              
 1fff0d14:       f000 fa74       bl      1fff1200 <write_str>                     
 1fff0d18:       2c00            cmp     r4, #0                                   
-1fff0d1a:       d104            bne.n   1fff0d26 <rounded_divide+0x5a4>          
+1fff0d1a:       d104            bne.n   1fff0d26 <handle_command_A+0x2e>         
 1fff0d1c:       9800            ldr     r0, [sp, #0]                             
-1fff0d1e:       b100            cbz     r0, 1fff0d22 <rounded_divide+0x5a0>      
+1fff0d1e:       b100            cbz     r0, 1fff0d22 <handle_command_A+0x2a>     
 1fff0d20:       2001            movs    r0, #1                                   
 1fff0d22:       f000 fac5       bl      1fff12b0 <set_echo>                      
 1fff0d26:       bd38            pop     {r3, r4, r5, pc}                         
+
+1fff0d28 <handle_command_B>:
 1fff0d28:       b57c            push    {r2, r3, r4, r5, r6, lr}                 
-1fff0d2a:       4d1b            ldr     r5, [pc, #108]  ; (1fff0d98 <rounded_divide+0x616>) 
+1fff0d2a:       4d1b            ldr     r5, [pc, #108]  ; (1fff0d98 <handle_command_B+0x70>) 
 1fff0d2c:       2300            movs    r3, #0                                   
 1fff0d2e:       2269            movs    r2, #105        ; 0x69                   
 1fff0d30:       a901            add     r1, sp, #4                               
@@ -1755,26 +1771,26 @@ Disassembly of section .bootrom:
 1fff0d3e:       68a8            ldr     r0, [r5, #8]                             
 1fff0d40:       f7ff fc79       bl      1fff0636 <routine0636>                   
 1fff0d44:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0d48:       d119            bne.n   1fff0d7e <rounded_divide+0x5fc>          
+1fff0d48:       d119            bne.n   1fff0d7e <handle_command_B+0x56>         
 1fff0d4a:       9801            ldr     r0, [sp, #4]                             
 1fff0d4c:       f5b0 5f16       cmp.w   r0, #9600       ; 0x2580                 
-1fff0d50:       d00f            beq.n   1fff0d72 <rounded_divide+0x5f0>          
+1fff0d50:       d00f            beq.n   1fff0d72 <handle_command_B+0x4a>         
 1fff0d52:       f5b0 4f96       cmp.w   r0, #19200      ; 0x4b00                 
-1fff0d56:       d00c            beq.n   1fff0d72 <rounded_divide+0x5f0>          
+1fff0d56:       d00c            beq.n   1fff0d72 <handle_command_B+0x4a>         
 1fff0d58:       f5b0 4f16       cmp.w   r0, #38400      ; 0x9600                 
-1fff0d5c:       d009            beq.n   1fff0d72 <rounded_divide+0x5f0>          
+1fff0d5c:       d009            beq.n   1fff0d72 <handle_command_B+0x4a>         
 1fff0d5e:       f5b0 4f61       cmp.w   r0, #57600      ; 0xe100                 
-1fff0d62:       d006            beq.n   1fff0d72 <rounded_divide+0x5f0>          
+1fff0d62:       d006            beq.n   1fff0d72 <handle_command_B+0x4a>         
 1fff0d64:       f5b0 3fe1       cmp.w   r0, #115200     ; 0x1c200                
-1fff0d68:       d003            beq.n   1fff0d72 <rounded_divide+0x5f0>          
+1fff0d68:       d003            beq.n   1fff0d72 <handle_command_B+0x4a>         
 1fff0d6a:       f5b0 3f61       cmp.w   r0, #230400     ; 0x38400                
-1fff0d6e:       d000            beq.n   1fff0d72 <rounded_divide+0x5f0>          
+1fff0d6e:       d000            beq.n   1fff0d72 <handle_command_B+0x4a>         
 1fff0d70:       2411            movs    r4, #17                                  
 1fff0d72:       9800            ldr     r0, [sp, #0]                             
 1fff0d74:       2801            cmp     r0, #1                                   
-1fff0d76:       d002            beq.n   1fff0d7e <rounded_divide+0x5fc>          
+1fff0d76:       d002            beq.n   1fff0d7e <handle_command_B+0x56>         
 1fff0d78:       2802            cmp     r0, #2                                   
-1fff0d7a:       d000            beq.n   1fff0d7e <rounded_divide+0x5fc>          
+1fff0d7a:       d000            beq.n   1fff0d7e <handle_command_B+0x56>         
 1fff0d7c:       2412            movs    r4, #18                                  
 1fff0d7e:       220f            movs    r2, #15                                  
 1fff0d80:       4620            mov     r0, r4                                   
@@ -1782,10 +1798,10 @@ Disassembly of section .bootrom:
 1fff0d84:       f000 fafb       bl      1fff137e <uint32_to_string>              
 1fff0d88:       f000 fa3a       bl      1fff1200 <write_str>                     
 1fff0d8c:       2c00            cmp     r4, #0                                   
-1fff0d8e:       d11f            bne.n   1fff0dd0 <rounded_divide+0x64e>          
-1fff0d90:       480a            ldr     r0, [pc, #40]   ; (1fff0dbc <rounded_divide+0x63a>) 
+1fff0d8e:       d11f            bne.n   1fff0dd0 <handle_command_B+0xa8>         
+1fff0d90:       480a            ldr     r0, [pc, #40]   ; (1fff0dbc <handle_command_B+0x94>) 
 1fff0d92:       6802            ldr     r2, [r0, #0]                             
-1fff0d94:       e018            b.n     1fff0dc8 <rounded_divide+0x646>          
+1fff0d94:       e018            b.n     1fff0dc8 <handle_command_B+0xa0>         
 1fff0d96:       0000            movs    r0, r0                                   
 1fff0d98:       01bc            lsls    r4, r7, #6                               
 1fff0d9a:       1000            asrs    r0, r0, #32                              
@@ -1814,6 +1830,8 @@ Disassembly of section .bootrom:
 1fff0dc8:       e9dd 1000       ldrd    r1, r0, [sp]                             
 1fff0dcc:       f000 f9de       bl      1fff118c <set_baud>                      
 1fff0dd0:       bd7c            pop     {r2, r3, r4, r5, r6, pc}                 
+
+1fff0dd2 <handle_command_U>:
 1fff0dd2:       b538            push    {r3, r4, r5, lr}                         
 1fff0dd4:       4ce1            ldr     r4, [pc, #900]  ; (1fff115c <&paramtable>) 
 1fff0dd6:       2300            movs    r3, #0                                   
@@ -1822,49 +1840,51 @@ Disassembly of section .bootrom:
 1fff0ddc:       6860            ldr     r0, [r4, #4]                             
 1fff0dde:       f7ff fc2a       bl      1fff0636 <routine0636>                   
 1fff0de2:       f010 00ff       ands.w  r0, r0, #255    ; 0xff                   
-1fff0de6:       d109            bne.n   1fff0dfc <rounded_divide+0x67a>          
+1fff0de6:       d109            bne.n   1fff0dfc <handle_command_U+0x2a>         
 1fff0de8:       9900            ldr     r1, [sp, #0]                             
 1fff0dea:       f5a1 42b4       sub.w   r2, r1, #23040  ; 0x5a00                 
 1fff0dee:       3a5a            subs    r2, #90 ; 0x5a                           
-1fff0df0:       d103            bne.n   1fff0dfa <rounded_divide+0x678>          
+1fff0df0:       d103            bne.n   1fff0dfa <handle_command_U+0x28>         
 1fff0df2:       4adb            ldr     r2, [pc, #876]  ; (1fff1160 <&paramtable+0x4>) 
 1fff0df4:       2100            movs    r1, #0                                   
 1fff0df6:       6011            str     r1, [r2, #0]                             
-1fff0df8:       e000            b.n     1fff0dfc <rounded_divide+0x67a>          
+1fff0df8:       e000            b.n     1fff0dfc <handle_command_U+0x2a>         
 1fff0dfa:       2010            movs    r0, #16                                  
 1fff0dfc:       220f            movs    r2, #15                                  
 1fff0dfe:       6861            ldr     r1, [r4, #4]                             
 1fff0e00:       f000 fabd       bl      1fff137e <uint32_to_string>              
 1fff0e04:       f000 f9fc       bl      1fff1200 <write_str>                     
 1fff0e08:       bd38            pop     {r3, r4, r5, pc}                         
+
+1fff0e0a <handle_command_G>:
 1fff0e0a:       b538            push    {r3, r4, r5, lr}                         
 1fff0e0c:       48d4            ldr     r0, [pc, #848]  ; (1fff1160 <&paramtable+0x4>) 
 1fff0e0e:       4dd3            ldr     r5, [pc, #844]  ; (1fff115c <&paramtable>) 
 1fff0e10:       6800            ldr     r0, [r0, #0]                             
-1fff0e12:       b940            cbnz    r0, 1fff0e26 <rounded_divide+0x6a4>      
+1fff0e12:       b940            cbnz    r0, 1fff0e26 <handle_command_G+0x1c>     
 1fff0e14:       2400            movs    r4, #0                                   
 1fff0e16:       48d3            ldr     r0, [pc, #844]  ; (1fff1164 <&paramtable+0x8>) 
 1fff0e18:       6869            ldr     r1, [r5, #4]                             
 1fff0e1a:       f000 fa53       bl      1fff12c4 <strcmp>                        
-1fff0e1e:       b920            cbnz    r0, 1fff0e2a <rounded_divide+0x6a8>      
+1fff0e1e:       b920            cbnz    r0, 1fff0e2a <handle_command_G+0x20>     
 1fff0e20:       48d1            ldr     r0, [pc, #836]  ; (1fff1168 <&paramtable+0xc>) 
 1fff0e22:       9000            str     r0, [sp, #0]                             
-1fff0e24:       e00a            b.n     1fff0e3c <rounded_divide+0x6ba>          
+1fff0e24:       e00a            b.n     1fff0e3c <handle_command_G+0x32>         
 1fff0e26:       240f            movs    r4, #15                                  
-1fff0e28:       e00f            b.n     1fff0e4a <rounded_divide+0x6c8>          
+1fff0e28:       e00f            b.n     1fff0e4a <handle_command_G+0x40>         
 1fff0e2a:       2300            movs    r3, #0                                   
 1fff0e2c:       2266            movs    r2, #102        ; 0x66                   
 1fff0e2e:       4669            mov     r1, sp                                   
 1fff0e30:       6868            ldr     r0, [r5, #4]                             
 1fff0e32:       f7ff fc00       bl      1fff0636 <routine0636>                   
 1fff0e36:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0e3a:       d106            bne.n   1fff0e4a <rounded_divide+0x6c8>          
+1fff0e3a:       d106            bne.n   1fff0e4a <handle_command_G+0x40>         
 1fff0e3c:       68a8            ldr     r0, [r5, #8]                             
 1fff0e3e:       7800            ldrb    r0, [r0, #0]                             
 1fff0e40:       2854            cmp     r0, #84 ; 0x54                           
-1fff0e42:       d00e            beq.n   1fff0e62 <rounded_divide+0x6e0>          
+1fff0e42:       d00e            beq.n   1fff0e62 <handle_command_G+0x58>         
 1fff0e44:       2841            cmp     r0, #65 ; 0x41                           
-1fff0e46:       d000            beq.n   1fff0e4a <rounded_divide+0x6c8>          
+1fff0e46:       d000            beq.n   1fff0e4a <handle_command_G+0x40>         
 1fff0e48:       240c            movs    r4, #12                                  
 1fff0e4a:       220f            movs    r2, #15                                  
 1fff0e4c:       4620            mov     r0, r4                                   
@@ -1872,14 +1892,16 @@ Disassembly of section .bootrom:
 1fff0e50:       f000 fa95       bl      1fff137e <uint32_to_string>              
 1fff0e54:       f000 f9d4       bl      1fff1200 <write_str>                     
 1fff0e58:       2c00            cmp     r4, #0                                   
-1fff0e5a:       d101            bne.n   1fff0e60 <rounded_divide+0x6de>          
+1fff0e5a:       d101            bne.n   1fff0e60 <handle_command_G+0x56>         
 1fff0e5c:       9800            ldr     r0, [sp, #0]                             
 1fff0e5e:       4780            blx     r0                                       
 1fff0e60:       bd38            pop     {r3, r4, r5, pc}                         
 1fff0e62:       9800            ldr     r0, [sp, #0]                             
 1fff0e64:       f040 0001       orr.w   r0, r0, #1                               
 1fff0e68:       9000            str     r0, [sp, #0]                             
-1fff0e6a:       e7ee            b.n     1fff0e4a <rounded_divide+0x6c8>          
+1fff0e6a:       e7ee            b.n     1fff0e4a <handle_command_G+0x40>         
+
+1fff0e6c <handle_command_R>:
 1fff0e6c:       e92d 47fc       stmdb   sp!, {r2, r3, r4, r5, r6, r7, r8, r9, sl, lr} 
 1fff0e70:       4dba            ldr     r5, [pc, #744]  ; (1fff115c <&paramtable>) 
 1fff0e72:       2300            movs    r3, #0                                   
@@ -1888,7 +1910,7 @@ Disassembly of section .bootrom:
 1fff0e78:       68a8            ldr     r0, [r5, #8]                             
 1fff0e7a:       f7ff fbdc       bl      1fff0636 <routine0636>                   
 1fff0e7e:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0e82:       d106            bne.n   1fff0e92 <rounded_divide+0x710>          
+1fff0e82:       d106            bne.n   1fff0e92 <handle_command_R+0x26>         
 1fff0e84:       6868            ldr     r0, [r5, #4]                             
 1fff0e86:       2266            movs    r2, #102        ; 0x66                   
 1fff0e88:       a901            add     r1, sp, #4                               
@@ -1901,7 +1923,7 @@ Disassembly of section .bootrom:
 1fff0e98:       f000 fa71       bl      1fff137e <uint32_to_string>              
 1fff0e9c:       f000 f9b0       bl      1fff1200 <write_str>                     
 1fff0ea0:       2c00            cmp     r4, #0                                   
-1fff0ea2:       d147            bne.n   1fff0f34 <rounded_divide+0x7b2>          
+1fff0ea2:       d147            bne.n   1fff0f34 <handle_command_R+0xc8>         
 1fff0ea4:       f8df a2c4       ldr.w   sl, [pc, #708]  ; 1fff116c <&paramtable+0x10> 
 1fff0ea8:       e9dd 8700       ldrd    r8, r7, [sp]                             
 1fff0eac:       2600            movs    r6, #0                                   
@@ -1910,9 +1932,9 @@ Disassembly of section .bootrom:
 1fff0eb4:       2101            movs    r1, #1                                   
 1fff0eb6:       f8ca 1040       str.w   r1, [sl, #64]   ; 0x40                   
 1fff0eba:       f8da 0040       ldr.w   r0, [sl, #64]   ; 0x40                   
-1fff0ebe:       e032            b.n     1fff0f26 <rounded_divide+0x7a4>          
+1fff0ebe:       e032            b.n     1fff0f26 <handle_command_R+0xba>         
 1fff0ec0:       2d2d            cmp     r5, #45 ; 0x2d                           
-1fff0ec2:       dd00            ble.n   1fff0ec6 <rounded_divide+0x744>          
+1fff0ec2:       dd00            ble.n   1fff0ec6 <handle_command_R+0x5a>         
 1fff0ec4:       252d            movs    r5, #45 ; 0x2d                           
 1fff0ec6:       462a            mov     r2, r5                                   
 1fff0ec8:       49a9            ldr     r1, [pc, #676]  ; (1fff1170 <&paramtable+0x14>) 
@@ -1921,7 +1943,7 @@ Disassembly of section .bootrom:
 1fff0ed0:       4406            add     r6, r0                                   
 1fff0ed2:       48a7            ldr     r0, [pc, #668]  ; (1fff1170 <&paramtable+0x14>) 
 1fff0ed4:       f000 f994       bl      1fff1200 <write_str>                     
-1fff0ed8:       bb40            cbnz    r0, 1fff0f2c <rounded_divide+0x7aa>      
+1fff0ed8:       bb40            cbnz    r0, 1fff0f2c <handle_command_R+0xc0>     
 1fff0eda:       9801            ldr     r0, [sp, #4]                             
 1fff0edc:       1c64            adds    r4, r4, #1                               
 1fff0ede:       4428            add     r0, r5                                   
@@ -1930,8 +1952,8 @@ Disassembly of section .bootrom:
 1fff0ee4:       1b40            subs    r0, r0, r5                               
 1fff0ee6:       9000            str     r0, [sp, #0]                             
 1fff0ee8:       2c14            cmp     r4, #20                                  
-1fff0eea:       d000            beq.n   1fff0eee <rounded_divide+0x76c>          
-1fff0eec:       b9d8            cbnz    r0, 1fff0f26 <rounded_divide+0x7a4>      
+1fff0eea:       d000            beq.n   1fff0eee <handle_command_R+0x82>         
+1fff0eec:       b9d8            cbnz    r0, 1fff0f26 <handle_command_R+0xba>     
 1fff0eee:       220f            movs    r2, #15                                  
 1fff0ef0:       499f            ldr     r1, [pc, #636]  ; (1fff1170 <&paramtable+0x14>) 
 1fff0ef2:       4630            mov     r0, r6                                   
@@ -1942,23 +1964,25 @@ Disassembly of section .bootrom:
 1fff0f00:       489b            ldr     r0, [pc, #620]  ; (1fff1170 <&paramtable+0x14>) 
 1fff0f02:       f000 f9b0       bl      1fff1266 <read_str>                      
 1fff0f06:       f010 0fff       tst.w   r0, #255        ; 0xff                   
-1fff0f0a:       d10f            bne.n   1fff0f2c <rounded_divide+0x7aa>          
+1fff0f0a:       d10f            bne.n   1fff0f2c <handle_command_R+0xc0>         
 1fff0f0c:       4995            ldr     r1, [pc, #596]  ; (1fff1164 <&paramtable+0x8>) 
 1fff0f0e:       4898            ldr     r0, [pc, #608]  ; (1fff1170 <&paramtable+0x14>) 
 1fff0f10:       1ec9            subs    r1, r1, #3                               
 1fff0f12:       f000 f9d7       bl      1fff12c4 <strcmp>                        
-1fff0f16:       b910            cbnz    r0, 1fff0f1e <rounded_divide+0x79c>      
+1fff0f16:       b910            cbnz    r0, 1fff0f1e <handle_command_R+0xb2>     
 1fff0f18:       e9dd 8700       ldrd    r8, r7, [sp]                             
-1fff0f1c:       e001            b.n     1fff0f22 <rounded_divide+0x7a0>          
+1fff0f1c:       e001            b.n     1fff0f22 <handle_command_R+0xb6>         
 1fff0f1e:       e9cd 8700       strd    r8, r7, [sp]                             
 1fff0f22:       2400            movs    r4, #0                                   
 1fff0f24:       4626            mov     r6, r4                                   
 1fff0f26:       9d00            ldr     r5, [sp, #0]                             
 1fff0f28:       2d00            cmp     r5, #0                                   
-1fff0f2a:       dcc9            bgt.n   1fff0ec0 <rounded_divide+0x73e>          
+1fff0f2a:       dcc9            bgt.n   1fff0ec0 <handle_command_R+0x54>         
 1fff0f2c:       f8ca 9040       str.w   r9, [sl, #64]   ; 0x40                   
 1fff0f30:       f8da 0040       ldr.w   r0, [sl, #64]   ; 0x40                   
 1fff0f34:       e8bd 87fc       ldmia.w sp!, {r2, r3, r4, r5, r6, r7, r8, r9, sl, pc} 
+
+1fff0f38 <handle_command_W>:
 1fff0f38:       b5f0            push    {r4, r5, r6, r7, lr}                     
 1fff0f3a:       b085            sub     sp, #20                                  
 1fff0f3c:       4d87            ldr     r5, [pc, #540]  ; (1fff115c <&paramtable>) 
@@ -1968,7 +1992,7 @@ Disassembly of section .bootrom:
 1fff0f44:       9b02            ldr     r3, [sp, #8]                             
 1fff0f46:       f7ff fb76       bl      1fff0636 <routine0636>                   
 1fff0f4a:       f010 04ff       ands.w  r4, r0, #255    ; 0xff                   
-1fff0f4e:       d10d            bne.n   1fff0f6c <rounded_divide+0x7ea>          
+1fff0f4e:       d10d            bne.n   1fff0f6c <handle_command_W+0x34>         
 1fff0f50:       6868            ldr     r0, [r5, #4]                             
 1fff0f52:       2267            movs    r2, #103        ; 0x67                   
 1fff0f54:       a904            add     r1, sp, #16                              
@@ -1976,11 +2000,11 @@ Disassembly of section .bootrom:
 1fff0f58:       f7ff fb6d       bl      1fff0636 <routine0636>                   
 1fff0f5c:       b2c4            uxtb    r4, r0                                   
 1fff0f5e:       2c04            cmp     r4, #4                                   
-1fff0f60:       d101            bne.n   1fff0f66 <rounded_divide+0x7e4>          
+1fff0f60:       d101            bne.n   1fff0f66 <handle_command_W+0x2e>         
 1fff0f62:       240e            movs    r4, #14                                  
-1fff0f64:       e002            b.n     1fff0f6c <rounded_divide+0x7ea>          
+1fff0f64:       e002            b.n     1fff0f6c <handle_command_W+0x34>         
 1fff0f66:       2c02            cmp     r4, #2                                   
-1fff0f68:       d100            bne.n   1fff0f6c <rounded_divide+0x7ea>          
+1fff0f68:       d100            bne.n   1fff0f6c <handle_command_W+0x34>         
 1fff0f6a:       240d            movs    r4, #13                                  
 1fff0f6c:       f000 fbc7       bl      1fff16fe <unlock_bootblock>              
 1fff0f70:       4880            ldr     r0, [pc, #512]  ; (1fff1174 <&paramtable+0x18>) 
@@ -1988,13 +2012,13 @@ Disassembly of section .bootrom:
 1fff0f74:       6800            ldr     r0, [r0, #0]                             
 1fff0f76:       6809            ldr     r1, [r1, #0]                             
 1fff0f78:       4288            cmp     r0, r1                                   
-1fff0f7a:       d107            bne.n   1fff0f8c <rounded_divide+0x80a>          
+1fff0f7a:       d107            bne.n   1fff0f8c <handle_command_W+0x54>         
 1fff0f7c:       487f            ldr     r0, [pc, #508]  ; (1fff117c <&paramtable+0x20>) 
 1fff0f7e:       9904            ldr     r1, [sp, #16]                            
 1fff0f80:       6800            ldr     r0, [r0, #0]                             
 1fff0f82:       f500 7000       add.w   r0, r0, #512    ; 0x200                  
 1fff0f86:       4281            cmp     r1, r0                                   
-1fff0f88:       d200            bcs.n   1fff0f8c <rounded_divide+0x80a>          
+1fff0f88:       d200            bcs.n   1fff0f8c <handle_command_W+0x54>         
 1fff0f8a:       2413            movs    r4, #19                                  
 1fff0f8c:       f000 fbaf       bl      1fff16ee <lock_bootblock>                
 1fff0f90:       220f            movs    r2, #15                                  
@@ -2003,19 +2027,19 @@ Disassembly of section .bootrom:
 1fff0f96:       f000 f9f2       bl      1fff137e <uint32_to_string>              
 1fff0f9a:       f000 f931       bl      1fff1200 <write_str>                     
 1fff0f9e:       2c00            cmp     r4, #0                                   
-1fff0fa0:       d142            bne.n   1fff1028 <rounded_divide+0x8a6>          
+1fff0fa0:       d142            bne.n   1fff1028 <handle_command_W+0xf0>         
 1fff0fa2:       4625            mov     r5, r4                                   
 1fff0fa4:       9f02            ldr     r7, [sp, #8]                             
 1fff0fa6:       9e04            ldr     r6, [sp, #16]                            
-1fff0fa8:       e03b            b.n     1fff1022 <rounded_divide+0x8a0>          
+1fff0fa8:       e03b            b.n     1fff1022 <handle_command_W+0xea>         
 1fff0faa:       466a            mov     r2, sp                                   
 1fff0fac:       2146            movs    r1, #70 ; 0x46                           
 1fff0fae:       4870            ldr     r0, [pc, #448]  ; (1fff1170 <&paramtable+0x14>) 
 1fff0fb0:       f000 f959       bl      1fff1266 <read_str>                      
 1fff0fb4:       2800            cmp     r0, #0                                   
-1fff0fb6:       d137            bne.n   1fff1028 <rounded_divide+0x8a6>          
+1fff0fb6:       d137            bne.n   1fff1028 <handle_command_W+0xf0>         
 1fff0fb8:       9800            ldr     r0, [sp, #0]                             
-1fff0fba:       b168            cbz     r0, 1fff0fd8 <rounded_divide+0x856>      
+1fff0fba:       b168            cbz     r0, 1fff0fd8 <handle_command_W+0xa0>     
 1fff0fbc:       1c6d            adds    r5, r5, #1                               
 1fff0fbe:       aa01            add     r2, sp, #4                               
 1fff0fc0:       486b            ldr     r0, [pc, #428]  ; (1fff1170 <&paramtable+0x14>) 
@@ -2030,9 +2054,9 @@ Disassembly of section .bootrom:
 1fff0fd4:       1a08            subs    r0, r1, r0                               
 1fff0fd6:       9002            str     r0, [sp, #8]                             
 1fff0fd8:       2d14            cmp     r5, #20                                  
-1fff0fda:       d001            beq.n   1fff0fe0 <rounded_divide+0x85e>          
+1fff0fda:       d001            beq.n   1fff0fe0 <handle_command_W+0xa8>         
 1fff0fdc:       9802            ldr     r0, [sp, #8]                             
-1fff0fde:       bb00            cbnz    r0, 1fff1022 <rounded_divide+0x8a0>      
+1fff0fde:       bb00            cbnz    r0, 1fff1022 <handle_command_W+0xea>     
 1fff0fe0:       2000            movs    r0, #0                                   
 1fff0fe2:       9000            str     r0, [sp, #0]                             
 1fff0fe4:       466a            mov     r2, sp                                   
@@ -2042,20 +2066,20 @@ Disassembly of section .bootrom:
 1fff0fee:       9900            ldr     r1, [sp, #0]                             
 1fff0ff0:       b2c0            uxtb    r0, r0                                   
 1fff0ff2:       2900            cmp     r1, #0                                   
-1fff0ff4:       d0f6            beq.n   1fff0fe4 <rounded_divide+0x862>          
+1fff0ff4:       d0f6            beq.n   1fff0fe4 <handle_command_W+0xac>         
 1fff0ff6:       2800            cmp     r0, #0                                   
-1fff0ff8:       d116            bne.n   1fff1028 <rounded_divide+0x8a6>          
+1fff0ff8:       d116            bne.n   1fff1028 <handle_command_W+0xf0>         
 1fff0ffa:       a903            add     r1, sp, #12                              
 1fff0ffc:       485c            ldr     r0, [pc, #368]  ; (1fff1170 <&paramtable+0x14>) 
 1fff0ffe:       f000 f9a6       bl      1fff134e <string_to_uint32>              
 1fff1002:       9803            ldr     r0, [sp, #12]                            
 1fff1004:       4284            cmp     r4, r0                                   
-1fff1006:       d104            bne.n   1fff1012 <rounded_divide+0x890>          
+1fff1006:       d104            bne.n   1fff1012 <handle_command_W+0xda>         
 1fff1008:       4856            ldr     r0, [pc, #344]  ; (1fff1164 <&paramtable+0x8>) 
 1fff100a:       9f02            ldr     r7, [sp, #8]                             
 1fff100c:       1ec0            subs    r0, r0, #3                               
 1fff100e:       9e04            ldr     r6, [sp, #16]                            
-1fff1010:       e003            b.n     1fff101a <rounded_divide+0x898>          
+1fff1010:       e003            b.n     1fff101a <handle_command_W+0xe2>         
 1fff1012:       4854            ldr     r0, [pc, #336]  ; (1fff1164 <&paramtable+0x8>) 
 1fff1014:       9702            str     r7, [sp, #8]                             
 1fff1016:       1d40            adds    r0, r0, #5                               
@@ -2065,58 +2089,65 @@ Disassembly of section .bootrom:
 1fff1020:       462c            mov     r4, r5                                   
 1fff1022:       9802            ldr     r0, [sp, #8]                             
 1fff1024:       2800            cmp     r0, #0                                   
-1fff1026:       dcc0            bgt.n   1fff0faa <rounded_divide+0x828>          
+1fff1026:       dcc0            bgt.n   1fff0faa <handle_command_W+0x72>         
 1fff1028:       b005            add     sp, #20                                  
 1fff102a:       bdf0            pop     {r4, r5, r6, r7, pc}                     
 
-1fff102c <routine102c>:
+1fff102c <dispatch_command>:
 1fff102c:       b570            push    {r4, r5, r6, lr}                         ## push stuff
-1fff102e:       4d4b            ldr     r5, [pc, #300]  ; (1fff115c <&paramtable>) ## 
-1fff1030:       6828            ldr     r0, [r5, #0]                             
-1fff1032:       7800            ldrb    r0, [r0, #0]                             
-1fff1034:       3841            subs    r0, #65 ; 0x41                           
-1fff1036:       2817            cmp     r0, #23                                  
-1fff1038:       d27c            bcs.n   1fff1134 <routine102c+0x108>             
-1fff103a:       e8df f000       tbb     [pc, r0]                                 
-1fff103e:       181b            adds    r3, r3, r0                               
-1fff1040:       8b7c            ldrh    r4, [r7, #26]                            
-1fff1042:       8b7f            ldrh    r7, [r7, #26]                            
-1fff1044:       8b12            ldrh    r2, [r2, #24]                            
-1fff1046:       1e82            subs    r2, r0, #2                               
-1fff1048:       8b5a            ldrh    r2, [r3, #26]                            
-1fff104a:       2f85            cmp     r7, #133        ; 0x85                   
-1fff104c:       788b            ldrb    r3, [r1, #2]                             
-1fff104e:       0f8b            lsrs    r3, r1, #30                              
-1fff1050:       888b            ldrh    r3, [r1, #4]                             
-1fff1052:       8b15            ldrh    r5, [r2, #24]                            
-1fff1054:       000c            movs    r4, r1                                   
-1fff1056:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff105a:       e76d            b.n     1fff0f38 <rounded_divide+0x7b6>          
-1fff105c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1060:       e704            b.n     1fff0e6c <rounded_divide+0x6ea>          
-1fff1062:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1066:       e6d0            b.n     1fff0e0a <rounded_divide+0x688>          
-1fff1068:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff106c:       e6b1            b.n     1fff0dd2 <rounded_divide+0x650>          
-1fff106e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1072:       e659            b.n     1fff0d28 <rounded_divide+0x5a6>          
-1fff1074:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1078:       e63e            b.n     1fff0cf8 <rounded_divide+0x576>          
-1fff107a:       f000 fb40       bl      1fff16fe <unlock_bootblock>              
-1fff107e:       4840            ldr     r0, [pc, #256]  ; (1fff1180 <&paramtable+0x24>) 
-1fff1080:       6804            ldr     r4, [r0, #0]                             
-1fff1082:       f000 fb34       bl      1fff16ee <lock_bootblock>                
-1fff1086:       220f            movs    r2, #15                                  
-1fff1088:       2000            movs    r0, #0                                   
-1fff108a:       6869            ldr     r1, [r5, #4]                             
-1fff108c:       f000 f977       bl      1fff137e <uint32_to_string>              
-1fff1090:       f000 f8b6       bl      1fff1200 <write_str>                     
-1fff1094:       220f            movs    r2, #15                                  
-1fff1096:       4620            mov     r0, r4                                   
-1fff1098:       6869            ldr     r1, [r5, #4]                             
-1fff109a:       e042            b.n     1fff1122 <routine102c+0xf6>              
-1fff109c:       f000 fb2f       bl      1fff16fe <unlock_bootblock>              
-1fff10a0:       4838            ldr     r0, [pc, #224]  ; (1fff1184 <&paramtable+0x28>) 
+1fff102e:       4d4b            ldr     r5, [pc, #300]  ; (1fff115c <&paramtable>) ## r3=&paramtable
+1fff1030:       6828            ldr     r0, [r5, #0]                             ## r0=paramtable[0]
+1fff1032:       7800            ldrb    r0, [r0, #0]                             ## r0=paramtable[0][0]=command letter
+1fff1034:       3841            subs    r0, #65 ; 0x41                           ## r0-='A'
+1fff1036:       2817            cmp     r0, #23                                  ## check if command is in range
+1fff1038:       d27c            bcs.n   1fff1134 <dispatch_command+0x108>        ## jump if it is not
+1fff103a:       e8df f000       tbb     [pc, r0]                                 ## jump table
+1fff103e:       181b            adds    r3, r3, r0                               ## A, B
+1fff1040:       8b7c            ldrh    r4, [r7, #26]                            ## C, d
+1fff1042:       8b7f            ldrh    r7, [r7, #26]                            ## E, f
+1fff1044:       8b12            ldrh    r2, [r2, #24]                            ## G, h
+1fff1046:       1e82            subs    r2, r0, #2                               ## I, J
+1fff1048:       8b5a            ldrh    r2, [r3, #26]                            ## K, l
+1fff104a:       2f85            cmp     r7, #133        ; 0x85                   ## M, N
+1fff104c:       788b            ldrb    r3, [r1, #2]                             ## o, P
+1fff104e:       0f8b            lsrs    r3, r1, #30                              ## q, R
+1fff1050:       888b            ldrh    r3, [r1, #4]                             ## s, T (undocumented command)
+1fff1052:       8b15            ldrh    r5, [r2, #24]                            ## U, v
+1fff1054:       000c            movs    r4, r1                                   ## W, x (can't happen)
+1fff1056:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## W: pop stuff
+1fff105a:       e76d            b.n     1fff0f38 <handle_command_W>              ## tail call handle_command_W
+1fff105c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## R: pop stuff
+1fff1060:       e704            b.n     1fff0e6c <handle_command_R>              ## tail call handle_command_R
+1fff1062:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## G: pop stuff
+1fff1066:       e6d0            b.n     1fff0e0a <handle_command_G>              ## tail call handle_command_G
+1fff1068:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## U: pop stuff
+1fff106c:       e6b1            b.n     1fff0dd2 <handle_command_U>              ## tail call handle_command_U
+1fff106e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## B: pop stuff
+1fff1072:       e659            b.n     1fff0d28 <handle_command_B>              ## tail call handle_command_B
+1fff1074:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## A: pop stuff
+1fff1078:       e63e            b.n     1fff0cf8 <handle_command_A>              ## tail call handle_command_A
+## Command J - Read Part Identification Number
+## input - none
+## Return code - CMD_SUCCESS followed by part identification number in ASCII
+## Description - This command is used to read the part identification number 
+## [not part serial number - think of it as a model number]. The part identification
+## number maps to a feature subset within a device family. This number will not
+## normally change as a result of technical revisions.
+1fff107a:       f000 fb40       bl      1fff16fe <unlock_bootblock>              ## J: Execute directly. Unlock boot block
+1fff107e:       4840            ldr     r0, [pc, #256]  ; (1fff1180 <&boot[430]>) ## r0=&boot[430]
+1fff1080:       6804            ldr     r4, [r0, #0]                             ## r4=boot[430]
+1fff1082:       f000 fb34       bl      1fff16ee <lock_bootblock>                ## Lock boot block
+1fff1086:       220f            movs    r2, #15                                  ## r2=15
+1fff1088:       2000            movs    r0, #0                                   ## r0=0
+1fff108a:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff108c:       f000 f977       bl      1fff137e <uint32_to_string>              ## r0=uint_to_string(0,paramtable[1])
+1fff1090:       f000 f8b6       bl      1fff1200 <write_str>                     ## write_str(r0)
+1fff1094:       220f            movs    r2, #15                                  ## r2=15
+1fff1096:       4620            mov     r0, r4                                   ## r0=r4=boot[430]
+1fff1098:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff109a:       e042            b.n     1fff1122 <dispatch_command+0xf6>         ## jump down, hijack the return code printing mechanism to print the device id
+1fff109c:       f000 fb2f       bl      1fff16fe <unlock_bootblock>              ## N: Execute directly. Unlock boot block
+1fff10a0:       4838            ldr     r0, [pc, #224]  ; (1fff1184 <&boot[430]+0x4>) 
 1fff10a2:       220f            movs    r2, #15                                  
 1fff10a4:       6804            ldr     r4, [r0, #0]                             
 1fff10a6:       2000            movs    r0, #0                                   
@@ -2143,45 +2174,45 @@ Disassembly of section .bootrom:
 1fff10e0:       68e0            ldr     r0, [r4, #12]                            
 1fff10e2:       f000 f94c       bl      1fff137e <uint32_to_string>              
 1fff10e6:       f000 f88b       bl      1fff1200 <write_str>                     
-1fff10ea:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff10ee:       f000 bafe       b.w     1fff16ee <lock_bootblock>                
-1fff10f2:       f000 fb04       bl      1fff16fe <unlock_bootblock>              
-1fff10f6:       4824            ldr     r0, [pc, #144]  ; (1fff1188 <&paramtable+0x2c>) 
-1fff10f8:       6804            ldr     r4, [r0, #0]                             
-1fff10fa:       f000 faf8       bl      1fff16ee <lock_bootblock>                
-1fff10fe:       220f            movs    r2, #15                                  
-1fff1100:       2000            movs    r0, #0                                   
-1fff1102:       6869            ldr     r1, [r5, #4]                             
-1fff1104:       f000 f93b       bl      1fff137e <uint32_to_string>              
-1fff1108:       f000 f87a       bl      1fff1200 <write_str>                     
-1fff110c:       220f            movs    r2, #15                                  
-1fff110e:       b2e0            uxtb    r0, r4                                   
-1fff1110:       6869            ldr     r1, [r5, #4]                             
-1fff1112:       f000 f934       bl      1fff137e <uint32_to_string>              
-1fff1116:       f000 f873       bl      1fff1200 <write_str>                     
-1fff111a:       f3c4 2007       ubfx    r0, r4, #8, #8                           
+1fff10ea:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## pop stuff
+1fff10ee:       f000 bafe       b.w     1fff16ee <lock_bootblock>                ## tail call lock_bootblock
+1fff10f2:       f000 fb04       bl      1fff16fe <unlock_bootblock>              ## K: Execute directly. Unlock boot block
+1fff10f6:       4824            ldr     r0, [pc, #144]  ; (1fff1188 <&boot[434]>) ## r0=&boot[434]
+1fff10f8:       6804            ldr     r4, [r0, #0]                             ## r4=boot[434]
+1fff10fa:       f000 faf8       bl      1fff16ee <lock_bootblock>                ## lock boot block
+1fff10fe:       220f            movs    r2, #15                                  ## r2=15
+1fff1100:       2000            movs    r0, #0                                   ## r0=0, CMD_SUCCESS
+1fff1102:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[0]
+1fff1104:       f000 f93b       bl      1fff137e <uint32_to_string>              ## convert result to ASCII string
+1fff1108:       f000 f87a       bl      1fff1200 <write_str>                     ## print it out
+1fff110c:       220f            movs    r2, #15                                  ## r2=15
+1fff110e:       b2e0            uxtb    r0, r4                                   ## r0=r4[7:0]
+1fff1110:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[0]
+1fff1112:       f000 f934       bl      1fff137e <uint32_to_string>              ## convert it to a string
+1fff1116:       f000 f873       bl      1fff1200 <write_str>                     ## write it out
+1fff111a:       f3c4 2007       ubfx    r0, r4, #8, #8                           ## 
 1fff111e:       220f            movs    r2, #15                                  
 1fff1120:       6869            ldr     r1, [r5, #4]                             
-1fff1122:       f000 f92c       bl      1fff137e <uint32_to_string>              
-1fff1126:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff112a:       f000 b869       b.w     1fff1200 <write_str>                     
-1fff112e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1132:       e5bc            b.n     1fff0cae <rounded_divide+0x52c>          
-1fff1134:       e00e            b.n     1fff1154 <routine102c+0x128>             
-1fff1136:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff113a:       e56c            b.n     1fff0c16 <rounded_divide+0x494>          
-1fff113c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1140:       e4ff            b.n     1fff0b42 <rounded_divide+0x3c0>          
-1fff1142:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1146:       e4b4            b.n     1fff0ab2 <rounded_divide+0x330>          
-1fff1148:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff114c:       e478            b.n     1fff0a40 <rounded_divide+0x2be>          
-1fff114e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    
-1fff1152:       e421            b.n     1fff0998 <rounded_divide+0x216>          
-1fff1154:       220f            movs    r2, #15                                  
-1fff1156:       2001            movs    r0, #1                                   
+1fff1122:       f000 f92c       bl      1fff137e <uint32_to_string>              ## write return value
+1fff1126:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## pop stuff
+1fff112a:       f000 b869       b.w     1fff1200 <write_str>                     ## tail call write_str
+1fff112e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## P: pop stuff
+1fff1132:       e5bc            b.n     1fff0cae <handle_command_P>              ## tail call routine0cae
+1fff1134:       e00e            b.n     1fff1154 <dispatch_command+0x128>        ## default: jump to undefined
+1fff1136:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## C: pop stuff
+1fff113a:       e56c            b.n     1fff0c16 <handle_command_C>              
+1fff113c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## E: pop stuff
+1fff1140:       e4ff            b.n     1fff0b42 <handle_command_E>              
+1fff1142:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## I: pop stuff
+1fff1146:       e4b4            b.n     1fff0ab2 <handle_command_I>              
+1fff1148:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## M: pop stuff
+1fff114c:       e478            b.n     1fff0a40 <handle_command_M>              
+1fff114e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## T: pop stuff
+1fff1152:       e421            b.n     1fff0998 <handle_command_T>              
+1fff1154:       220f            movs    r2, #15                                  ## Undefined: set up return value
+1fff1156:       2001            movs    r0, #1                                   ## return code invalid command
 1fff1158:       6869            ldr     r1, [r5, #4]                             
-1fff115a:       e7e2            b.n     1fff1122 <routine102c+0xf6>              
+1fff115a:       e7e2            b.n     1fff1122 <dispatch_command+0xf6>         
 
 1fff115c <&paramtable>:
 1fff115c:       100001bc        .word   0x100001bc                               
@@ -2201,40 +2232,16 @@ Disassembly of section .bootrom:
 1fff117a:       1fff            subs    r7, r7, #7                               
 1fff117c:       0438            lsls    r0, r7, #16                              
 1fff117e:       0010            movs    r0, r2                                   
-1fff1180:       0430            lsls    r0, r6, #16                              
-1fff1182:       0010            movs    r0, r2                                   
-1fff1184:       05dc            lsls    r4, r3, #23                              
-1fff1186:       0010            movs    r0, r2                                   
-1fff1188:       0434            lsls    r4, r6, #16                              
-1fff118a:       0010            movs    r0, r2                                   
+
+1fff1180 <&boot[430]>:
+1fff1180:       00100430        .word   0x00100430                               
+1fff1184:       001005dc        .word   0x001005dc                               
+
+1fff1188 <&boot[434]>:
+1fff1188:       00100434        .word   0x00100434                               
 
 1fff118c <set_baud>:
-## Sets the baud rate DLM/DLL registers
-## input:
-##   r0: timing       
-##   r1: lcr          - if scale_timing!=0, then number of stop bits-1, otherwise value to put into U0LCR. 
-##   r2: scale_timing - appears to be some scaling factor for timing parameter. 0 indicates timing 
-##                      is immediately suitable for sticking in UDLM/UDLL, other indicates math must be done
-## Rough C translation:
-## void set_baud(int timing, int lcr, int scale_timing) {
-##   //lcr starts in r1, gets copied to r4
-##   if(scale_timing!=0) {
-##     timing=rounded_divide(scale_timing*1000,timing*26);
-##     if(lcr==1) {
-##       lcr=3;
-##     } else {
-##       lcr=7;
-##     }
-##   }
-##   while((U0LSR & (1<<6))==0) ; //Loop while TEMT bit is cleared, indicating data to be transmitted
-##   U0LCR=0x80; //set DLAB, other values to 0 (reset values)
-##   U0DLL=timing; //only low 8 bits actually get in
-##   U0DLM=timing>>8; //Again, only low 8 bits actually get in
-##   U0LCR=0x00; //clear DLAB
-##   U0FCR=1; //enable the FIFOs, reset them if they weren't enabled
-##   
-## }
-1fff118c:       b510            push    {r4, lr}                                 ## push stuff
+1fff118c:       b510            push    {r4, lr}                                 
 1fff118e:       460c            mov     r4, r1                                   ## r4=lcr
 1fff1190:       b162            cbz     r2, 1fff11ac <set_baud+0x20>             ## if r2 is zero, skip the next block
 1fff1192:       211a            movs    r1, #26                                  ## r1=26

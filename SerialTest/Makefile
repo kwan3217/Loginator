@@ -102,10 +102,26 @@ ARM_SYMBOLS+=--add-symbol '$$t=.bootrom:0x62C,local'
 ARM_SYMBOLS+=--add-symbol 'routine062c=.bootrom:0x62c'
 ARM_SYMBOLS+=--add-symbol 'routine0636=.bootrom:0x636'
 ARM_SYMBOLS+=--add-symbol 'rounded_divide=.bootrom:0x782'
-ARM_SYMBOLS+=--add-symbol 'routine102c=.bootrom:0x102c'
+ARM_SYMBOLS+=--add-symbol 'handle_command_T=.bootrom:0x998'
+ARM_SYMBOLS+=--add-symbol 'handle_command_M=.bootrom:0xa40'
+ARM_SYMBOLS+=--add-symbol 'handle_command_I=.bootrom:0xab2'
+ARM_SYMBOLS+=--add-symbol 'handle_command_E=.bootrom:0xb42'
+ARM_SYMBOLS+=--add-symbol 'handle_command_C=.bootrom:0xc16'
+ARM_SYMBOLS+=--add-symbol 'handle_command_P=.bootrom:0xcae'
+ARM_SYMBOLS+=--add-symbol 'handle_command_A=.bootrom:0xcf8'
+ARM_SYMBOLS+=--add-symbol 'handle_command_B=.bootrom:0xd28'
+ARM_SYMBOLS+=--add-symbol 'handle_command_U=.bootrom:0xdd2'
+ARM_SYMBOLS+=--add-symbol 'handle_command_G=.bootrom:0xe0a'
+ARM_SYMBOLS+=--add-symbol 'handle_command_R=.bootrom:0xe6c'
+ARM_SYMBOLS+=--add-symbol 'handle_command_W=.bootrom:0xf38'
+ARM_SYMBOLS+=--add-symbol 'dispatch_command=.bootrom:0x102c'
 ARM_SYMBOLS+=--add-symbol '$$d=.bootrom:0x115c,local'
 ARM_SYMBOLS+=--add-symbol '&paramtable=.bootrom:0x115c'
 ARM_SYMBOLS+=--add-symbol '$$t=.bootrom:0x1160,local'
+ARM_SYMBOLS+=--add-symbol '$$d=.bootrom:0x1180,local'
+ARM_SYMBOLS+=--add-symbol '&boot[430]=.bootrom:0x1180'
+ARM_SYMBOLS+=--add-symbol '&boot[434]=.bootrom:0x1188'
+ARM_SYMBOLS+=--add-symbol '$$t=.bootrom:0x118c,local'
 ARM_SYMBOLS+=--add-symbol 'set_baud=.bootrom:0x118c'
 ARM_SYMBOLS+=--add-symbol 'write_char=.bootrom:0x11ca'
 ARM_SYMBOLS+=--add-symbol 'read_and_echo=.bootrom:0x11d6'
@@ -164,4 +180,4 @@ mbed_blinky.disasm: mbed_blinky.elf Makefile notes.txt ../DumpIap/asm_note.pl
 	arm-none-eabi-objdump -d -marm -z $< | perl ../DumpIap/asm_note.pl notes.txt > $@
 
 bootstrap.trace: bootstrap.disasm
-	java -classpath ../../../build/ org.kwansystems.emulator.bootrom.Emulator > $@
+	java -classpath ../../../build/ org.kwansystems.emulator.arm.Emulator > $@
