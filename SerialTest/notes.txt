@@ -1367,8 +1367,10 @@ Disassembly of section .bootrom:
 1fff0996:       0020            movs    r0, r4                                   
 
 1fff0998 <handle_command_T>:
+## Undocumented command T
+## 
 1fff0998:       b57f            push    {r0, r1, r2, r3, r4, r5, r6, lr}         ## push r4-6, lr, and make room for 4 local variables
-1fff099a:       4dff            ldr     r5, [pc, #1020] ; (1fff0d98 <handle_command_B+0x70>) 
+1fff099a:       4dff            ldr     r5, [pc, #1020] ; (1fff0d98 <handle_command_B+0x70>) ## r5=
 1fff099c:       2264            movs    r2, #100        ; 0x64                   
 1fff099e:       68a8            ldr     r0, [r5, #8]                             
 1fff09a0:       4669            mov     r1, sp                                   
@@ -2146,73 +2148,85 @@ Disassembly of section .bootrom:
 1fff1096:       4620            mov     r0, r4                                   ## r0=r4=boot[430]
 1fff1098:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
 1fff109a:       e042            b.n     1fff1122 <dispatch_command+0xf6>         ## jump down, hijack the return code printing mechanism to print the device id
+## Command N - Read device serial number
+## Input - None.
+## Return Code - CMD_SUCCESS followed by the device serial number in 4 decimal 
+##               ASCII groups, each representing a 32-bit value.
+## Description - This command is used to read the device serial number. The 
+##               serial number may be used to uniquely identify a single unit 
+##               among all devices of the same part number.
 1fff109c:       f000 fb2f       bl      1fff16fe <unlock_bootblock>              ## N: Execute directly. Unlock boot block
-1fff10a0:       4838            ldr     r0, [pc, #224]  ; (1fff1184 <&boot[430]+0x4>) 
-1fff10a2:       220f            movs    r2, #15                                  
-1fff10a4:       6804            ldr     r4, [r0, #0]                             
-1fff10a6:       2000            movs    r0, #0                                   
-1fff10a8:       6869            ldr     r1, [r5, #4]                             
-1fff10aa:       f000 f968       bl      1fff137e <uint32_to_string>              
-1fff10ae:       f000 f8a7       bl      1fff1200 <write_str>                     
-1fff10b2:       6869            ldr     r1, [r5, #4]                             
-1fff10b4:       220f            movs    r2, #15                                  
-1fff10b6:       6820            ldr     r0, [r4, #0]                             
-1fff10b8:       f000 f961       bl      1fff137e <uint32_to_string>              
-1fff10bc:       f000 f8a0       bl      1fff1200 <write_str>                     
-1fff10c0:       6869            ldr     r1, [r5, #4]                             
-1fff10c2:       220f            movs    r2, #15                                  
-1fff10c4:       6860            ldr     r0, [r4, #4]                             
-1fff10c6:       f000 f95a       bl      1fff137e <uint32_to_string>              
-1fff10ca:       f000 f899       bl      1fff1200 <write_str>                     
-1fff10ce:       6869            ldr     r1, [r5, #4]                             
-1fff10d0:       220f            movs    r2, #15                                  
-1fff10d2:       68a0            ldr     r0, [r4, #8]                             
-1fff10d4:       f000 f953       bl      1fff137e <uint32_to_string>              
-1fff10d8:       f000 f892       bl      1fff1200 <write_str>                     
-1fff10dc:       6869            ldr     r1, [r5, #4]                             
-1fff10de:       220f            movs    r2, #15                                  
-1fff10e0:       68e0            ldr     r0, [r4, #12]                            
-1fff10e2:       f000 f94c       bl      1fff137e <uint32_to_string>              
-1fff10e6:       f000 f88b       bl      1fff1200 <write_str>                     
+1fff10a0:       4838            ldr     r0, [pc, #224]  ; (1fff1184 <&boot[430]+0x4>) ## r0=&boot[5dc]
+1fff10a2:       220f            movs    r2, #15                                  ## r2=15
+1fff10a4:       6804            ldr     r4, [r0, #0]                             ## r4=boot[5dc]
+1fff10a6:       2000            movs    r0, #0                                   ## r0=0, CMD_SUCCESS
+1fff10a8:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff10aa:       f000 f968       bl      1fff137e <uint32_to_string>              ## r0=uint32_to_string(0,paramtable[1],15)
+1fff10ae:       f000 f8a7       bl      1fff1200 <write_str>                     ## write_str(r0)
+1fff10b2:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff10b4:       220f            movs    r2, #15                                  ## r2=15
+1fff10b6:       6820            ldr     r0, [r4, #0]                             ## r0=boot[5dc], first word of serial number
+1fff10b8:       f000 f961       bl      1fff137e <uint32_to_string>              ## r0=uint32_to_string(0,paramtable[1],15)
+1fff10bc:       f000 f8a0       bl      1fff1200 <write_str>                     ## write_str(r0)
+1fff10c0:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff10c2:       220f            movs    r2, #15                                  ## r2=15
+1fff10c4:       6860            ldr     r0, [r4, #4]                             ## r0=boot[5e0], second word of serial number
+1fff10c6:       f000 f95a       bl      1fff137e <uint32_to_string>              ## r0=uint32_to_string(0,paramtable[1],15)
+1fff10ca:       f000 f899       bl      1fff1200 <write_str>                     ## write_str(r0)
+1fff10ce:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff10d0:       220f            movs    r2, #15                                  ## r2=15
+1fff10d2:       68a0            ldr     r0, [r4, #8]                             ## r0=boot[5e4], third word of serial number
+1fff10d4:       f000 f953       bl      1fff137e <uint32_to_string>              ## r0=uint32_to_string(0,paramtable[1],15)
+1fff10d8:       f000 f892       bl      1fff1200 <write_str>                     ## write_str(r0)
+1fff10dc:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff10de:       220f            movs    r2, #15                                  ## r2=15
+1fff10e0:       68e0            ldr     r0, [r4, #12]                            ## r0=boot[5e8], fourth word of serial number
+1fff10e2:       f000 f94c       bl      1fff137e <uint32_to_string>              ## r0=uint32_to_string(0,paramtable[1],15)
+1fff10e6:       f000 f88b       bl      1fff1200 <write_str>                     ## write_str(r0)
 1fff10ea:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## pop stuff
 1fff10ee:       f000 bafe       b.w     1fff16ee <lock_bootblock>                ## tail call lock_bootblock
+## Command K - Read Boot Code Version Number
+## Input - None
+## Return Code - CMD_SUCCESS followed by 2 bytes of boot code version number in
+##               ASCII format. It is to be interpreted as <byte1(Major)>.<byte0(Minor)>.
+## Description - This command is used to read the boot code version number.
 1fff10f2:       f000 fb04       bl      1fff16fe <unlock_bootblock>              ## K: Execute directly. Unlock boot block
-1fff10f6:       4824            ldr     r0, [pc, #144]  ; (1fff1188 <&boot[430]>) 
-1fff10f8:       6804            ldr     r4, [r0, #0]                             
-1fff10fa:       f000 faf8       bl      1fff16ee <lock_bootblock>                
-1fff10fe:       220f            movs    r2, #15                                  
-1fff1100:       2000            movs    r0, #0                                   
-1fff1102:       6869            ldr     r1, [r5, #4]                             
-1fff1104:       f000 f93b       bl      1fff137e <uint32_to_string>              
-1fff1108:       f000 f87a       bl      1fff1200 <write_str>                     
-1fff110c:       220f            movs    r2, #15                                  
-1fff110e:       b2e0            uxtb    r0, r4                                   
-1fff1110:       6869            ldr     r1, [r5, #4]                             
-1fff1112:       f000 f934       bl      1fff137e <uint32_to_string>              
-1fff1116:       f000 f873       bl      1fff1200 <write_str>                     
-1fff111a:       f3c4 2007       ubfx    r0, r4, #8, #8                           
-1fff111e:       220f            movs    r2, #15                                  
-1fff1120:       6869            ldr     r1, [r5, #4]                             
-1fff1122:       f000 f92c       bl      1fff137e <uint32_to_string>              ## write return value
+1fff10f6:       4824            ldr     r0, [pc, #144]  ; (1fff1188 <&boot[434]>) ## r0=&boot[434]
+1fff10f8:       6804            ldr     r4, [r0, #0]                             ## r4=boot[434]
+1fff10fa:       f000 faf8       bl      1fff16ee <lock_bootblock>                ## lock boot block
+1fff10fe:       220f            movs    r2, #15                                  ## r2=15
+1fff1100:       2000            movs    r0, #0                                   ## r0=0, CMD_SUCCESS
+1fff1102:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[0]
+1fff1104:       f000 f93b       bl      1fff137e <uint32_to_string>              ## convert result to ASCII string
+1fff1108:       f000 f87a       bl      1fff1200 <write_str>                     ## print it out
+1fff110c:       220f            movs    r2, #15                                  ## r2=15
+1fff110e:       b2e0            uxtb    r0, r4                                   ## r0=r4[7:0]
+1fff1110:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[0]
+1fff1112:       f000 f934       bl      1fff137e <uint32_to_string>              ## convert it to a string
+1fff1116:       f000 f873       bl      1fff1200 <write_str>                     ## write it out
+1fff111a:       f3c4 2007       ubfx    r0, r4, #8, #8                           ## r0=r4[15:8]
+1fff111e:       220f            movs    r2, #15                                  ## r2=15
+1fff1120:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff1122:       f000 f92c       bl      1fff137e <uint32_to_string>              ## write last string and get ready to return. This is a popular jump target, also reached directly through command K
 1fff1126:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## pop stuff
 1fff112a:       f000 b869       b.w     1fff1200 <write_str>                     ## tail call write_str
 1fff112e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## P: pop stuff
 1fff1132:       e5bc            b.n     1fff0cae <handle_command_P>              ## tail call routine0cae
 1fff1134:       e00e            b.n     1fff1154 <dispatch_command+0x128>        ## default: jump to undefined
 1fff1136:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## C: pop stuff
-1fff113a:       e56c            b.n     1fff0c16 <handle_command_C>              
+1fff113a:       e56c            b.n     1fff0c16 <handle_command_C>              ## tail call handle_command_C
 1fff113c:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## E: pop stuff
-1fff1140:       e4ff            b.n     1fff0b42 <handle_command_E>              
+1fff1140:       e4ff            b.n     1fff0b42 <handle_command_E>              ## tail call handle_command_E
 1fff1142:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## I: pop stuff
-1fff1146:       e4b4            b.n     1fff0ab2 <handle_command_I>              
+1fff1146:       e4b4            b.n     1fff0ab2 <handle_command_I>              ## tail call handle_command_I
 1fff1148:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## M: pop stuff
-1fff114c:       e478            b.n     1fff0a40 <handle_command_M>              
+1fff114c:       e478            b.n     1fff0a40 <handle_command_M>              ## tail call handle_command_M
 1fff114e:       e8bd 4070       ldmia.w sp!, {r4, r5, r6, lr}                    ## T: pop stuff
-1fff1152:       e421            b.n     1fff0998 <handle_command_T>              
+1fff1152:       e421            b.n     1fff0998 <handle_command_T>              ## tail call handle_command_T
 1fff1154:       220f            movs    r2, #15                                  ## Undefined: set up return value
 1fff1156:       2001            movs    r0, #1                                   ## return code invalid command
-1fff1158:       6869            ldr     r1, [r5, #4]                             
-1fff115a:       e7e2            b.n     1fff1122 <dispatch_command+0xf6>         
+1fff1158:       6869            ldr     r1, [r5, #4]                             ## r1=paramtable[1]
+1fff115a:       e7e2            b.n     1fff1122 <dispatch_command+0xf6>         ## jump back up to print return code and return
 
 1fff115c <&paramtable>:
 1fff115c:       100001bc        .word   0x100001bc                               
@@ -2237,7 +2251,7 @@ Disassembly of section .bootrom:
 1fff1180:       00100430        .word   0x00100430                               
 1fff1184:       001005dc        .word   0x001005dc                               
 
-1fff1188 <&boot[430]>:
+1fff1188 <&boot[434]>:
 1fff1188:       00100434        .word   0x00100434                               
 
 1fff118c <set_baud>:
